@@ -17,6 +17,8 @@ const barterNeeds = [];
 const barterMatchAlerts = [];
 const accounts = new Map();         // Chart of Accounts
 const journalEntriesList = [];      // Double-entry lines
+const vouchers = [];                // سندات: { id, type, date, amountSYP, accountId, memo, entryIds, ... }
+const stockMovements = [];         // حركات مخزون: { id, productId, unitId, qty, type: 'in'|'out', refType, refId, date }
 const debtLedger = [];              // { id, debtorId, amountSYP, amountGoldAtTx, dueDate, ... }
 const actionLog = [];               // Audit trail
 const exchangeRates = new Map();
@@ -40,6 +42,8 @@ export const store = {
   barterMatchAlerts,
   accounts,
   journalEntriesList,
+  vouchers,
+  stockMovements,
   debtLedger,
   actionLog,
   exchangeRates,

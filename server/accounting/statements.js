@@ -119,3 +119,53 @@ export function getCashFlowStatement(fromDate, toDate) {
     netChangeInCash: netOperating,
   };
 }
+
+/**
+ * كشف الحساب (Statement of Account): حركات حساب مع الرصيد الجاري.
+ * Returns: { accountId, accountName, rows: [{ date, memo, debit, credit, balance }], openingBalance, closingBalance }
+ */
+export function getAccountStatement(accountId, fromDate = null, toDate = null) {
+  if (!accounts.has(accountId))
+    return { success: false, error: 'الحساب غير موجود' };
+  const acc = accounts.get(accountId);
+  const list = (journalEntriesList || []).filter((e) => !e.deleted);
+  const relevant = list.filter(
+    (e) => (e.debitAccountId === accountId || e.creditAccountId === accountId)
+  );
+  const beforeFrom = fromDate ? relevant.filter((e) => e.date < fromDate) : [];
+  let openingBalance = 0;
+  for (const e of beforeFrom) {
+    if (e.debitAccountId === accountId) openingBalance += e.amountSYP || 0;
+    if (e.creditAccountId === accountId) openingBalance -= e.amountSYP || 0;
+  }
+  let filtered = relevant;
+  if (fromDate) filtered = filtered.filter((e) => e.date >= fromDate);
+  if (toDate) filtered = filtered.filter((e) => e.date <= toDate);
+  filtered.sort((a, b) => a.date.localeCompare(b.date));
+
+  const rows = [];
+  let running = openingBalance;
+  for (const e of filtered) {
+    const debit = e.debitAccountId === accountId ? (e.amountSYP || 0) : 0;
+    const credit = e.creditAccountId === accountId ? (e.amountSYP || 0) : 0;
+    running += debit - credit;
+    rows.push({
+      date: e.date,
+      memo: e.memo || '',
+      debit,
+      credit,
+      balance: running,
+      entryId: e.id,
+    });
+  }
+  return {
+    accountId,
+    accountCode: acc.code,
+    accountName: acc.name,
+    fromDate: fromDate || null,
+    toDate: toDate || null,
+    openingBalance,
+    closingBalance: running,
+    rows,
+  };
+}

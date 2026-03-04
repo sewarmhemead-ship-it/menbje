@@ -15,9 +15,10 @@ import * as valuation from '../currency/valuation.js';
 import * as audit from '../audit/actionLog.js';
 import * as statements from '../accounting/statements.js';
 import * as debtLedger from '../accounting/debtLedger.js';
+import * as vouchers from '../accounting/vouchers.js';
 
 const router = Router();
-const { products, units, draftOrders, accounts } = store;
+const { products, units, draftOrders, accounts, stockMovements } = store;
 
 // —— Products & Units (for dashboard and WhatsApp resolver) ——
 router.get('/products', (req, res) => {
@@ -25,9 +26,18 @@ router.get('/products', (req, res) => {
 });
 
 router.post('/products', (req, res) => {
-  const { name, sku, defaultUnitId, costPerDefaultUnit } = req.body;
+  const { name, sku, barcode, defaultUnitId, costPerDefaultUnit, salesPricePerUnit } = req.body;
   const id = getNextId('products');
-  const p = { id, name, sku: sku || id, defaultUnitId: defaultUnitId || 'piece', costPerDefaultUnit: Number(costPerDefaultUnit) || 0, active: true };
+  const p = {
+    id,
+    name,
+    sku: sku || id,
+    barcode: barcode || null,
+    defaultUnitId: defaultUnitId || 'piece',
+    costPerDefaultUnit: Number(costPerDefaultUnit) || 0,
+    salesPricePerUnit: salesPricePerUnit != null ? Number(salesPricePerUnit) : null,
+    active: true,
+  };
   products.set(id, p);
   res.status(201).json({ success: true, data: p });
 });
@@ -35,12 +45,15 @@ router.post('/products', (req, res) => {
 router.patch('/products/:id', (req, res) => {
   const p = products.get(req.params.id);
   if (!p) return res.status(404).json({ success: false, error: 'Product not found' });
-  const { costPerDefaultUnit } = req.body;
+  const { costPerDefaultUnit, salesPricePerUnit, barcode, name } = req.body;
   if (costPerDefaultUnit !== undefined) {
     const oldVal = p.costPerDefaultUnit;
     p.costPerDefaultUnit = Number(costPerDefaultUnit);
     audit.logPriceChange('Product', p.id, oldVal, p.costPerDefaultUnit, req.body.userId || 'api');
   }
+  if (salesPricePerUnit !== undefined) p.salesPricePerUnit = Number(salesPricePerUnit);
+  if (barcode !== undefined) p.barcode = barcode || null;
+  if (name !== undefined) p.name = name;
   res.json({ success: true, data: p });
 });
 
@@ -134,6 +147,19 @@ router.get('/journal', (req, res) => {
   res.json({ success: true, data: list });
 });
 
+router.post('/journal', (req, res) => {
+  try {
+    const { date, lines, createdBy } = req.body;
+    if (!lines || !Array.isArray(lines) || lines.length === 0)
+      return res.status(400).json({ success: false, error: 'lines required (array of { accountId, debit, credit, memo })' });
+    const result = vouchers.postJournalVoucher({ lines, date: date || null, createdBy: createdBy || 'user' });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 router.post('/journal/:id/void', (req, res) => {
   try {
     const { reasonCode, deletedBy } = req.body;
@@ -157,11 +183,23 @@ router.get('/currency/exchange-gain-loss', (req, res) => {
   }
 });
 
-// —— Financial Statements (ميزان مراجعة، قائمة الأرباح والخسائر، التدفقات النقدية) ——
+// —— Financial Statements (ميزان مراجعة، قائمة الأرباح والخسائر، التدفقات النقدية، كشف الحساب) ——
 router.get('/statements/trial-balance', (req, res) => {
   try {
     const { asOfDate } = req.query;
     const data = statements.getTrialBalance(asOfDate || null);
+    res.json({ success: true, data });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/statements/account', (req, res) => {
+  try {
+    const { accountId, fromDate, toDate } = req.query;
+    if (!accountId) return res.status(400).json({ success: false, error: 'accountId required' });
+    const data = statements.getAccountStatement(accountId, fromDate || null, toDate || null);
+    if (data.error) return res.status(400).json({ success: false, error: data.error });
     res.json({ success: true, data });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -211,6 +249,96 @@ router.get('/audit', (req, res) => {
     const { action, entityType, fromDate, limit } = req.query;
     const list = audit.listActionLog({ action, entityType, fromDate, limit: limit ? Number(limit) : 200 });
     res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Vouchers (سند قبض، دفع، قيد، تحويل) ——
+router.get('/vouchers', (req, res) => {
+  const { type, fromDate, toDate } = req.query;
+  const list = vouchers.listVouchers({ type, fromDate, toDate });
+  res.json({ success: true, data: list });
+});
+
+router.post('/vouchers/receipt', (req, res) => {
+  try {
+    const { cashAccountId, creditAccountId, amountSYP, memo, createdBy } = req.body;
+    if (!creditAccountId || amountSYP == null) return res.status(400).json({ success: false, error: 'creditAccountId and amountSYP required' });
+    const result = vouchers.postReceiptVoucher({ cashAccountId, creditAccountId, amountSYP: Number(amountSYP), memo, createdBy });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/vouchers/payment', (req, res) => {
+  try {
+    const { creditAccountId, debitAccountId, amountSYP, memo, createdBy } = req.body;
+    if (!debitAccountId || amountSYP == null) return res.status(400).json({ success: false, error: 'debitAccountId and amountSYP required' });
+    const result = vouchers.postPaymentVoucher({ creditAccountId, debitAccountId, amountSYP: Number(amountSYP), memo, createdBy });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/vouchers/journal', (req, res) => {
+  try {
+    const { date, lines, createdBy } = req.body;
+    if (!lines || !Array.isArray(lines)) return res.status(400).json({ success: false, error: 'lines required' });
+    const result = vouchers.postJournalVoucher({ lines, date, createdBy });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/vouchers/transfer', (req, res) => {
+  try {
+    const { fromAccountId, toAccountId, amountInFromCurrency, rateToSYP, memo, createdBy } = req.body;
+    if (!fromAccountId || !toAccountId || amountInFromCurrency == null || !rateToSYP)
+      return res.status(400).json({ success: false, error: 'fromAccountId, toAccountId, amountInFromCurrency, rateToSYP required' });
+    const result = vouchers.postTransferVoucher({ fromAccountId, toAccountId, amountInFromCurrency: Number(amountInFromCurrency), rateToSYP: Number(rateToSYP), memo, createdBy });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Inventory: stock movements (حركات مخزون) ——
+router.get('/inventory/movements', (req, res) => {
+  const { productId, fromDate, toDate, type } = req.query;
+  let list = [...(stockMovements || [])];
+  if (productId) list = list.filter((m) => m.productId === productId);
+  if (fromDate) list = list.filter((m) => m.date >= fromDate);
+  if (toDate) list = list.filter((m) => m.date <= toDate);
+  if (type) list = list.filter((m) => m.type === type);
+  list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+  res.json({ success: true, data: list });
+});
+
+router.post('/inventory/movements', (req, res) => {
+  try {
+    const { productId, unitId, quantity, type, refType, refId } = req.body;
+    if (!productId || quantity == null) return res.status(400).json({ success: false, error: 'productId and quantity required' });
+    const id = getNextId('stockMovements');
+    const movement = {
+      id,
+      productId,
+      unitId: unitId || 'piece',
+      quantity: Number(quantity),
+      type: type === 'out' ? 'out' : 'in',
+      refType: refType || null,
+      refId: refId || null,
+      date: new Date().toISOString(),
+    };
+    stockMovements.push(movement);
+    res.status(201).json({ success: true, data: movement });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
