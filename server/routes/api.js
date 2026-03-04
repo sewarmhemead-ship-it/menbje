@@ -21,7 +21,6 @@ import { recordStockMovement } from '../inventory/stockMovement.js';
 import * as procurement from '../modules/procurement/index.js';
 import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
-import * as statements from '../accounting/statements.js';
 import * as backup from '../backup/index.js';
 
 const router = Router();
