@@ -31,9 +31,14 @@ app.use('/webhook/whatsapp', whatsappRoutes);
 
 seedDemoData();
 
-app.listen(PORT, () => {
-  console.log(`POS Unified System running at http://localhost:${PORT}`);
-  console.log(`Dashboard: http://localhost:${PORT}/dashboard/`);
-  console.log(`API: http://localhost:${PORT}/api/`);
-  console.log(`WhatsApp webhook: http://localhost:${PORT}/webhook/whatsapp`);
-});
+// Only listen when not on Vercel (serverless handles requests there)
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`POS Unified System running at http://localhost:${PORT}`);
+    console.log(`Dashboard: http://localhost:${PORT}/dashboard/`);
+    console.log(`API: http://localhost:${PORT}/api/`);
+    console.log(`WhatsApp webhook: http://localhost:${PORT}/webhook/whatsapp`);
+  });
+}
+
+export default app;
