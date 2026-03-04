@@ -17,31 +17,58 @@
 </head>
 <body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen flex items-center justify-center p-4">
   <div class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl">
-    <div class="text-center mb-8">
+    <div class="text-center mb-6">
       <h1 class="text-2xl font-bold text-white">Vault AI</h1>
       <p class="text-slate-500 text-sm mt-1">محاسبة ومؤسسات عالمية</p>
     </div>
-    <div id="login-form">
-      <input type="email" id="login-email" placeholder="البريد الإلكتروني" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-      <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
-      <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
-      <button type="button" id="btn-show-register" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">إنشاء حساب جديد</button>
+    <div class="flex gap-2 mb-6 rounded-xl bg-white/5 p-1">
+      <button type="button" id="btn-mode-customer" class="login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">دخول كزبون</button>
+      <button type="button" id="btn-mode-admin" class="login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent">دخول كأدمن</button>
     </div>
-    <div id="register-form" class="hidden">
-      <input type="email" id="reg-email" placeholder="البريد الإلكتروني" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-      <input type="password" id="reg-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-      <p id="reg-error" class="text-rose-400 text-sm mb-3 hidden"></p>
-      <p id="reg-success" class="text-emerald-400 text-sm mb-3 hidden"></p>
-      <button type="button" id="btn-register" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">إنشاء الحساب</button>
-      <button type="button" id="btn-show-login" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">لديك حساب؟ تسجيل الدخول</button>
+
+    <div id="customer-panel">
+      <div id="login-form">
+        <input type="email" id="login-email" placeholder="البريد الإلكتروني" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
+        <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
+        <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
+        <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
+        <button type="button" id="btn-show-register" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">إنشاء حساب جديد</button>
+      </div>
+      <div id="register-form" class="hidden">
+        <input type="email" id="reg-email" placeholder="البريد الإلكتروني" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
+        <input type="password" id="reg-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
+        <p id="reg-error" class="text-rose-400 text-sm mb-3 hidden"></p>
+        <p id="reg-success" class="text-emerald-400 text-sm mb-3 hidden"></p>
+        <button type="button" id="btn-register" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">إنشاء الحساب</button>
+        <button type="button" id="btn-show-login" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">لديك حساب؟ تسجيل الدخول</button>
+      </div>
     </div>
-    <p class="text-center mt-6">
-      <a href="super-admin.html" class="text-amber-400/80 hover:text-amber-300 text-xs">لوحة Super Admin</a>
-    </p>
+
+    <div id="admin-panel" class="hidden">
+      <p class="text-slate-400 text-sm mb-4 text-center">لوحة إدارة النظام. أدخل المفتاح السري في الصفحة التالية.</p>
+      <a href="super-admin.html" class="block w-full py-3 rounded-xl bg-amber-500/20 text-amber-400 font-medium text-center border border-amber-500/30 hover:bg-amber-500/30 transition-colors">دخول بالمفتاح السري</a>
+    </div>
   </div>
   <script>
     const API = window.location.origin + '/api';
+
+    document.getElementById('btn-mode-customer').onclick = () => {
+      document.getElementById('customer-panel').classList.remove('hidden');
+      document.getElementById('admin-panel').classList.add('hidden');
+      const c = document.getElementById('btn-mode-customer');
+      const a = document.getElementById('btn-mode-admin');
+      c.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
+      a.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent';
+    };
+    document.getElementById('btn-mode-admin').onclick = () => {
+      document.getElementById('customer-panel').classList.add('hidden');
+      document.getElementById('admin-panel').classList.remove('hidden');
+      const c = document.getElementById('btn-mode-customer');
+      const a = document.getElementById('btn-mode-admin');
+      c.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent';
+      a.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-amber-500/20 text-amber-400 border border-amber-500/30';
+    };
+
     document.getElementById('btn-show-register').onclick = () => {
       document.getElementById('login-form').classList.add('hidden');
       document.getElementById('register-form').classList.remove('hidden');
