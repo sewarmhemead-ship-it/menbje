@@ -1,0 +1,740 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0b1220" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>Vault AI · محاسبة ومؤسسات عالمية</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Cairo', 'system-ui', 'sans-serif'] },
+          colors: {
+            midnight: { 950: '#0b1220', 900: '#0f172a', 800: '#1e293b', 700: '#334155' },
+            emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' },
+          },
+        },
+      },
+    };
+  </script>
+  <style>
+    .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); }
+    .sidebar-item.active { background: rgba(16, 185, 129, 0.15); border-right: 3px solid #10b981; color: #34d399; }
+    .barter-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .barter-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px -12px rgba(16, 185, 129, 0.25); }
+    .ring-progress { transform: rotate(90deg); }
+    .detail-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
+    .detail-panel.open { max-height: 400px; }
+    [data-section] { display: none; }
+    [data-section].active { display: block; animation: fadeIn 0.3s ease; }
+    .mobile-nav-btn.active { color: #34d399; }
+    @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+    .tap-haptic { transition: transform 0.1s ease, opacity 0.1s ease; -webkit-tap-highlight-color: transparent; }
+    .tap-haptic:active { transform: scale(0.97); opacity: 0.9; }
+    .bottom-nav { background: rgba(11, 18, 32, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); }
+    .fab { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
+    .fab:active { transform: scale(0.92); }
+    .splash-out { animation: splashOut 0.5s ease forwards; }
+    @keyframes splashOut { to { opacity: 0; pointer-events: none; } }
+    .barter-swipe { touch-action: pan-y; }
+    .barter-swipe.swipe-right { animation: swipeRight 0.3s ease forwards; }
+    .barter-swipe.swipe-left { animation: swipeLeft 0.3s ease forwards; }
+    @keyframes swipeRight { to { transform: translateX(120%); opacity: 0; } }
+    @keyframes swipeLeft { to { transform: translateX(-120%); opacity: 0; } }
+  </style>
+</head>
+<body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen antialiased">
+  <!-- Biometric splash (mobile-first) -->
+  <div id="splash" class="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0b1220] transition-opacity duration-500">
+    <div class="w-24 h-24 rounded-full border-4 border-emerald-500/50 flex items-center justify-center mb-6">
+      <svg class="w-12 h-12 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 11c0 3.517-1.009 6.799-2.753 9.571m-3.44-2.04l.054-.09A13.916 13.916 0 008 11a4 4 0 118 0c0 1.017-.07 2.019-.203 3m-2.118 6.844A21.88 21.88 0 0015.171 17m3.839 1.132c.645-2.266.99-4.659.99-7.132A8 8 0 008 4.07M3 15.364c.64-1.319 1-2.8 1-4.364 0-1.457.39-2.823 1.07-4"/></svg>
+    </div>
+    <p class="text-slate-400 text-sm">جاري التحقق...</p>
+    <p class="text-slate-500 text-xs mt-1">Vault AI</p>
+  </div>
+
+  <!-- Offline / Low connection indicator -->
+  <div id="offline-indicator" class="hidden fixed top-0 left-0 right-0 z-50 py-2 px-4 bg-amber-500/20 border-b border-amber-500/30 text-amber-200 text-center text-sm">
+    عمل دون اتصال · سيتم مزامنة البيانات عند الاتصال
+  </div>
+
+  <div class="flex min-h-screen">
+    <!-- Sidebar (desktop only) -->
+    <aside id="sidebar" class="hidden md:flex glass fixed right-0 top-0 z-40 h-full w-20 hover:w-64 transition-all duration-300 flex-col border-l border-white/5">
+      <div class="p-4 flex items-center gap-3 border-b border-white/5">
+        <div class="w-10 h-10 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+          <svg class="w-6 h-6 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
+        </div>
+        <span id="sidebar-logo" class="text-lg font-semibold text-white whitespace-nowrap opacity-0 hover:opacity-100 transition-opacity truncate">Vault AI</span>
+      </div>
+      <nav class="flex-1 py-4 space-y-1">
+        <button onclick="showSection('accounting')" data-nav="accounting" class="sidebar-item active w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">المحاسبة</span>
+        </button>
+        <button onclick="showSection('barter')" data-nav="barter" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">المقايضة</span>
+        </button>
+        <button onclick="showSection('vision')" data-nav="vision" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">المسح</span>
+        </button>
+        <button onclick="showSection('inventory')" data-nav="inventory" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">المخزون</span>
+        </button>
+        <button onclick="showSection('currency')" data-nav="currency" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">العملات</span>
+        </button>
+        <button onclick="showSection('whatsapp')" data-nav="whatsapp" class="sidebar-item w-full flex items-center gap-3 px-4 py-3 text-right text-slate-400 hover:text-slate-200 hover:bg-white/5 transition-colors">
+          <div class="w-9 h-9 rounded-lg bg-midnight-800 flex items-center justify-center shrink-0"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></div>
+          <span class="whitespace-nowrap opacity-0 sidebar-label">واتساب</span>
+        </button>
+      </nav>
+    </aside>
+
+    <!-- Main: single-column on mobile, margin for sidebar on desktop -->
+    <main class="flex-1 mr-0 md:mr-20 transition-all duration-300 p-4 md:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden">
+      <header class="mb-6 md:mb-8 pb-4 md:pb-6 border-b border-white/5">
+        <h1 class="text-xl md:text-2xl lg:text-3xl font-semibold text-white tracking-tight">Vault AI</h1>
+        <p class="text-slate-500 text-xs md:text-sm mt-1 hidden sm:block">محاسبة ومؤسسات عالمية · قيد مزدوج · عملة شبحية · ربح القوة الشرائية</p>
+      </header>
+
+      <!-- Dashboard (mobile default / overview) -->
+      <section id="section-dashboard" data-section>
+        <h2 class="text-lg md:text-xl font-semibold text-white mb-1">لوحة التحكم</h2>
+        <p class="text-slate-500 text-sm mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
+        <div class="flex flex-col gap-4">
+          <div class="glass-card rounded-2xl p-4">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
+            <div id="dashboard-tb" class="text-white text-sm">جاري التحميل…</div>
+          </div>
+          <div class="glass-card rounded-2xl p-4 flex flex-col items-center">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">ربح القوة الشرائية</h3>
+            <div class="flex items-baseline gap-2"><span id="dashboard-pl" class="text-2xl font-semibold text-emerald-400">—</span><span class="text-slate-500 text-sm">ل.س</span></div>
+          </div>
+          <div class="glass-card rounded-2xl p-4">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">آخر النشاط</h3>
+            <div id="dashboard-journal" class="text-slate-300 text-sm">جاري التحميل…</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Accounting -->
+      <section id="section-accounting" data-section class="active">
+        <h2 class="text-xl font-semibold text-white mb-1">المحاسبة</h2>
+        <p class="text-slate-500 text-sm mb-6">دفتر قيود مزدوج. كل بيع أو مقايضة يُسجّل مدين ودائن. ميزان مراجعة، أرباح وخسائر، تدفق نقدي.</p>
+        <div class="bento grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-md:flex max-md:flex-col">
+          <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
+            <div id="trial-balance-content" class="text-white">جاري التحميل…</div>
+            <button type="button" onclick="toggleDetail('tb-detail')" class="mt-3 text-xs text-emerald-400 hover:underline transition-opacity hover:opacity-80">عرض التفاصيل</button>
+            <div id="tb-detail" class="detail-panel mt-2"><pre id="tb-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden font-mono"></pre></div>
+          </div>
+          <div class="glass-card rounded-2xl p-5 flex flex-col items-center justify-center">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">ربح القوة الشرائية (الأرباح والخسائر)</h3>
+            <p class="text-xs text-slate-500 mb-1">أخضر = ربح · أحمر = خسارة تضخم</p>
+            <div class="relative w-36 h-36">
+              <svg class="ring-progress w-full h-full" viewBox="0 0 36 36">
+                <path class="text-slate-700" fill="none" stroke="currentColor" stroke-width="2.5" d="M18 2.084 a 15.916 15.916 0 0 1 0 31.832 a 15.916 15.916 0 0 1 0 -31.832" />
+                <path id="pl-ring-profit" class="text-emerald-500" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="0, 100" stroke-linecap="round" d="M18 2.084 a 15.916 15.916 0 0 1 0 31.832 a 15.916 15.916 0 0 1 0 -31.832" />
+                <path id="pl-ring-loss" class="text-rose-500" fill="none" stroke="currentColor" stroke-width="2.5" stroke-dasharray="0, 100" stroke-dashoffset="0" stroke-linecap="round" d="M18 2.084 a 15.916 15.916 0 0 1 0 31.832 a 15.916 15.916 0 0 1 0 -31.832" />
+              </svg>
+              <div class="absolute inset-0 flex flex-col items-center justify-center">
+                <span id="pl-true-value" class="text-lg font-semibold text-white">—</span>
+                <span class="text-xs text-slate-500">ل.س</span>
+              </div>
+            </div>
+            <button type="button" onclick="toggleDetail('pl-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+            <div id="pl-detail" class="detail-panel"><pre id="pl-raw" class="text-xs text-slate-500 overflow-auto max-h-32 hidden"></pre></div>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">التدفق النقدي</h3>
+            <div id="cashflow-content" class="text-white">جاري التحميل…</div>
+            <button type="button" onclick="toggleDetail('cf-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+            <div id="cf-detail" class="detail-panel"><pre id="cf-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          </div>
+          <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">دفتر القيود</h3>
+            <p class="text-xs text-slate-500 mb-1">كل بيع أو مقايضة → مدين ودائن</p>
+            <div id="journal-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <button type="button" onclick="toggleDetail('j-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+            <div id="j-detail" class="detail-panel"><pre id="j-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden"></pre></div>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">تسجيل الذمم المدينة</h3>
+            <input type="number" id="debt-amount" value="1000" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="المبلغ ل.س" />
+            <input type="text" id="debt-debtor" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="العميل (اختياري)" />
+            <button type="button" onclick="recordDebt()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">تسجيل</button>
+            <div id="debt-list" class="text-xs text-slate-500 mt-2"></div>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">سجل التدقيق</h3>
+            <div id="audit-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <button type="button" onclick="toggleDetail('audit-detail')" class="mt-2 text-xs text-emerald-400 hover:underline" title="للمراجعين">عرض التفاصيل</button>
+            <div id="audit-detail" class="detail-panel"><pre id="audit-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Barter: Match Center -->
+      <section id="section-barter" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">مركز المقايضة الذكي</h2>
+        <p class="text-slate-500 text-sm mb-6">بطاقات مطابقة. أضف فائضاً → تنبيهات مطابقة لما تحتاجه. القيمة العادلة (ل.س) لموازنة الصفقة. اضغط لتأكيد مطابقة الصفقة → يُسجّل في الدفتر.</p>
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">إضافة فائض</h3>
+            <select id="barter-surplus-product" class="tap-haptic w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none"><option value="">جاري التحميل…</option></select>
+            <input type="number" id="barter-surplus-qty" value="1" min="1" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" />
+            <button type="button" onclick="addBarterSurplus()" class="tap-haptic w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إضافة فائض</button>
+          </div>
+          <div class="lg:col-span-2">
+            <h3 class="text-sm font-medium text-slate-400 mb-3">اسحب لليمين للمطابقة · لليسار للتخطي · أو اضغط للتأكيد</h3>
+            <div id="barter-match-alerts" class="grid grid-cols-1 sm:grid-cols-2 gap-4 max-sm:flex max-sm:flex-col"></div>
+            <div id="barter-content" class="text-slate-500 text-sm mt-3"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Vision -->
+      <section id="section-vision" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">المسح · فاتورة OCR</h2>
+        <p class="text-slate-500 text-sm mb-6">ارفع صورة فاتورة. استخراج المنتجات والكميات → يُضاف للمخزون (أول صادر أول وارد) ويُسجّل في دفتر المشتريات.</p>
+        <div class="bento grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="glass-card rounded-2xl p-6">
+            <label class="block text-sm font-medium text-slate-400 mb-2">مسح الفاتورة (الكاميرا على الجوال)</label>
+            <input type="file" id="vision-file" accept="image/*" capture="environment" class="block w-full text-sm text-slate-400 file:ml-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500/20 file:text-emerald-400" />
+            <button type="button" onclick="document.getElementById('vision-file').click()" class="tap-haptic mt-3 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors md:hidden">فتح الكاميرا</button>
+            <button type="button" onclick="uploadVision()" class="tap-haptic mt-3 w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">رفع واستخراج</button>
+          </div>
+          <div class="glass-card rounded-2xl p-6">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">آخر مسح</h3>
+            <div id="vision-content" class="text-slate-300 text-sm">لا توجد عناصر بعد.</div>
+            <button type="button" onclick="toggleDetail('vision-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+            <div id="vision-detail" class="detail-panel"><pre id="vision-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Inventory -->
+      <section id="section-inventory" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">المخزون · نظام التجزئة الذكي</h2>
+        <p class="text-slate-500 text-sm mb-6">قواعد الوحدات (مثلاً 1 كرتون = 24 قطعة). تكلفة أول صادر أول وارد. الأسعار بالل.س عند تحديد السعر.</p>
+        <div class="glass-card rounded-2xl p-6">
+          <div id="fractioning-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+          <button type="button" onclick="toggleDetail('inv-detail')" class="mt-3 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+          <div id="inv-detail" class="detail-panel"><pre id="inv-raw" class="text-xs text-slate-500 hidden"></pre></div>
+        </div>
+      </section>
+
+      <!-- Currency -->
+      <section id="section-currency" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">محرك العملة الشبحية</h2>
+        <p class="text-slate-500 text-sm mb-6">تسعير مرجعي دولار/ذهب؛ المعاملات بالل.س. اتجاه ل.س/دولار 7 أيام. مكاسب/خسائر الصرف = ربح القوة الشرائية مقابل التضخم.</p>
+        <div class="bento grid grid-cols-1 lg:grid-cols-3 gap-4">
+          <div class="glass-card rounded-2xl p-5 lg:col-span-2">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">ل.س/دولار · اتجاه 7 أيام</h3>
+            <div class="h-48 sm:h-64 min-h-[200px]"><canvas id="currency-chart"></canvas></div>
+            <button type="button" onclick="syncSYP()" class="mt-3 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">مزامنة سعر الل.س</button>
+          </div>
+          <div class="glass-card rounded-2xl p-5">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الأسعار الآن (دولار · مرجع ذهب)</h3>
+            <div id="multi-currency-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">مكاسب/خسائر الصرف</h3>
+            <div id="fx-content" class="text-slate-300 text-sm">—</div>
+            <button type="button" onclick="toggleDetail('fx-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+            <div id="fx-detail" class="detail-panel"><pre id="fx-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- WhatsApp -->
+      <section id="section-whatsapp" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">واتساب · محاكاة محادثة</h2>
+        <p class="text-slate-500 text-sm mb-6">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
+        <div class="glass-card rounded-2xl p-6 max-w-xl">
+          <input type="text" id="whatsapp-message" value="هل عندكم حليب؟" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="الرسالة" />
+          <button type="button" onclick="simulateWhatsApp()" class="w-full py-3 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إرسال رسالة محاكاة</button>
+          <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">طلبات مسودة</h3>
+          <div id="drafts-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+          <button type="button" onclick="toggleDetail('wa-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
+          <div id="wa-detail" class="detail-panel"><pre id="wa-raw" class="text-xs text-slate-500 hidden"></pre></div>
+        </div>
+      </section>
+
+      <!-- Settings (mobile nav) -->
+      <section id="section-settings" data-section>
+        <h2 class="text-xl font-semibold text-white mb-1">الإعدادات</h2>
+        <p class="text-slate-500 text-sm mb-6">المخزون، واتساب، التدقيق. عمل دون اتصال أولاً.</p>
+        <div class="flex flex-col gap-4">
+          <button type="button" onclick="showSection('inventory')" class="tap-haptic glass-card rounded-2xl p-4 text-right flex items-center gap-3">
+            <span class="text-2xl">📦</span>
+            <span class="text-white font-medium">المخزون ونظام التجزئة</span>
+          </button>
+          <button type="button" onclick="showSection('whatsapp')" class="tap-haptic glass-card rounded-2xl p-4 text-right flex items-center gap-3">
+            <span class="text-2xl">💬</span>
+            <span class="text-white font-medium">مسودات واتساب</span>
+          </button>
+          <div class="glass-card rounded-2xl p-4">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">سجل التدقيق</h3>
+            <div id="settings-audit" class="text-slate-300 text-sm">—</div>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Mobile Bottom Nav -->
+  <nav class="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bottom-nav safe-area-pb">
+    <div class="flex-1 flex items-center justify-around py-2">
+      <button type="button" onclick="showSection('dashboard'); setMobileNav('dashboard');" data-mobile-nav="dashboard" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+        <span class="text-[10px]">الرئيسية</span>
+      </button>
+      <button type="button" onclick="showSection('barter'); setMobileNav('barter');" data-mobile-nav="barter" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        <span class="text-[10px]">المقايضة</span>
+      </button>
+      <div class="flex-shrink-0 w-14 h-14 -mt-5 flex items-center justify-center">
+        <button type="button" id="fab" class="fab tap-haptic w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center text-white" onclick="openQuickSale()" title="بيع سريع / إضافة قيد">
+          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+        </button>
+      </div>
+      <button type="button" onclick="showSection('vision'); setMobileNav('scan'); document.getElementById('vision-file').click();" data-mobile-nav="scan" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4M14 12v.01"/></svg>
+        <span class="text-[10px]">الكاميرا</span>
+      </button>
+      <button type="button" onclick="showSection('accounting'); setMobileNav('wallet');" data-mobile-nav="wallet" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <span class="text-[10px]">المحفظة</span>
+      </button>
+      <button type="button" onclick="showSection('settings'); setMobileNav('settings');" data-mobile-nav="settings" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span class="text-[10px]">الإعدادات</span>
+      </button>
+    </div>
+  </nav>
+
+  <!-- Quick Sale modal (mobile FAB) -->
+  <div id="quick-sale-modal" class="hidden fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/50 backdrop-blur-sm" onclick="if(event.target===this) closeQuickSale()">
+    <div class="glass-card rounded-t-2xl sm:rounded-2xl w-full max-w-md max-h-[80vh] overflow-auto p-6 tap-haptic" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-semibold text-white mb-4">بيع سريع / إضافة قيد</h3>
+      <p class="text-slate-500 text-sm mb-4">تسجيل بيع سريع أو إضافة قيد في دفتر القيود. المحاسبة الكاملة في المحفظة.</p>
+      <button type="button" onclick="showSection('accounting'); setMobileNav('wallet'); closeQuickSale();" class="tap-haptic w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-medium mb-2">الذهاب إلى المحفظة (المحاسبة)</button>
+      <button type="button" onclick="showSection('barter'); setMobileNav('barter'); closeQuickSale();" class="tap-haptic w-full py-3 rounded-xl bg-white/10 text-slate-300 font-medium">إضافة فائض مقايضة</button>
+      <button type="button" onclick="closeQuickSale()" class="tap-haptic w-full py-2 rounded-lg text-slate-500 text-sm mt-2">إلغاء</button>
+    </div>
+  </div>
+
+  <script>
+    const API = window.location.origin + '/api';
+    let currencyChart = null;
+    let rateHistory = [];
+
+    function showSection(id) {
+      document.querySelectorAll('[data-section]').forEach(s => { s.classList.remove('active'); });
+      document.querySelectorAll('[data-nav]').forEach(n => { n.classList.remove('active'); });
+      const section = document.getElementById('section-' + id);
+      const nav = document.querySelector('[data-nav="' + id + '"]');
+      if (section) section.classList.add('active');
+      if (nav) nav.classList.add('active');
+    }
+
+    function setMobileNav(id) {
+      document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
+      const nav = document.querySelector('[data-mobile-nav="' + id + '"]');
+      if (nav) nav.classList.add('active');
+    }
+
+    function openQuickSale() {
+      document.getElementById('quick-sale-modal').classList.remove('hidden');
+    }
+    function closeQuickSale() {
+      document.getElementById('quick-sale-modal').classList.add('hidden');
+    }
+
+    function toggleDetail(id) {
+      const panel = document.getElementById(id);
+      if (!panel) return;
+      panel.classList.toggle('open');
+      const pre = panel.querySelector('pre');
+      if (pre) pre.classList.toggle('hidden', !panel.classList.contains('open'));
+    }
+
+    var sidebar = document.getElementById('sidebar');
+    if (sidebar) {
+      sidebar.addEventListener('mouseenter', () => {
+        document.querySelectorAll('.sidebar-label').forEach(el => el.style.opacity = '1');
+        var logo = document.getElementById('sidebar-logo');
+        if (logo) logo.classList.remove('opacity-0');
+      });
+      sidebar.addEventListener('mouseleave', () => {
+        document.querySelectorAll('.sidebar-label').forEach(el => el.style.opacity = '0');
+        var logo = document.getElementById('sidebar-logo');
+        if (logo) logo.classList.add('opacity-0');
+      });
+    }
+
+    setTimeout(function() {
+      var s = document.getElementById('splash');
+      if (s) { s.classList.add('splash-out'); setTimeout(function() { s.remove(); }, 600); }
+    }, 1500);
+
+    function updateOfflineIndicator() {
+      var el = document.getElementById('offline-indicator');
+      if (!el) return;
+      if (!navigator.onLine) el.classList.remove('hidden'); else el.classList.add('hidden');
+    }
+    window.addEventListener('online', updateOfflineIndicator);
+    window.addEventListener('offline', updateOfflineIndicator);
+    updateOfflineIndicator();
+
+    async function fetchJson(path) {
+      const r = await fetch(API + path);
+      if (!r.ok) throw new Error(r.statusText);
+      return r.json();
+    }
+    async function postJson(path, body) {
+      const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || r.statusText);
+      return j;
+    }
+
+    function renderTrialBalance(data) {
+      const el = document.getElementById('trial-balance-content');
+      const dashTb = document.getElementById('dashboard-tb');
+      if (!data?.data) { if (el) el.innerHTML = '<span class="text-rose-400">لا توجد بيانات</span>'; if (dashTb) dashTb.textContent = '—'; return; }
+      const d = data.data;
+      const html = '<p class="text-white font-medium">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p><p class="text-slate-500 text-sm">إجمالي مدين ' + (d.totalDebit || 0) + ' · دائن ' + (d.totalCredit || 0) + ' ل.س</p>';
+      if (el) el.innerHTML = html;
+      if (dashTb) dashTb.innerHTML = html;
+      const raw = document.getElementById('tb-raw');
+      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+    }
+
+    function renderPL(data) {
+      if (!data?.data) return;
+      const d = data.data;
+      const trueProfit = d.trueProfit != null ? Number(d.trueProfit) : 0;
+      const loss = d.exchangeGainLossSYP != null && d.exchangeGainLossSYP < 0 ? Math.abs(d.exchangeGainLossSYP) : 0;
+      const total = Math.max(trueProfit, 0) + loss || 1;
+      const profitPct = total ? (Math.max(0, trueProfit) / total) * 100 : 0;
+      const lossPct = total ? (loss / total) * 100 : 0;
+      const elVal = document.getElementById('pl-true-value');
+      if (elVal) elVal.textContent = trueProfit;
+      const circumference = 2 * Math.PI * 15.916;
+      const profitDash = (profitPct / 100) * circumference;
+      const lossDash = (lossPct / 100) * circumference;
+      const profitRing = document.getElementById('pl-ring-profit');
+      const lossRing = document.getElementById('pl-ring-loss');
+      if (profitRing) profitRing.setAttribute('stroke-dasharray', profitDash + ',' + (circumference - profitDash));
+      if (lossRing) {
+        lossRing.setAttribute('stroke-dasharray', lossDash + ',' + (circumference - lossDash));
+        lossRing.setAttribute('stroke-dashoffset', -profitDash);
+      }
+      const plRaw = document.getElementById('pl-raw');
+      if (plRaw) plRaw.textContent = JSON.stringify(d, null, 2);
+      const dashPl = document.getElementById('dashboard-pl');
+      if (dashPl) dashPl.textContent = trueProfit;
+    }
+
+    function renderCashflow(data) {
+      const el = document.getElementById('cashflow-content');
+      if (!data?.data) return;
+      const d = data.data;
+      const op = d.operating || {};
+      el.innerHTML = '<p class="text-white font-medium">صافي التشغيل: ' + (op.net || 0) + ' ل.س</p><p class="text-slate-500 text-sm">وارد ' + (op.inflows || 0) + ' / صادر ' + (op.outflows || 0) + ' ل.س</p>';
+      const raw = document.getElementById('cf-raw');
+      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+    }
+
+    function renderJournal(data) {
+      const el = document.getElementById('journal-content');
+      const dashJ = document.getElementById('dashboard-journal');
+      if (!data?.data) return;
+      const list = data.data;
+      if (!list.length) {
+        if (el) el.innerHTML = '<p class="text-slate-500">لا توجد قيود بعد. المبيعات وتأكيد المقايضة والذمم تنشئها.</p>';
+        if (dashJ) dashJ.textContent = 'لا توجد قيود بعد.';
+        return;
+      }
+      const summary = list.length + ' قيد · آخر: ' + (list[0]?.refType || '') + ' ' + (list[0]?.amountSYP || 0) + ' ل.س';
+      if (el) el.innerHTML = '<p class="text-white font-medium">' + list.length + ' قيد</p><p class="text-slate-500 text-sm">آخر: ' + (list[0]?.refType || '') + ' · ' + (list[0]?.amountSYP || 0) + ' ل.س</p>';
+      if (dashJ) dashJ.textContent = summary;
+      const raw = document.getElementById('j-raw');
+      if (raw) raw.textContent = JSON.stringify(list.slice(0, 15), null, 2);
+    }
+
+    function barterCardSwipe(el, matchId) {
+      var startX = 0;
+      el.addEventListener('touchstart', function(e) { startX = e.touches[0].clientX; }, { passive: true });
+      el.addEventListener('touchend', function(e) {
+        var endX = e.changedTouches[0].clientX;
+        var diff = endX - startX;
+        if (diff > 60) { window._swiping = true; el.classList.add('swipe-right'); setTimeout(function() { confirmBarter(matchId); el.remove(); window._swiping = false; }, 280); }
+        else if (diff < -60) { window._swiping = true; el.classList.add('swipe-left'); setTimeout(function() { el.remove(); window._swiping = false; }, 280); }
+      }, { passive: true });
+    }
+
+    function renderBarter(data) {
+      const alertsEl = document.getElementById('barter-match-alerts');
+      const contentEl = document.getElementById('barter-content');
+      if (!data?.data) return;
+      const d = data.data;
+      const alerts = d.matchAlerts || [];
+      alertsEl.innerHTML = alerts.length ? alerts.slice(-6).map(a => `
+        <div class="barter-card barter-swipe glass-card rounded-xl p-4 cursor-pointer hover:border-emerald-500/30 tap-haptic" data-match-id="${a.id}" onclick="if(window._swiping) return; confirmBarter('${a.id}')">
+          <div class="w-full h-24 rounded-lg bg-midnight-800 mb-3 flex items-center justify-center text-3xl">📦</div>
+          <p class="text-white font-medium truncate">${(a.productName || a.productId)}</p>
+          <p class="text-emerald-400 text-sm">${a.fairValueSYP ?? '—'} ل.س · القيمة العادلة · اسحب لليمين مطابقة يسار تخطي</p>
+        </div>
+      `).join('') : '<p class="text-slate-500 col-span-2">لا مطابقات بعد. أضف فائضاً للعثور على احتياجاتك.</p>';
+      alerts.forEach(function(a) {
+        var card = alertsEl.querySelector('[data-match-id="' + a.id + '"]');
+        if (card) barterCardSwipe(card, a.id);
+      });
+      contentEl.innerHTML = (d.totalTrades ? d.totalTrades + ' صفقة' : '') + (d.surplus?.length ? ' · ' + d.surplus.length + ' فائض' : '') + (d.needs?.length ? ' · ' + d.needs.length + ' حاجة' : '');
+    }
+
+    function renderMultiCurrency(data) {
+      const el = document.getElementById('multi-currency-content');
+      if (!data?.data) return;
+      const rates = data.data;
+      const syp = rates.SYP != null ? (1 / rates.SYP).toFixed(0) : '—';
+      const gold = rates.GOLD != null ? rates.GOLD.toFixed(6) : '—';
+      el.innerHTML = '<p class="text-white">1 دولار = <span class="text-emerald-400">' + syp + '</span> ل.س</p><p class="text-slate-500 text-xs mt-1">مرجع الذهب: ' + gold + '</p>';
+      if (rates.SYP != null) {
+        const r = 1 / rates.SYP;
+        rateHistory.push({ t: Date.now(), rate: r });
+        if (rateHistory.length > 30) rateHistory.shift();
+      }
+      ensureSevenDayTrend();
+      updateCurrencyChart();
+    }
+
+    function ensureSevenDayTrend() {
+      if (rateHistory.length >= 7) return;
+      const last = rateHistory[rateHistory.length - 1];
+      const base = last ? last.rate : 2500;
+      const now = Date.now();
+      const day = 86400 * 1000;
+      while (rateHistory.length < 7) {
+        const i = rateHistory.length;
+        const variation = (i * 0.02) * base * (Math.random() - 0.5);
+        rateHistory.unshift({ t: now - (7 - i) * day, rate: Math.round((base + variation) * 10) / 10 });
+      }
+    }
+
+    function updateCurrencyChart() {
+      const canvas = document.getElementById('currency-chart');
+      if (!canvas) return;
+      const ctx = canvas.getContext('2d');
+      if (currencyChart) currencyChart.destroy();
+      const points = rateHistory.slice(-7);
+      const labels = points.length >= 7
+        ? ['يوم ١', 'يوم ٢', 'يوم ٣', 'يوم ٤', 'يوم ٥', 'يوم ٦', 'اليوم']
+        : points.map((_, i) => 'قبل ' + (points.length - i) + ' مزامنة');
+      currencyChart = new Chart(ctx, {
+        type: 'line',
+        data: {
+          labels: labels.slice(-points.length),
+          datasets: [{ label: 'ل.س لكل 1 دولار', data: points.map(r => r.rate), borderColor: '#10b981', backgroundColor: 'rgba(16,185,129,0.12)', fill: true, tension: 0.35 }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          layout: { padding: { left: 8, right: 8 } },
+          plugins: {
+            legend: { display: false },
+            tooltip: { titleFont: { family: 'Cairo' }, bodyFont: { family: 'Cairo' }, callbacks: { label: function(ctx) { return ctx.parsed.y + ' ل.س/دولار'; } } }
+          },
+          scales: {
+            y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8', font: { family: 'Cairo' } } },
+            x: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8', maxTicksLimit: 7, font: { family: 'Cairo' } } }
+          }
+        }
+      });
+    }
+
+    function renderFX(data) {
+      const el = document.getElementById('fx-content');
+      if (!data?.data) return;
+      const d = data.data;
+      el.innerHTML = '<p class="text-white">إجمالي مكاسب/خسائر الصرف: <span class="' + (d.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + '">' + (d.totalGainLossSYP ?? '—') + '</span> ل.س</p>';
+      const raw = document.getElementById('fx-raw');
+      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+    }
+
+    function renderVision(data) {
+      const el = document.getElementById('vision-content');
+      if (!data?.data) return;
+      const list = data.data;
+      if (!list.length) { el.innerHTML = 'لا مسح بعد.'; return; }
+      el.innerHTML = list.slice(-3).map(v => v.label || v.productId).join(' · ') || '—';
+      const raw = document.getElementById('vision-raw');
+      if (raw) raw.textContent = JSON.stringify(list.slice(-10), null, 2);
+    }
+
+    function renderFractioning(data) {
+      const el = document.getElementById('fractioning-content');
+      if (!data?.data) return;
+      const { rules, inventory, sypRate } = data.data;
+      let html = sypRate != null ? '<p class="text-slate-500 text-sm mb-2">سعر الل.س مضبوط. الأسعار بالل.س.</p>' : '';
+      html += '<p class="text-white font-medium">' + (rules?.length || 0) + ' قاعدة · ' + (inventory?.length || 0) + ' سطر مخزون</p>';
+      (inventory || []).slice(0, 4).forEach(i => { html += '<p class="text-slate-500 text-sm">' + i.productId + ' ' + i.unitId + ': ' + i.quantity + '</p>'; });
+      el.innerHTML = html;
+      const raw = document.getElementById('inv-raw');
+      if (raw) raw.textContent = JSON.stringify(data.data, null, 2);
+    }
+
+    function renderDrafts(data) {
+      const el = document.getElementById('drafts-content');
+      if (!data?.data) return;
+      const list = data.data;
+      if (!list.length) { el.innerHTML = 'لا مسودات. أرسل رسالة لإنشاء واحدة.'; return; }
+      el.innerHTML = list.slice(0, 5).map(d => '<p class="text-white">' + d.id + ' · ' + (d.lines?.length || 0) + ' صنف</p>').join('');
+      const raw = document.getElementById('wa-raw');
+      if (raw) raw.textContent = JSON.stringify(list, null, 2);
+    }
+
+    function renderAudit(data) {
+      const el = document.getElementById('audit-content');
+      const setAudit = document.getElementById('settings-audit');
+      if (!data?.data) return;
+      const list = data.data;
+      const text = !list.length ? 'لا إدخالات.' : list.slice(0, 5).map(e => e.action + ' ' + (e.entityType || '')).join(' · ');
+      if (el) el.innerHTML = text;
+      if (setAudit) setAudit.textContent = text;
+      const raw = document.getElementById('audit-raw');
+      if (raw) raw.textContent = JSON.stringify(list, null, 2);
+    }
+
+    const paths = {
+      fractioning: '/fractioning/summary', barter: '/barter/summary', 'multi-currency': '/multi-currency/rates',
+      vision: '/vision/cache', drafts: '/drafts', journal: '/journal?limit=30', 'trial-balance': '/statements/trial-balance',
+      pl: '/statements/profit-loss', cashflow: '/statements/cash-flow', fx: '/currency/exchange-gain-loss', audit: '/audit?limit=50'
+    };
+    const fns = {
+      fractioning: renderFractioning, barter: renderBarter, 'multi-currency': renderMultiCurrency, vision: renderVision, drafts: renderDrafts,
+      journal: renderJournal, 'trial-balance': renderTrialBalance, pl: renderPL, cashflow: renderCashflow, fx: renderFX, audit: renderAudit
+    };
+
+    async function refresh(module) {
+      const contentIds = { 'multi-currency': 'multi-currency-content', 'trial-balance': 'trial-balance-content', pl: 'pl-content', cashflow: 'cashflow-content', fx: 'fx-content' };
+      const contentId = contentIds[module] || (module + '-content');
+      const el = document.getElementById(contentId);
+      if (el) el.textContent = 'جاري التحميل…';
+      try {
+        const data = await fetchJson(paths[module] || paths.fractioning);
+        if (fns[module]) fns[module](data);
+      } catch (e) {
+        if (el) el.innerHTML = '<span class="text-rose-400">' + e.message + '</span>';
+      }
+    }
+
+    async function loadProducts() {
+      const r = await fetchJson('/products');
+      const sel = document.getElementById('barter-surplus-product');
+      if (!sel || !r?.data?.length) return;
+      sel.innerHTML = r.data.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
+    }
+
+    async function addBarterSurplus() {
+      const productId = document.getElementById('barter-surplus-product')?.value;
+      const qty = document.getElementById('barter-surplus-qty')?.value || 1;
+      if (!productId) { alert('اختر منتجاً'); return; }
+      try {
+        await postJson('/barter/surplus', { productId, quantity: qty });
+        await refresh('barter');
+        await refresh('journal');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function confirmBarter(matchAlertId) {
+      try {
+        await postJson('/barter/confirm', { matchAlertId });
+        await refresh('barter');
+        await refresh('journal');
+        await refresh('trial-balance');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function syncSYP() {
+      try {
+        await fetch(API + '/multi-currency/rates/sync', { method: 'GET' }).then(r => r.json());
+        await refresh('multi-currency');
+        await refresh('fractioning');
+        await refresh('journal');
+        await refresh('fx');
+      } catch (e) { alert(e.message); }
+    }
+
+    async function recordDebt() {
+      const amountSYP = Number(document.getElementById('debt-amount')?.value) || 0;
+      const debtorId = document.getElementById('debt-debtor')?.value?.trim() || null;
+      if (!amountSYP) { alert('أدخل المبلغ (ل.س)'); return; }
+      try {
+        await postJson('/debt', { amountSYP, debtorId });
+        await refresh('journal');
+        await refresh('trial-balance');
+        const r = await fetchJson('/debt');
+        const el = document.getElementById('debt-list');
+        if (el && r?.data?.length) el.innerHTML = r.data.slice(0, 5).map(d => d.amountSYP + ' ل.س').join('<br>');
+        else if (el) el.innerHTML = 'تم التسجيل.';
+      } catch (e) { alert(e.message); }
+    }
+
+    async function simulateWhatsApp() {
+      const msg = document.getElementById('whatsapp-message')?.value?.trim() || 'هل عندكم حليب؟';
+      try {
+        const j = await postJson('/whatsapp/simulate', { message: msg });
+        if (j?.data?.draftId) alert('تم إنشاء مسودة: ' + j.data.draftId);
+        await refresh('drafts');
+      } catch (e) { alert(e.message); }
+    }
+
+    function uploadVision() {
+      const input = document.getElementById('vision-file');
+      if (!input?.files?.length) { alert('اختر صورة أولاً'); return; }
+      const file = input.files[0];
+      const reader = new FileReader();
+      reader.onload = async () => {
+        try {
+          const j = await postJson('/vision/upload', { image: reader.result });
+          alert((j.data?.inventoryAdded?.length || 0) + ' سطر · ' + (j.data?.totalCostSYP || 0) + ' ل.س إلى الدفتر');
+          await refresh('vision');
+          await refresh('fractioning');
+          await refresh('journal');
+          await refresh('trial-balance');
+        } catch (e) { alert(e.message); }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    (async function loadAll() {
+      await loadProducts();
+      await Promise.all([
+        refresh('fractioning'), refresh('barter'), refresh('multi-currency'), refresh('vision'), refresh('drafts'),
+        refresh('journal'), refresh('trial-balance'), refresh('pl'), refresh('cashflow'), refresh('fx'), refresh('audit')
+      ]);
+      if (rateHistory.length > 0 && rateHistory.length < 7) ensureSevenDayTrend();
+      if (document.getElementById('currency-chart') && rateHistory.length >= 7) updateCurrencyChart();
+      if (window.matchMedia('(max-width: 767px)').matches) {
+        showSection('dashboard');
+        setMobileNav('dashboard');
+      }
+    })();
+  </script>
+</body>
+</html>
