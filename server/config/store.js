@@ -22,6 +22,10 @@ const actionLog = [];               // Audit trail
 const exchangeRates = new Map();
 const visionCache = [];
 
+// Auth: users and sessions (in-memory)
+const users = new Map();       // id -> { id, email, password, tier, status, expiresAt, createdAt }
+const sessions = new Map();    // token -> { userId, createdAt }
+
 export const store = {
   products,
   units,
@@ -40,6 +44,8 @@ export const store = {
   actionLog,
   exchangeRates,
   visionCache,
+  users,
+  sessions,
 };
 
 export function getNextId(collection) {

@@ -7,7 +7,10 @@ import { fileURLToPath } from 'url';
 import fractioningRoutes from './modules/fractioning/routes.js';
 import whatsappRoutes from './modules/whatsapp/routes.js';
 import apiRoutes from './routes/api.js';
-import { seedDemoData } from './config/seed.js';
+import authRoutes from './routes/auth.js';
+import superAdminRoutes from './routes/superAdmin.js';
+import importRoutes from './routes/import.js';
+import { seedDemoData, seedUsers } from './config/seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -18,6 +21,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 // API
+app.use('/api/auth', authRoutes);
+app.use('/api/super-admin', superAdminRoutes);
+app.use('/api/import', importRoutes);
 app.use('/api', apiRoutes);
 app.use('/api/fractioning', fractioningRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
@@ -30,6 +36,7 @@ app.get('/', (req, res) => res.redirect('/dashboard/'));
 app.use('/webhook/whatsapp', whatsappRoutes);
 
 seedDemoData();
+seedUsers();
 
 // Only listen when not on Vercel (serverless handles requests there)
 if (!process.env.VERCEL) {

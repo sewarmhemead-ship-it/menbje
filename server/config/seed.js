@@ -8,7 +8,7 @@ import * as fractioning from '../modules/fractioning/engine.js';
 import * as barter from '../modules/barter/index.js';
 import * as fifo from '../inventory/fifo.js';
 
-const { products, units, accounts } = store;
+const { products, units, accounts, users } = store;
 
 export function seedDemoData() {
   if (products.size > 0) return;
@@ -61,4 +61,13 @@ export function seedDemoData() {
 
   const tomato = products.get(p1);
   barter.addNeed(p1, tomato?.name, 5, 'user-demo');
+}
+
+export function seedUsers() {
+  if (users.size > 0) return;
+  const now = new Date();
+  const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  users.set('u-demo-basic', { id: 'u-demo-basic', email: 'basic@demo.local', password: 'demo', tier: 'basic', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-pro', { id: 'u-demo-pro', email: 'pro@demo.local', password: 'demo', tier: 'pro', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-enterprise', { id: 'u-demo-enterprise', email: 'enterprise@demo.local', password: 'demo', tier: 'enterprise', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
 }

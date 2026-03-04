@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Super Admin · Vault AI</title>
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: { sans: ['Cairo', 'sans-serif'] },
+          colors: { midnight: { 950: '#0b1220' }, gold: { 400: '#fbbf24', 500: '#f59e0b' } }
+        }
+      }
+    };
+  </script>
+  <style>
+    .glass-gold { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(251, 191, 36, 0.2); }
+    .gold-accent { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); }
+  </style>
+</head>
+<body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen p-6">
+  <div id="gate" class="max-w-md mx-auto mt-20">
+    <div class="glass-gold rounded-2xl p-8 border-gold-500/30">
+      <h1 class="text-xl font-bold text-amber-400 mb-2">Super Admin</h1>
+      <p class="text-slate-500 text-sm mb-4">أدخل المفتاح السري للوصول</p>
+      <input type="password" id="master-key" placeholder="Master Key" class="w-full bg-white/5 border border-amber-500/30 rounded-xl px-4 py-3 text-sm mb-4 outline-none focus:ring-2 focus:ring-amber-500/50" />
+      <p id="gate-error" class="text-rose-400 text-sm mb-3 hidden"></p>
+      <button type="button" id="btn-unlock" class="w-full py-3 rounded-xl bg-amber-500/20 text-amber-400 font-medium hover:bg-amber-500/30 transition-colors">دخول</button>
+    </div>
+  </div>
+  <div id="dashboard" class="hidden">
+    <header class="flex items-center justify-between mb-8 pb-4 border-b border-amber-500/20">
+      <h1 class="text-2xl font-bold gold-accent">Super Admin · إدارة المستخدمين</h1>
+      <a href="index.html" class="text-slate-400 hover:text-white text-sm">← العودة للوحة التحكم</a>
+    </header>
+    <div class="glass-gold rounded-2xl p-6 mb-6 overflow-x-auto">
+      <table class="w-full text-sm">
+        <thead>
+          <tr class="text-slate-400 border-b border-white/10">
+            <th class="text-right py-3 px-2">البريد</th>
+            <th class="text-right py-3 px-2">الباقة</th>
+            <th class="text-right py-3 px-2">الحالة</th>
+            <th class="text-right py-3 px-2">المتبقي</th>
+            <th class="text-right py-3 px-2">إجراء</th>
+          </tr>
+        </thead>
+        <tbody id="users-tbody"></tbody>
+      </table>
+    </div>
+  </div>
+  <script>
+    const API = window.location.origin + '/api';
+    let masterKey = '';
+    function gate() {
+      const key = document.getElementById('master-key').value.trim();
+      if (!key) { document.getElementById('gate-error').textContent = 'أدخل المفتاح'; document.getElementById('gate-error').classList.remove('hidden'); return; }
+      fetch(API + '/super-admin/users', { headers: { 'Master-Key': key } })
+        .then(r => r.json())
+        .then(j => {
+          if (!j.success) {
+            document.getElementById('gate-error').textContent = j.error || 'مفتاح غير صحيح';
+            document.getElementById('gate-error').classList.remove('hidden');
+            return;
+          }
+          masterKey = key;
+          document.getElementById('gate').classList.add('hidden');
+          document.getElementById('dashboard').classList.remove('hidden');
+          loadUsers(j.data);
+        })
+        .catch(() => {
+          document.getElementById('gate-error').textContent = 'خطأ في الاتصال';
+          document.getElementById('gate-error').classList.remove('hidden');
+        });
+    }
+    function loadUsers(list) {
+      const tbody = document.getElementById('users-tbody');
+      if (!list || !list.length) { tbody.innerHTML = '<tr><td colspan="5" class="py-4 text-slate-500">لا مستخدمين</td></tr>'; return; }
+      tbody.innerHTML = list.map(u => {
+        const days = u.daysRemaining != null ? u.daysRemaining : '—';
+        const daysWarn = (typeof days === 'number' && days < 7 && days >= 0) ? ' text-amber-400' : '';
+        const statusOpts = ['active', 'suspended', 'expired', 'pending'].map(s => `<option value="${s}" ${u.status === s ? 'selected' : ''}>${s === 'active' ? 'نشط' : s === 'suspended' ? 'موقوف' : s === 'expired' ? 'منتهي' : 'قيد الانتظار'}</option>`).join('');
+        const tierOpts = ['basic', 'pro', 'enterprise'].map(t => `<option value="${t}" ${u.tier === t ? 'selected' : ''}>${t === 'basic' ? 'أساسي' : t === 'pro' ? 'احترافي' : 'مؤسسة'}</option>`).join('');
+        return `<tr class="border-b border-white/5 hover:bg-white/5">
+          <td class="py-3 px-2">${u.email}</td>
+          <td class="py-3 px-2"><select class="user-tier bg-white/5 border border-white/10 rounded px-2 py-1 text-xs" data-id="${u.id}">${tierOpts}</select></td>
+          <td class="py-3 px-2"><select class="user-status bg-white/5 border border-white/10 rounded px-2 py-1 text-xs" data-id="${u.id}">${statusOpts}</select></td>
+          <td class="py-3 px-2${daysWarn}">${days}</td>
+          <td class="py-3 px-2"><button type="button" class="save-user text-amber-400 hover:underline text-xs" data-id="${u.id}">حفظ</button></td>
+        </tr>`;
+      }).join('');
+      tbody.querySelectorAll('.user-tier, .user-status').forEach(el => {
+        el.addEventListener('change', () => saveUser(el.dataset.id));
+      });
+      tbody.querySelectorAll('.save-user').forEach(btn => {
+        btn.addEventListener('click', () => saveUser(btn.dataset.id));
+      });
+    }
+    function saveUser(id) {
+      const row = document.querySelector(`.user-tier[data-id="${id}"]`)?.closest('tr');
+      const tier = row?.querySelector('.user-tier')?.value;
+      const status = row?.querySelector('.user-status')?.value;
+      fetch(API + '/super-admin/users/' + id, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json', 'Master-Key': masterKey },
+        body: JSON.stringify({ tier, status })
+      }).then(r => r.json()).then(j => {
+        if (j.success) fetch(API + '/super-admin/users', { headers: { 'Master-Key': masterKey } }).then(r2 => r2.json()).then(j2 => { if (j2.success) loadUsers(j2.data); });
+      });
+    }
+    document.getElementById('btn-unlock').onclick = gate;
+  </script>
+</body>
+</html>
