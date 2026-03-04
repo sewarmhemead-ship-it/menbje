@@ -24,6 +24,19 @@ const actionLog = [];               // Audit trail
 const exchangeRates = new Map();
 const visionCache = [];
 
+// Procurement: purchase invoices & returns (ref to journal + stockMovements)
+const purchaseInvoices = [];
+const purchaseReturns = [];
+
+// Manufacturing: BOMs and build orders
+const boms = [];                   // { id, finishedProductId, finishedUnitId, components: [{ productId, unitId, quantityPerUnit }] }
+
+// Expenses: recorded in journal (expense account Dr, Cash/Creditors Cr)
+const expenseRecords = [];
+
+// Company profile (global settings)
+const companyProfile = { logoUrl: null, taxId: null, defaultCurrency: 'SYP', name: 'Vault AI' };
+
 // Auth: users and sessions (in-memory)
 const users = new Map();       // id -> { id, email, password, tier, status, expiresAt, createdAt }
 const sessions = new Map();    // token -> { userId, createdAt }
@@ -48,6 +61,11 @@ export const store = {
   actionLog,
   exchangeRates,
   visionCache,
+  purchaseInvoices,
+  purchaseReturns,
+  boms,
+  expenseRecords,
+  companyProfile,
   users,
   sessions,
 };

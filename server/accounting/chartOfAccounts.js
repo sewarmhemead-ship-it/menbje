@@ -36,6 +36,9 @@ export const DEFAULT_CHART = [
   { id: '5100', code: '5100', name: 'Barter COGS (given)', type: ACCOUNT_TYPE.EXPENSE },
   { id: '5200', code: '5200', name: 'Exchange loss', type: ACCOUNT_TYPE.EXPENSE },
   { id: '5300', code: '5300', name: 'Exchange gain', type: ACCOUNT_TYPE.REVENUE },
+  { id: '5400', code: '5400', name: 'Salaries', type: ACCOUNT_TYPE.EXPENSE },
+  { id: '5500', code: '5500', name: 'Rent', type: ACCOUNT_TYPE.EXPENSE },
+  { id: '5600', code: '5600', name: 'Utilities', type: ACCOUNT_TYPE.EXPENSE },
 ];
 
 export function getAccountById(accountsMap, id) {

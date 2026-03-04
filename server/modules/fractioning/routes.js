@@ -7,6 +7,7 @@ import { Router } from 'express';
 import * as engine from './engine.js';
 import { store } from '../../config/store.js';
 import { postSaleJournal } from '../../accounting/transactions.js';
+import { recordStockMovement } from '../../inventory/stockMovement.js';
 import * as multiCurrency from '../multiCurrency/index.js';
 import * as audit from '../../audit/actionLog.js';
 
@@ -69,11 +70,14 @@ router.post('/sell-sub', (req, res) => {
     const rates = multiCurrency.getRates();
     const amountSYP = result.revenue;
     const cogsSYP = result.cogsSYP ?? result.cost ?? 0;
+    const refId = result.productId + '-sub-' + Date.now();
     postSaleJournal(amountSYP, cogsSYP, {
-      refId: result.productId + '-sub-' + Date.now(),
+      refId,
       memo: `Sale sub ${result.subQuantity} ${result.subUnitId}`,
       amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? amountSYP * rates.SYP : null,
     });
+    // Logic Bridge: sync inventory with central stock movements
+    recordStockMovement(result.productId, result.subUnitId, result.subQuantity, 'out', 'sale', refId);
 
     res.json(result);
   } catch (e) {
@@ -96,11 +100,14 @@ router.post('/sell-bulk', (req, res) => {
     const rates = multiCurrency.getRates();
     const amountSYP = result.revenue;
     const cogsSYP = result.cogsSYP ?? result.cost ?? 0;
+    const refId = result.productId + '-bulk-' + Date.now();
     postSaleJournal(amountSYP, cogsSYP, {
-      refId: result.productId + '-bulk-' + Date.now(),
+      refId,
       memo: `Sale bulk ${result.bulkQuantity} ${result.bulkUnitId}`,
       amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? amountSYP * rates.SYP : null,
     });
+    // Logic Bridge: sync inventory with central stock movements
+    recordStockMovement(result.productId, result.bulkUnitId, result.bulkQuantity, 'out', 'sale', refId);
 
     res.json(result);
   } catch (e) {

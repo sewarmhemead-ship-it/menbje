@@ -169,3 +169,87 @@ export function getAccountStatement(accountId, fromDate = null, toDate = null) {
     rows,
   };
 }
+
+/**
+ * Balance Sheet (الميزانية العمومية): Assets, Liabilities, Equity as of date.
+ */
+export function getBalanceSheet(asOfDate = null) {
+  const tb = getTrialBalance(asOfDate);
+  const byType = { asset: [], liability: [], equity: [] };
+  for (const row of tb.rows) {
+    const acc = accounts.get(row.id);
+    if (!acc || !acc.type) continue;
+    if (acc.type === ACCOUNT_TYPE.ASSET) byType.asset.push(row);
+    else if (acc.type === ACCOUNT_TYPE.LIABILITY) byType.liability.push(row);
+    else if (acc.type === ACCOUNT_TYPE.EQUITY) byType.equity.push(row);
+  }
+  const totalAssets = byType.asset.reduce((s, r) => s + (r.debit - r.credit), 0);
+  const totalLiabilities = byType.liability.reduce((s, r) => s + (r.credit - r.debit), 0);
+  const totalEquity = byType.equity.reduce((s, r) => s + (r.credit - r.debit), 0);
+  return {
+    asOfDate: asOfDate || new Date().toISOString(),
+    assets: { rows: byType.asset, total: totalAssets },
+    liabilities: { rows: byType.liability, total: totalLiabilities },
+    equity: { rows: byType.equity, total: totalEquity },
+    totalLiabilitiesAndEquity: totalLiabilities + totalEquity,
+    balanced: Math.abs(totalAssets - (totalLiabilities + totalEquity)) < 0.01,
+  };
+}
+
+/**
+ * Warehouse Inventory Valuation (جرد المستودع): total value by Cost Price and by sub-units.
+ * Uses inventoryByProduct + inventoryLots (FIFO) for cost; optional fractioning for sub-unit view.
+ */
+export function getWarehouseValuation() {
+  const { inventoryByProduct, inventoryLots, products, units } = store;
+  const byProductUnit = [];
+  let totalValueCost = 0;
+  let totalValueBySubUnits = 0;
+
+  const keys = new Set();
+  for (const [key] of inventoryByProduct) keys.add(key);
+  for (const lot of inventoryLots || []) {
+    if (lot.remaining > 0) keys.add(`${lot.productId}:${lot.unitId}`);
+  }
+
+  for (const key of keys) {
+    const [productId, unitId] = key.split(':');
+    const agg = inventoryByProduct.get(key) || { productId, unitId, quantity: 0 };
+    const qty = agg.quantity || 0;
+    if (qty <= 0) continue;
+
+    const product = products?.get?.(productId) || {};
+    const unit = units?.get?.(unitId) || {};
+    const lots = (inventoryLots || []).filter(
+      (l) => l.productId === productId && l.unitId === unitId && l.remaining > 0
+    );
+    let valueCost = 0;
+    let remaining = qty;
+    for (const l of lots.sort((a, b) => new Date(a.receivedAt) - new Date(b.receivedAt))) {
+      const take = Math.min(l.remaining, remaining);
+      valueCost += take * (l.unitCostSYP || 0);
+      remaining -= take;
+      if (remaining <= 0) break;
+    }
+    if (remaining > 0) {
+      const defaultCost = product.costPerDefaultUnit ?? 0;
+      valueCost += remaining * defaultCost;
+    }
+    totalValueCost += valueCost;
+    byProductUnit.push({
+      productId,
+      productName: product.name || productId,
+      unitId,
+      unitName: unit.name || unitId,
+      quantity: qty,
+      valueCostSYP: valueCost,
+    });
+  }
+
+  return {
+    asOfDate: new Date().toISOString(),
+    rows: byProductUnit,
+    totalValueCostSYP: totalValueCost,
+    totalValueBySubUnitsSYP: totalValueBySubUnits ?? totalValueCost,
+  };
+}

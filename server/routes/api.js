@@ -16,6 +16,13 @@ import * as audit from '../audit/actionLog.js';
 import * as statements from '../accounting/statements.js';
 import * as debtLedger from '../accounting/debtLedger.js';
 import * as vouchers from '../accounting/vouchers.js';
+import { postSaleJournal } from '../accounting/transactions.js';
+import { recordStockMovement } from '../inventory/stockMovement.js';
+import * as procurement from '../modules/procurement/index.js';
+import * as manufacturing from '../modules/manufacturing/index.js';
+import * as expenses from '../modules/expenses/index.js';
+import * as statements from '../accounting/statements.js';
+import * as backup from '../backup/index.js';
 
 const router = Router();
 const { products, units, draftOrders, accounts, stockMovements } = store;
@@ -206,6 +213,31 @@ router.get('/statements/account', (req, res) => {
   }
 });
 
+router.get('/reports/profit-loss', (req, res) => {
+  try {
+    const { fromDate, toDate } = req.query;
+    const data = statements.getProfitAndLoss(fromDate || null, toDate || null);
+    res.json({ success: true, data, titleAr: 'قائمة الدخل' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.get('/reports/balance-sheet', (req, res) => {
+  try {
+    const data = statements.getBalanceSheet(req.query.asOfDate || null);
+    res.json({ success: true, data, titleAr: 'الميزانية العمومية' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.get('/reports/warehouse-valuation', (req, res) => {
+  try {
+    const data = statements.getWarehouseValuation();
+    res.json({ success: true, data, titleAr: 'جرد المستودع' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 router.get('/statements/profit-loss', (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
@@ -305,6 +337,211 @@ router.post('/vouchers/transfer', (req, res) => {
     const result = vouchers.postTransferVoucher({ fromAccountId, toAccountId, amountInFromCurrency: Number(amountInFromCurrency), rateToSYP: Number(rateToSYP), memo, createdBy });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Sales Invoice (Logic Bridge): validate all → deduct stock → ONE journal entry → multiple stock movements ——
+router.post('/sales/invoice', (req, res) => {
+  try {
+    const { items = [], customerId } = req.body;
+    if (!Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'items array required with at least one item' });
+    }
+
+    // 1) Validate stock for ALL items first
+    for (const line of items) {
+      const { productId, unitId, quantity, unitPrice } = line;
+      if (!productId || quantity == null || quantity <= 0) {
+        return res.status(400).json({ success: false, error: 'Each item must have productId and positive quantity' });
+      }
+      const u = unitId || 'piece';
+      const inv = fractioning.getEffectiveInventory(productId, u);
+      const available = inv?.quantity ?? 0;
+      if (available < quantity) {
+        return res.status(400).json({
+          success: false,
+          error: 'Insufficient stock',
+          productId,
+          unitId: u,
+          required: quantity,
+          available,
+        });
+      }
+    }
+
+    const invoiceId = 'inv-' + Date.now();
+    let totalRevenue = 0;
+    let totalCogsSYP = 0;
+    const movements = [];
+
+    // 2) Execute sale per line (deduct stock), collect totals
+    for (const line of items) {
+      const { productId, unitId, quantity, unitPrice } = line;
+      const u = unitId || 'piece';
+      const rule = fractioning.getFractioningRule(productId, u);
+      const price = Number(unitPrice) || 0;
+
+      let result;
+      if (rule) {
+        result = fractioning.sellInSubUnits(productId, u, quantity, price, 'SYP');
+      } else {
+        result = fractioning.sellInBulk(productId, u, quantity, price, 'SYP');
+      }
+      if (!result.success) {
+        return res.status(400).json({ success: false, error: result.error, productId, unitId: u });
+      }
+
+      totalRevenue += result.revenue ?? 0;
+      totalCogsSYP += result.cogsSYP ?? result.cost ?? 0;
+
+      const mov = recordStockMovement(productId, u, quantity, 'out', 'invoice', invoiceId);
+      movements.push(mov);
+    }
+
+    // 3) One journal entry for the whole invoice
+    const rates = multiCurrency.getRates();
+    postSaleJournal(totalRevenue, totalCogsSYP, {
+      refId: invoiceId,
+      memo: 'فاتورة بيع ' + invoiceId,
+      amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? totalRevenue * rates.SYP : null,
+    });
+
+    res.status(201).json({
+      success: true,
+      data: {
+        invoiceId,
+        totalRevenue,
+        totalCogsSYP,
+        movements,
+        customerId: customerId || null,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Procurement (المشتريات): Purchase Invoice & Purchase Return ——
+router.post('/procurement/purchase-invoice', (req, res) => {
+  try {
+    const { items, supplierId, payWithCash, memo, createdBy } = req.body;
+    const result = procurement.postPurchaseInvoice({ items: items || [], supplierId, payWithCash: !!payWithCash, memo, createdBy: createdBy || 'user' });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/procurement/purchase-return', (req, res) => {
+  try {
+    const { items, supplierId, receiveCash, memo, createdBy } = req.body;
+    const result = procurement.postPurchaseReturn({ items: items || [], supplierId, receiveCash: !!receiveCash, memo, createdBy: createdBy || 'user' });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/procurement/purchase-invoices', (req, res) => {
+  const list = procurement.listPurchaseInvoices({ supplierId: req.query.supplierId, fromDate: req.query.fromDate, toDate: req.query.toDate });
+  res.json({ success: true, data: list });
+});
+
+router.get('/procurement/purchase-returns', (req, res) => {
+  const list = procurement.listPurchaseReturns({ supplierId: req.query.supplierId, fromDate: req.query.fromDate, toDate: req.query.toDate });
+  res.json({ success: true, data: list });
+});
+
+// —— Manufacturing (التصنيع): BOM + Build ——
+router.get('/manufacturing/boms', (req, res) => {
+  const list = manufacturing.listBOMs(req.query.finishedProductId || null);
+  res.json({ success: true, data: list });
+});
+router.get('/manufacturing/boms/:id', (req, res) => {
+  const bom = manufacturing.getBOM(req.params.id);
+  if (!bom) return res.status(404).json({ success: false, error: 'BOM not found' });
+  res.json({ success: true, data: bom });
+});
+router.post('/manufacturing/boms', (req, res) => {
+  try {
+    const result = manufacturing.saveBOM(req.body);
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result.bom });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.put('/manufacturing/boms/:id', (req, res) => {
+  try {
+    const result = manufacturing.saveBOM({ ...req.body, id: req.params.id });
+    if (!result.success) return res.status(400).json(result);
+    res.json({ success: true, data: result.bom });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.post('/manufacturing/build', (req, res) => {
+  try {
+    const { bomId, quantity, memo, createdBy } = req.body;
+    if (!bomId || quantity == null) return res.status(400).json({ success: false, error: 'bomId and quantity required' });
+    const result = manufacturing.executeBuild({ bomId, quantity, memo, createdBy: createdBy || 'user' });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Expenses (المصاريف) ——
+router.post('/expenses', (req, res) => {
+  try {
+    const { accountId, amountSYP, memo, date, createdBy } = req.body;
+    const result = expenses.recordExpense({ accountId, amountSYP, memo, date, createdBy });
+    if (!result.success) return res.status(400).json(result);
+    res.status(201).json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.get('/expenses', (req, res) => {
+  const list = expenses.listExpenses({ accountId: req.query.accountId, fromDate: req.query.fromDate, toDate: req.query.toDate });
+  res.json({ success: true, data: list });
+});
+
+// —— Company Profile (الإعدادات العامة) ——
+router.get('/settings/company-profile', (req, res) => {
+  res.json({ success: true, data: { ...store.companyProfile } });
+});
+router.put('/settings/company-profile', (req, res) => {
+  const { logoUrl, taxId, defaultCurrency, name } = req.body;
+  if (logoUrl !== undefined) store.companyProfile.logoUrl = logoUrl;
+  if (taxId !== undefined) store.companyProfile.taxId = taxId;
+  if (defaultCurrency !== undefined) store.companyProfile.defaultCurrency = defaultCurrency;
+  if (name !== undefined) store.companyProfile.name = name;
+  res.json({ success: true, data: { ...store.companyProfile } });
+});
+
+// —— Backup / Restore (النسخ الاحتياطي واستعادة البيانات) ——
+router.get('/backup/export', (req, res) => {
+  try {
+    const data = backup.exportBackup();
+    res.setHeader('Content-Type', 'application/json');
+    res.setHeader('Content-Disposition', 'attachment; filename="VaultAI_Backup_' + Date.now() + '.json"');
+    res.send(JSON.stringify(data, null, 2));
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+router.post('/backup/restore', (req, res) => {
+  try {
+    const data = req.body;
+    const result = backup.validateAndRestore(data);
+    if (!result.success) return res.status(400).json({ success: false, error: result.error });
+    res.json({ success: true, message: 'تم استعادة النسخة الاحتياطية' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

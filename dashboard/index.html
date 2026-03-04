@@ -26,7 +26,8 @@
   </script>
   <style>
     .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-    .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); }
+    .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); transition: transform 0.2s ease-out, box-shadow 0.25s ease; }
+    .glass-card:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); }
     .sidebar-item.active { background: rgba(16, 185, 129, 0.15); border-right: 3px solid #10b981; color: #34d399; }
     .top-nav { background: #0d1524; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: none; box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.35), 0 0 20px rgba(16, 185, 129, 0.08); }
     .topnav-item { color: #94a3b8; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
@@ -74,6 +75,15 @@
     .progress-track { height: 6px; border-radius: 9999px; background: rgba(255,255,255,0.08); overflow: hidden; }
     .progress-fill { height: 100%; border-radius: 9999px; background: linear-gradient(90deg, #059669, #34d399); transition: width 0.6s ease-out; }
     .progress-fill.negative { background: linear-gradient(90deg, #b91c1c, #f87171); }
+    /* 3D chart cards: floating shadow + glass depth */
+    .chart-card { transform-style: preserve-3d; perspective: 800px; transition: transform 0.2s ease-out, box-shadow 0.3s ease; border: 1px solid rgba(255,255,255,0.06); }
+    .chart-card:hover { transform: translateY(-2px); box-shadow: 0 24px 48px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), 0 12px 32px -8px rgba(16, 185, 129, 0.12); }
+    .chart-card .chart-inner { border-radius: 1rem; overflow: hidden; position: relative; box-shadow: inset 0 2px 12px rgba(0,0,0,0.2); }
+    .chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 10rem; color: #64748b; font-size: 0.875rem; text-align: center; padding: 1rem; }
+    @media (max-width: 1023px) {
+      #section-dashboard .grid { display: flex; flex-direction: column; gap: 1rem; }
+      #section-dashboard .chart-card { min-width: 0; }
+    }
   </style>
 </head>
 <body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen antialiased">
@@ -109,6 +119,17 @@
     عمل دون اتصال · سيتم مزامنة البيانات عند الاتصال
   </div>
 
+  <!-- Toast (Success / Error) -->
+  <div id="toast" class="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:max-w-sm z-[60] rounded-xl shadow-lg transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none" role="alert" aria-live="polite">
+    <div id="toast-inner" class="glass-card rounded-xl p-4 flex items-center gap-3">
+      <span id="toast-icon" class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"></span>
+      <div class="min-w-0">
+        <p id="toast-title" class="font-semibold text-white"></p>
+        <p id="toast-message" class="text-sm text-slate-400 truncate"></p>
+      </div>
+    </div>
+  </div>
+
   <!-- Professional Menu Bar (ملف، تحرير، المبيعات، …) -->
   <header class="top-nav fixed top-0 left-0 right-0 z-40 hidden md:block">
     <div class="flex items-center h-12 px-3 gap-1">
@@ -123,6 +144,7 @@
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">ملف</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[180px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('dashboard','لوحة التحكم')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">لوحة التحكم</button>
+            <button type="button" onclick="openModule('company-settings','إعدادات الشركة')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">إعدادات الشركة</button>
             <button type="button" onclick="logout()" class="w-full text-right px-4 py-2 text-sm text-rose-400 hover:bg-white/5">خروج</button>
           </div>
         </div>
@@ -143,7 +165,14 @@
         <div class="menu-item-wrap relative group">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">المشتريات</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
-            <button type="button" class="w-full text-right px-4 py-2 text-sm text-slate-500 cursor-not-allowed">فاتورة شراء</button>
+            <button type="button" onclick="openModule('purchase-invoice','فاتورة مشتريات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">فاتورة مشتريات</button>
+          </div>
+        </div>
+        <div class="menu-item-wrap relative group">
+          <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">التصنيع</button>
+          <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
+            <button type="button" onclick="openModule('manufacturing-bom','وصفات BOM')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">وصفات (BOM)</button>
+            <button type="button" onclick="openModule('manufacturing-build','أمر تصنيع')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">أمر تصنيع</button>
           </div>
         </div>
         <div class="menu-item-wrap relative group">
@@ -170,6 +199,8 @@
             <button type="button" onclick="openModule('journal-entries','قيود اليومية')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">قيود اليومية</button>
             <button type="button" onclick="openModule('trial-balance','ميزان المراجعة')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">ميزان المراجعة</button>
             <button type="button" onclick="openModule('statement-of-account','كشف الحساب')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">كشف الحساب</button>
+            <button type="button" onclick="openModule('expenses','المصاريف')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">المصاريف</button>
+            <button type="button" onclick="openModule('reports','مركز التقارير')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">مركز التقارير</button>
             <button type="button" onclick="showSection('accounting')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">تقارير محاسبية</button>
           </div>
         </div>
@@ -261,7 +292,10 @@
 
       <!-- Dashboard (mobile default / overview) -->
       <section id="section-dashboard" data-section>
-        <h2 class="text-lg md:text-xl font-semibold text-white mb-1">لوحة التحكم</h2>
+        <div class="flex items-center gap-2 mb-4">
+          <h2 class="text-lg md:text-xl font-semibold text-white">لوحة التحكم</h2>
+          <span class="text-xs text-slate-500 font-medium">Vault AI</span>
+        </div>
         <p class="text-slate-500 text-sm mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
         <div class="flex flex-col gap-4">
           <div class="glass-card bento-tilt rounded-2xl p-4">
@@ -276,6 +310,39 @@
           <div class="glass-card bento-tilt rounded-2xl p-4">
             <h3 class="text-sm font-medium text-slate-400 mb-2">آخر النشاط</h3>
             <div id="dashboard-journal" class="text-slate-300 text-sm">جاري التحميل…</div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+            <div class="glass-card chart-card rounded-2xl p-4">
+              <h3 class="text-sm font-medium text-slate-400 mb-2">الإيرادات vs المصروفات (آخر 30 يوم)</h3>
+              <div class="chart-inner h-48 relative">
+                <div id="chart-revenue-expenses-empty" class="chart-empty hidden">لا بيانات</div>
+                <canvas id="chart-revenue-expenses" class="w-full max-w-full"></canvas>
+              </div>
+            </div>
+            <div class="glass-card chart-card rounded-2xl p-4">
+              <h3 class="text-sm font-medium text-slate-400 mb-2">توزيع المصروفات</h3>
+              <div class="chart-inner h-48 relative">
+                <div id="chart-expense-pie-empty" class="chart-empty hidden">لا مصروفات</div>
+                <canvas id="chart-expense-pie" class="w-full max-w-full"></canvas>
+              </div>
+            </div>
+          </div>
+          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
+            <div class="glass-card chart-card rounded-2xl p-4">
+              <h3 class="text-sm font-medium text-slate-400 mb-2">أكثر 5 منتجات مبيعاً</h3>
+              <div class="chart-inner h-48 relative">
+                <div id="chart-top-products-empty" class="chart-empty hidden">لا مبيعات بعد</div>
+                <canvas id="chart-top-products" class="w-full max-w-full"></canvas>
+              </div>
+            </div>
+            <div class="glass-card chart-card rounded-2xl p-4">
+              <h3 class="text-sm font-medium text-slate-400 mb-2">الصحة المالية: نقدية / ذمم دائنة</h3>
+              <div class="flex items-center gap-3 mt-2">
+                <div class="flex-1 progress-track h-4 rounded-full min-w-0"><div id="gauge-cash-debt" class="progress-fill h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+                <span id="gauge-cash-debt-label" class="text-white text-sm font-medium shrink-0">—</span>
+              </div>
+              <p id="gauge-cash-debt-detail" class="text-slate-500 text-xs mt-1 text-right">جاري التحميل…</p>
+            </div>
           </div>
         </div>
       </section>
@@ -521,6 +588,34 @@
       const t = localStorage.getItem('vault_token');
       return t ? { 'Authorization': 'Bearer ' + t } : {};
     }
+    var toastTimeout = null;
+    function showToast(title, message, type) {
+      type = type || 'success';
+      var el = document.getElementById('toast');
+      var inner = document.getElementById('toast-inner');
+      var icon = document.getElementById('toast-icon');
+      var titleEl = document.getElementById('toast-title');
+      var msgEl = document.getElementById('toast-message');
+      if (!el || !inner) return;
+      if (toastTimeout) clearTimeout(toastTimeout);
+      titleEl.textContent = title || (type === 'success' ? 'تم' : 'تنبيه');
+      msgEl.textContent = message || '';
+      icon.className = 'shrink-0 w-10 h-10 rounded-full flex items-center justify-center';
+      if (type === 'success') {
+        icon.classList.add('bg-emerald-500/30', 'text-emerald-400');
+        icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+      } else {
+        icon.classList.add('bg-rose-500/30', 'text-rose-400');
+        icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
+      }
+      el.classList.remove('translate-y-24', 'opacity-0', 'pointer-events-none');
+      el.classList.add('translate-y-0', 'opacity-100');
+      toastTimeout = setTimeout(function() {
+        el.classList.add('translate-y-24', 'opacity-0', 'pointer-events-none');
+        el.classList.remove('translate-y-0', 'opacity-100');
+        toastTimeout = null;
+      }, 4000);
+    }
     function logout() {
       localStorage.removeItem('vault_token');
       localStorage.removeItem('vault_user');
@@ -603,7 +698,14 @@
         if (moduleId === 'item-card') { await renderItemCard(mc); return; }
         if (moduleId === 'stock-movements') { await renderStockMovements(mc); return; }
         if (moduleId === 'currency-manager') { await renderCurrencyManager(mc); return; }
-        if (moduleId === 'sales-invoice' || moduleId === 'sales-return') { renderSalesPlaceholder(mc, moduleId); return; }
+        if (moduleId === 'sales-invoice') { await renderSalesInvoice(mc); return; }
+        if (moduleId === 'sales-return') { renderSalesPlaceholder(mc, moduleId); return; }
+        if (moduleId === 'purchase-invoice') { await renderPurchaseInvoice(mc); return; }
+        if (moduleId === 'manufacturing-bom') { await renderManufacturingBOM(mc); return; }
+        if (moduleId === 'manufacturing-build') { await renderManufacturingBuild(mc); return; }
+        if (moduleId === 'expenses') { await renderExpenses(mc); return; }
+        if (moduleId === 'reports') { await renderReportsHub(mc); return; }
+        if (moduleId === 'company-settings') { await renderCompanySettings(mc); return; }
         mc.innerHTML = '<p class="text-slate-500 p-4">الشاشة قيد الإعداد.</p>';
       } catch (e) {
         mc.innerHTML = '<p class="text-rose-400 p-4">' + (e.message || 'خطأ') + '</p>';
@@ -635,6 +737,7 @@
       if (section) section.classList.add('active');
       const nav = document.querySelector('[data-nav="' + id + '"]');
       if (nav) nav.classList.add('active');
+      if (id === 'dashboard' && typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
     }
 
     function setMobileNav(id) {
@@ -721,6 +824,20 @@
     window.addEventListener('offline', updateOfflineIndicator);
     updateOfflineIndicator();
 
+    // Emergency recovery: auto-save backup to localStorage every 5 minutes (data survives refresh/close)
+    setInterval(function() {
+      if (!localStorage.getItem('vault_token')) return;
+      fetch(API + '/backup/export', { headers: getAuthHeaders() })
+        .then(function(r) { return r.text(); })
+        .then(function(t) {
+          try {
+            localStorage.setItem('vault_autosave_backup', t);
+            localStorage.setItem('vault_autosave_time', new Date().toISOString());
+          } catch (e) {}
+        })
+        .catch(function() {});
+    }, 5 * 60 * 1000);
+
     async function fetchJson(path) {
       const r = await fetch(API + path, { headers: getAuthHeaders() });
       if (!r.ok) throw new Error(r.statusText);
@@ -728,6 +845,12 @@
     }
     async function postJson(path, body) {
       const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) throw new Error(j.error || r.statusText);
+      return j;
+    }
+    async function putJson(path, body) {
+      const r = await fetch(API + path, { method: 'PUT', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
       const j = await r.json().catch(() => ({}));
       if (!r.ok) throw new Error(j.error || r.statusText);
       return j;
@@ -864,6 +987,25 @@
       }
     }
 
+    var dashboardCharts = {};
+    var chartDefaults = {
+      responsive: true,
+      maintainAspectRatio: false,
+      layout: { padding: { top: 8, right: 12, bottom: 8, left: 12 }, rtl: true },
+      plugins: {
+        legend: { labels: { color: '#94a3b8', font: { family: 'Cairo' }, textAlign: 'right' }, align: 'end' },
+        tooltip: {
+          titleFont: { family: 'Cairo' },
+          bodyFont: { family: 'Cairo' },
+          callbacks: { label: function(ctx) { var v = ctx.parsed !== undefined ? ctx.parsed : ctx.raw; return (typeof v === 'number' ? v : ctx.formattedValue || '') + ' ل.س'; } }
+        }
+      },
+      scales: {
+        x: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8', font: { family: 'Cairo' } } },
+        y: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8', font: { family: 'Cairo' } } }
+      }
+    };
+
     function updateCurrencyChart() {
       const canvas = document.getElementById('currency-chart');
       if (!canvas) return;
@@ -892,6 +1034,220 @@
             x: { grid: { color: 'rgba(255,255,255,0.06)' }, ticks: { color: '#94a3b8', maxTicksLimit: 7, font: { family: 'Cairo' } } }
           }
         }
+      });
+    }
+
+    function refreshDashboardCharts() {
+      var now = new Date();
+      var toDate = now.toISOString().slice(0, 10);
+      var from = new Date(now);
+      from.setDate(from.getDate() - 30);
+      var fromDate = from.toISOString().slice(0, 10);
+      Promise.all([
+        fetchJson('/reports/profit-loss?fromDate=' + fromDate + '&toDate=' + toDate),
+        fetchJson('/expenses'),
+        fetchJson('/accounts'),
+        fetchJson('/inventory/movements?type=out'),
+        fetchJson('/products'),
+        fetchJson('/reports/balance-sheet')
+      ]).then(function(results) {
+        var pl = results[0].data || {};
+        var expensesList = results[1].data || [];
+        var accounts = results[2].data || [];
+        var movements = results[3].data || [];
+        var products = results[4].data || [];
+        var balanceSheet = results[5].data || {};
+
+        var accMap = {};
+        accounts.forEach(function(a) { accMap[a.id] = a.name || a.code || a.id; });
+
+        var revEmpty = document.getElementById('chart-revenue-expenses-empty');
+        var revExpCanvas = document.getElementById('chart-revenue-expenses');
+        var revZero = (pl.revenue == null || pl.revenue === 0) && (pl.expenses == null || pl.expenses === 0);
+        if (dashboardCharts.revenueExpenses) { dashboardCharts.revenueExpenses.destroy(); dashboardCharts.revenueExpenses = null; }
+        if (revZero && revEmpty && revExpCanvas) {
+          revEmpty.classList.remove('hidden');
+          revExpCanvas.style.display = 'none';
+        } else if (revExpCanvas) {
+          if (revEmpty) revEmpty.classList.add('hidden');
+          revExpCanvas.style.display = 'block';
+          var ctx = revExpCanvas.getContext('2d');
+          dashboardCharts.revenueExpenses = new Chart(ctx, {
+            type: 'bar',
+            data: {
+              labels: ['الإيرادات', 'المصروفات'],
+              datasets: [{
+                label: 'ل.س',
+                data: [pl.revenue != null ? pl.revenue : 0, pl.expenses != null ? pl.expenses : 0],
+                backgroundColor: function(c) {
+                  var chart = c.chart;
+                  var a = chart.chartArea;
+                  if (!a) return c.dataIndex === 0 ? 'rgba(16,185,129,0.45)' : 'rgba(248,113,113,0.45)';
+                  var g = chart.ctx.createLinearGradient(0, a.bottom, 0, a.top);
+                  if (c.dataIndex === 0) {
+                    g.addColorStop(0, 'rgba(16,185,129,0.12)');
+                    g.addColorStop(0.6, 'rgba(16,185,129,0.4)');
+                    g.addColorStop(1, 'rgba(16,185,129,0.55)');
+                  } else {
+                    g.addColorStop(0, 'rgba(248,113,113,0.12)');
+                    g.addColorStop(0.6, 'rgba(248,113,113,0.4)');
+                    g.addColorStop(1, 'rgba(248,113,113,0.55)');
+                  }
+                  return g;
+                },
+                borderColor: ['#10b981', '#f87171'],
+                borderWidth: 1
+              }]
+            },
+            options: Object.assign({}, chartDefaults, {
+              plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: function(ctx) { return (ctx.raw || 0) + ' ل.س'; } } }
+              },
+              scales: { x: { grid: { display: false } }, y: { beginAtZero: true } }
+            })
+          });
+        }
+
+        var byAccount = {};
+        expensesList.forEach(function(e) {
+          byAccount[e.accountId] = (byAccount[e.accountId] || 0) + (e.amountSYP || 0);
+        });
+        var expenseLabels = [];
+        var expenseData = [];
+        var preferredOrder = ['5400', '5500', '5600'];
+        preferredOrder.forEach(function(id) {
+          var amt = byAccount[id] || 0;
+          if (amt > 0) { expenseLabels.push(accMap[id] || id); expenseData.push(amt); }
+        });
+        Object.keys(byAccount).filter(function(id) { return preferredOrder.indexOf(id) === -1 && (byAccount[id] || 0) > 0; }).forEach(function(id) {
+          expenseLabels.push(accMap[id] || id);
+          expenseData.push(byAccount[id]);
+        });
+        var pieEmpty = document.getElementById('chart-expense-pie-empty');
+        var pieCanvas = document.getElementById('chart-expense-pie');
+        if (expenseData.length === 0) { expenseLabels = ['لا مصروفات']; expenseData = [1]; }
+        var pieNoData = expenseLabels.length === 1 && expenseLabels[0] === 'لا مصروفات';
+        var pieColors = ['#10b981', '#3b82f6', '#f59e0b', '#8b5cf6', '#ec4899'];
+        if (dashboardCharts.expensePie) { dashboardCharts.expensePie.destroy(); dashboardCharts.expensePie = null; }
+        if (pieNoData && pieEmpty && pieCanvas) {
+          pieEmpty.classList.remove('hidden');
+          pieCanvas.style.display = 'none';
+        } else if (pieCanvas) {
+          if (pieEmpty) pieEmpty.classList.add('hidden');
+          pieCanvas.style.display = 'block';
+          dashboardCharts.expensePie = new Chart(pieCanvas.getContext('2d'), {
+            type: 'pie',
+            data: {
+              labels: expenseLabels,
+              datasets: [{
+                data: expenseData,
+                backgroundColor: function(c) {
+                  var chart = c.chart;
+                  var ctx = chart.ctx;
+                  var idx = c.dataIndex % pieColors.length;
+                  var base = pieColors[idx];
+                  var r = parseInt(base.slice(1, 3), 16);
+                  var g = parseInt(base.slice(3, 5), 16);
+                  var b = parseInt(base.slice(5, 7), 16);
+                  var cx = (chart.chartArea.left + chart.chartArea.right) / 2;
+                  var cy = (chart.chartArea.top + chart.chartArea.bottom) / 2;
+                  var rad = Math.min(chart.chartArea.right - cx, chart.chartArea.bottom - cy) * 0.9;
+                  if (!rad || !chart.chartArea) return 'rgba(' + r + ',' + g + ',' + b + ',0.5)';
+                  var grad = ctx.createRadialGradient(cx, cy, 0, cx, cy, rad);
+                  grad.addColorStop(0, 'rgba(' + r + ',' + g + ',' + b + ',0.65)');
+                  grad.addColorStop(0.7, 'rgba(' + r + ',' + g + ',' + b + ',0.35)');
+                  grad.addColorStop(1, 'rgba(' + r + ',' + g + ',' + b + ',0.15)');
+                  return grad;
+                },
+                borderColor: 'rgba(30,41,59,0.5)',
+                borderWidth: 1
+              }]
+            },
+            options: Object.assign({}, chartDefaults, {
+              scales: undefined,
+              plugins: {
+                legend: { position: 'bottom', align: 'end', labels: { textAlign: 'right' } },
+                tooltip: { callbacks: { label: function(ctx) { return (ctx.label || '') + ': ' + (ctx.raw || 0) + ' ل.س'; } } }
+              }
+            })
+          });
+        }
+
+        var byProduct = {};
+        movements.forEach(function(m) {
+          if (m.type === 'out' && (m.refType === 'sale' || m.refType === 'invoice')) {
+            byProduct[m.productId] = (byProduct[m.productId] || 0) + (m.quantity || 0);
+          }
+        });
+        var productIds = Object.keys(byProduct).sort(function(a, b) { return byProduct[b] - byProduct[a]; }).slice(0, 5);
+        var topLabels = productIds.map(function(id) { var p = products.find(function(x) { return x.id === id; }); return p ? (p.name || id) : id; });
+        var topData = productIds.map(function(id) { return byProduct[id]; });
+        var topEmpty = document.getElementById('chart-top-products-empty');
+        var topCanvas = document.getElementById('chart-top-products');
+        var topNoData = topData.length === 0 || (topData.length === 1 && topData[0] === 0);
+        if (topData.length === 0) { topLabels = ['لا مبيعات']; topData = [0]; }
+        if (dashboardCharts.topProducts) { dashboardCharts.topProducts.destroy(); dashboardCharts.topProducts = null; }
+        if (topNoData && topEmpty && topCanvas) {
+          topEmpty.classList.remove('hidden');
+          topCanvas.style.display = 'none';
+        } else if (topCanvas) {
+          if (topEmpty) topEmpty.classList.add('hidden');
+          topCanvas.style.display = 'block';
+          dashboardCharts.topProducts = new Chart(topCanvas.getContext('2d'), {
+            type: 'bar',
+            data: {
+              labels: topLabels,
+              datasets: [{
+                label: 'كمية مباعة',
+                data: topData,
+                backgroundColor: function(c) {
+                  var chart = c.chart;
+                  var a = chart.chartArea;
+                  if (!a) return 'rgba(16,185,129,0.45)';
+                  var g = chart.ctx.createLinearGradient(a.left, 0, a.right, 0);
+                  g.addColorStop(0, 'rgba(16,185,129,0.15)');
+                  g.addColorStop(0.5, 'rgba(16,185,129,0.4)');
+                  g.addColorStop(1, 'rgba(16,185,129,0.55)');
+                  return g;
+                },
+                borderColor: '#10b981',
+                borderWidth: 1
+              }]
+            },
+            options: Object.assign({}, chartDefaults, {
+              indexAxis: 'y',
+              plugins: {
+                legend: { display: false },
+                tooltip: { callbacks: { label: function(ctx) { return (ctx.raw || 0) + ' وحدة · ل.س (قيمة بالمبيعات)'; } } }
+              },
+              scales: { x: { beginAtZero: true }, y: { grid: { display: false } } }
+            })
+          });
+        }
+
+        var cashAccounts = ['1010', '1020', '1030'];
+        var totalCash = 0;
+        (balanceSheet.assets && balanceSheet.assets.rows || []).forEach(function(r) {
+          if (cashAccounts.indexOf(r.id) !== -1) totalCash += (r.debit || 0) - (r.credit || 0);
+        });
+        var totalPayables = 0;
+        (balanceSheet.liabilities && balanceSheet.liabilities.rows || []).forEach(function(r) {
+          if (r.id === '2010') totalPayables += (r.credit || 0) - (r.debit || 0);
+        });
+        var ratio = totalPayables > 0 ? totalCash / totalPayables : (totalCash > 0 ? 1 : 0);
+        var pct = Math.min(100, Math.round(ratio * 50));
+        var gaugeEl = document.getElementById('gauge-cash-debt');
+        var gaugeLabel = document.getElementById('gauge-cash-debt-label');
+        var gaugeDetail = document.getElementById('gauge-cash-debt-detail');
+        if (gaugeEl) { gaugeEl.style.width = pct + '%'; gaugeEl.classList.toggle('negative', ratio < 0.5); }
+        if (gaugeLabel) gaugeLabel.textContent = totalCash === 0 && totalPayables === 0 ? '—' : ratio.toFixed(2) + '×';
+        if (gaugeDetail) gaugeDetail.textContent = totalCash === 0 && totalPayables === 0 ? 'لا بيانات' : 'نقدية ' + (totalCash || 0) + ' ل.س · ذمم دائنة ' + (totalPayables || 0) + ' ل.س';
+      }).catch(function() {
+        var d = document.getElementById('gauge-cash-debt-detail');
+        if (d) { d.textContent = 'فشل التحميل'; d.classList.add('text-rose-400'); }
+        var l = document.getElementById('gauge-cash-debt-label');
+        if (l) l.textContent = '—';
       });
     }
 
@@ -1151,8 +1507,408 @@
       container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">العملات والذهب</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><p class="text-slate-400">1 USD = <span class="text-emerald-400 text-xl font-semibold">' + sypPerUsd + '</span> ل.س</p><p class="text-slate-500 text-sm mt-1">مرجع الذهب: ' + (rates.GOLD != null ? rates.GOLD : '—') + '</p><button type="button" onclick="syncSYP(); (function(){ const t=openTabs.find(x=>x.moduleId===\'currency-manager\'); if(t) openModule(\'currency-manager\',\'العملات والذهب\'); })()" class="mt-3 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">مزامنة سعر الل.س</button></div><div><p class="text-slate-400">مكاسب/خسائر الصرف (القوة الشرائية)</p><p class="' + (fx.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + ' font-semibold">' + (fx.totalGainLossSYP ?? '—') + ' ل.س</p></div></div></div>';
     }
 
+    async function renderSalesInvoice(container) {
+      const [productsR, unitsR] = await Promise.all([fetchJson('/products'), fetchJson('/units')]);
+      const products = productsR.data || [];
+      const units = unitsR.data || [];
+      const productOpts = products.map(p => '<option value="' + p.id + '">' + (p.name || p.id) + '</option>').join('');
+      const unitOpts = units.map(u => '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>').join('');
+      window._invoiceLines = [];
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">فاتورة بيع</h3><p class="text-slate-500 text-sm mb-4">أضف أصنافاً ثم احفظ. يتم خصم المخزون وتسجيل حركات مخزون وقيد محاسبي تلقائياً.</p><div id="invoice-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="inv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="inv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="inv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="inv-price" placeholder="سعر وحدة" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addInvoiceLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><button type="button" onclick="submitSalesInvoice()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الفاتورة (خصم مخزون + قيد)</button><p id="invoice-message" class="mt-3 text-sm hidden"></p></div>';
+      renderInvoiceLinesTable();
+    }
+    function addInvoiceLine() {
+      const productId = document.getElementById('inv-product')?.value;
+      const unitId = document.getElementById('inv-unit')?.value || 'piece';
+      const qty = Number(document.getElementById('inv-qty')?.value) || 0;
+      const price = Number(document.getElementById('inv-price')?.value) || 0;
+      if (!productId || qty <= 0) { alert('اختر منتجاً وأدخل كمية'); return; }
+      window._invoiceLines = window._invoiceLines || [];
+      window._invoiceLines.push({ productId, unitId, quantity: qty, unitPrice: price });
+      renderInvoiceLinesTable();
+    }
+    function removeInvoiceLine(i) {
+      window._invoiceLines = window._invoiceLines || [];
+      window._invoiceLines.splice(i, 1);
+      renderInvoiceLinesTable();
+    }
+    function renderInvoiceLinesTable() {
+      const el = document.getElementById('invoice-lines');
+      if (!el) return;
+      const lines = window._invoiceLines || [];
+      if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm mb-2">لا أصناف بعد. أضف سطراً أعلاه.</p>'; return; }
+      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">منتج</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">سعر</th><th></th></tr></thead><tbody>' + lines.map((l, i) => '<tr class="border-b border-white/5"><td class="p-2">' + l.productId + '</td><td class="p-2">' + (l.unitId || 'piece') + '</td><td class="p-2">' + l.quantity + '</td><td class="p-2">' + (l.unitPrice || 0) + '</td><td class="p-2"><button type="button" onclick="removeInvoiceLine(' + i + ')" class="text-rose-400 text-xs">حذف</button></td></tr>').join('') + '</tbody></table>';
+    }
+    async function submitSalesInvoice() {
+      const lines = window._invoiceLines || [];
+      if (!lines.length) { alert('أضف صنفاً واحداً على الأقل'); return; }
+      const msgEl = document.getElementById('invoice-message');
+      if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
+      try {
+        const j = await postJson('/sales/invoice', { items: lines });
+        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        var invoiceId = (j.data && j.data.invoiceId) ? j.data.invoiceId : '';
+        window._invoiceLines = [];
+        renderInvoiceLinesTable();
+        showToast('Success', invoiceId ? ('رقم الفاتورة: ' + invoiceId) : 'تم حفظ الفاتورة', 'success');
+        refreshAfterSale();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+    /** Global sync: call after ANY transaction (Sale, Purchase, Expense, Build) to update Dashboard, Trial Balance, Journal, P&L, Fractioning, Item Card, Stock Movements. */
+    function refreshAll() {
+      refresh('trial-balance');
+      refresh('journal');
+      refresh('pl');
+      refresh('fractioning');
+      var dashTb = document.getElementById('dashboard-tb');
+      var dashPl = document.getElementById('dashboard-pl');
+      var dashJ = document.getElementById('dashboard-journal');
+      if (dashTb || dashPl || dashJ) {
+        fetchJson('/statements/trial-balance').then(function(r) { if (r.data && fns['trial-balance']) fns['trial-balance'](r); if (dashTb && r.data) dashTb.innerHTML = '<p class="text-white font-medium">متوازن: ' + (r.data.balanced ? 'نعم' : 'لا') + '</p><p class="text-slate-500 text-sm">إجمالي مدين ' + (r.data.totalDebit || 0) + ' · دائن ' + (r.data.totalCredit || 0) + ' ل.س</p>'; });
+        fetchJson('/statements/profit-loss').then(function(r) { if (r.data && fns.pl) fns.pl(r); if (dashPl && r.data) dashPl.textContent = r.data.trueProfit != null ? r.data.trueProfit : '—'; });
+        fetchJson('/journal?limit=30').then(function(r) { if (r.data && fns.journal) fns.journal(r); });
+      }
+      if (typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
+      var mc = document.getElementById('module-content');
+      var itemCardTab = openTabs.find(function(t) { return t.moduleId === 'item-card'; });
+      if (itemCardTab && activeTabId === itemCardTab.id && mc) renderItemCard(mc);
+      var stockMovTab = openTabs.find(function(t) { return t.moduleId === 'stock-movements'; });
+      if (stockMovTab && activeTabId === stockMovTab.id && mc) renderStockMovements(mc);
+    }
+    /** Alias for global refresh; used after sales invoice and is the same refresh used after purchase, expense, build. */
+    function refreshAfterSale() { refreshAll(); }
+
+    async function renderPurchaseInvoice(container) {
+      var productsR = await fetchJson('/products');
+      var unitsR = await fetchJson('/units');
+      var products = productsR.data || [];
+      var units = unitsR.data || [];
+      var productOpts = products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
+      var unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      window._purchaseLines = [];
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">فاتورة مشتريات</h3><p class="text-slate-500 text-sm mb-4">المورد (اختياري)، شبكة أصناف، ودفع نقدي أو آجل.</p><div class="mb-4"><label class="text-slate-400 text-sm">المورد (معرّف أو اسم)</label><input type="text" id="pinv-supplier" placeholder="معرّف المورد" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div id="purchase-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="pinv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="pinv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="pinv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="pinv-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addPurchaseLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pinv-pay-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">دفع نقدي</span></label></div><button type="button" onclick="submitPurchaseInvoice()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ فاتورة المشتريات</button><p id="purchase-message" class="mt-3 text-sm hidden"></p></div>';
+      renderPurchaseLinesTable();
+    }
+    function addPurchaseLine() {
+      var productId = document.getElementById('pinv-product')?.value;
+      var unitId = document.getElementById('pinv-unit')?.value || 'piece';
+      var qty = Number(document.getElementById('pinv-qty')?.value) || 0;
+      var cost = Number(document.getElementById('pinv-cost')?.value) || 0;
+      if (!productId || qty <= 0) { alert('اختر منتجاً وأدخل كمية'); return; }
+      window._purchaseLines = window._purchaseLines || [];
+      window._purchaseLines.push({ productId, unitId, quantity: qty, unitCostSYP: cost });
+      renderPurchaseLinesTable();
+    }
+    function removePurchaseLine(i) {
+      window._purchaseLines = window._purchaseLines || [];
+      window._purchaseLines.splice(i, 1);
+      renderPurchaseLinesTable();
+    }
+    function renderPurchaseLinesTable() {
+      var el = document.getElementById('purchase-lines');
+      if (!el) return;
+      var lines = window._purchaseLines || [];
+      if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm mb-2">لا أصناف بعد. أضف سطراً أعلاه.</p>'; return; }
+      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">منتج</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">تكلفة وحدة ل.س</th><th></th></tr></thead><tbody>' + lines.map(function(l, i) { return '<tr class="border-b border-white/5"><td class="p-2">' + l.productId + '</td><td class="p-2">' + (l.unitId || 'piece') + '</td><td class="p-2">' + l.quantity + '</td><td class="p-2">' + (l.unitCostSYP || 0) + '</td><td class="p-2"><button type="button" onclick="removePurchaseLine(' + i + ')" class="text-rose-400 text-xs">حذف</button></td></tr>'; }).join('') + '</tbody></table>';
+    }
+    async function submitPurchaseInvoice() {
+      var lines = window._purchaseLines || [];
+      if (!lines.length) { alert('أضف صنفاً واحداً على الأقل'); return; }
+      var supplierId = document.getElementById('pinv-supplier')?.value?.trim() || null;
+      var payWithCash = document.getElementById('pinv-pay-cash')?.checked || false;
+      var msgEl = document.getElementById('purchase-message');
+      if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
+      try {
+        var j = await postJson('/procurement/purchase-invoice', { items: lines, supplierId: supplierId || null, payWithCash: payWithCash });
+        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        var invId = (j.data && j.data.invoice && j.data.invoice.id) ? j.data.invoice.id : '';
+        window._purchaseLines = [];
+        renderPurchaseLinesTable();
+        showToast('Success', invId ? ('فاتورة مشتريات: ' + invId) : 'تم حفظ فاتورة المشتريات', 'success');
+        refreshAll();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    async function renderManufacturingBOM(container) {
+      var productsR = await fetchJson('/products');
+      var unitsR = await fetchJson('/units');
+      var bomsR = await fetchJson('/manufacturing/boms');
+      var products = productsR.data || [];
+      var units = unitsR.data || [];
+      var boms = bomsR.data || [];
+      var productOpts = products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
+      var unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      window._bomComponents = [];
+      var listHtml = boms.length ? '<div class="overflow-x-auto mb-6"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المنتج النهائي</th><th class="p-2">الوحدة</th><th class="p-2">مكونات</th></tr></thead><tbody>' + boms.map(function(b) {
+        var comps = (b.components || []).map(function(c) { return c.productId + ' × ' + c.quantityPerUnit + ' ' + (c.unitId || ''); }).join('؛ ');
+        return '<tr class="border-b border-white/5"><td class="p-2">' + (b.finishedProductId || '') + '</td><td class="p-2">' + (b.finishedUnitId || 'piece') + '</td><td class="p-2 text-slate-400">' + comps + '</td></tr>';
+      }).join('') + '</tbody></table></div>' : '<p class="text-slate-500 text-sm mb-4">لا توجد وصفات بعد.</p>';
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">وصفات (BOM)</h3><p class="text-slate-500 text-sm mb-4">عرّف كيف يُصنع المنتج النهائي من المواد الخام.</p>' + listHtml + '<h4 class="text-white font-medium mb-2">إضافة وصفة</h4><div class="mb-3"><label class="text-slate-400 text-sm">المنتج النهائي</label><select id="bom-finished-product" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + productOpts + '</select></div><div class="mb-3"><label class="text-slate-400 text-sm">وحدة المنتج النهائي</label><select id="bom-finished-unit" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select></div><div id="bom-components"></div><div class="flex flex-wrap gap-2 mb-4"><select id="bom-comp-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="bom-comp-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="bom-comp-qty" placeholder="كمية لكل 1 وحدة نهائية" min="0.001" step="any" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-36"/><button type="button" onclick="addBOMComponent()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ مكوّن</button></div><button type="button" onclick="submitBOM()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الوصفة</button><p id="bom-message" class="mt-3 text-sm hidden"></p></div>';
+      renderBOMComponentsTable();
+    }
+    function addBOMComponent() {
+      var productId = document.getElementById('bom-comp-product')?.value;
+      var unitId = document.getElementById('bom-comp-unit')?.value || 'piece';
+      var qty = Number(document.getElementById('bom-comp-qty')?.value) || 0;
+      if (!productId || qty <= 0) { alert('اختر مادة خام وكمية لكل وحدة'); return; }
+      window._bomComponents = window._bomComponents || [];
+      window._bomComponents.push({ productId, unitId, quantityPerUnit: qty });
+      renderBOMComponentsTable();
+    }
+    function removeBOMComponent(i) {
+      window._bomComponents = window._bomComponents || [];
+      window._bomComponents.splice(i, 1);
+      renderBOMComponentsTable();
+    }
+    function renderBOMComponentsTable() {
+      var el = document.getElementById('bom-components');
+      if (!el) return;
+      var comps = window._bomComponents || [];
+      if (!comps.length) { el.innerHTML = '<p class="text-slate-500 text-sm mb-2">أضف مكوّناً واحداً على الأقل (مادة خام + كمية لكل وحدة نهائية).</p>'; return; }
+      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">مادة خام</th><th class="p-2">وحدة</th><th class="p-2">كمية لكل 1 وحدة</th><th></th></tr></thead><tbody>' + comps.map(function(c, i) { return '<tr class="border-b border-white/5"><td class="p-2">' + c.productId + '</td><td class="p-2">' + (c.unitId || 'piece') + '</td><td class="p-2">' + c.quantityPerUnit + '</td><td class="p-2"><button type="button" onclick="removeBOMComponent(' + i + ')" class="text-rose-400 text-xs">حذف</button></td></tr>'; }).join('') + '</tbody></table>';
+    }
+    async function submitBOM() {
+      var finishedProductId = document.getElementById('bom-finished-product')?.value;
+      var finishedUnitId = document.getElementById('bom-finished-unit')?.value || 'piece';
+      var components = window._bomComponents || [];
+      if (!finishedProductId || !components.length) { alert('اختر المنتج النهائي وأضف مكوّناً واحداً على الأقل'); return; }
+      var msgEl = document.getElementById('bom-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      try {
+        await postJson('/manufacturing/boms', { finishedProductId, finishedUnitId, components });
+        showToast('Success', 'تم حفظ الوصفة', 'success');
+        window._bomComponents = [];
+        renderBOMComponentsTable();
+        refreshActiveModule();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      }
+    }
+
+    async function renderManufacturingBuild(container) {
+      var bomsR = await fetchJson('/manufacturing/boms');
+      var boms = bomsR.data || [];
+      var bomOpts = boms.map(function(b) { return '<option value="' + b.id + '">' + (b.finishedProductId || b.id) + ' (' + (b.finishedUnitId || 'piece') + ')</option>'; }).join('');
+      if (!bomOpts) bomOpts = '<option value="">لا توجد وصفات</option>';
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">أمر تصنيع</h3><p class="text-slate-500 text-sm mb-4">اختر وصفة وكمية للإنتاج. سيتم خصم المواد الخام وإضافة المنتج النهائي.</p><div class="mb-4"><label class="text-slate-400 text-sm">الوصفة (BOM)</label><select id="build-bom" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + bomOpts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">الكمية</label><input type="number" id="build-qty" min="1" value="1" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div class="mb-4"><label class="text-slate-400 text-sm">بيان (اختياري)</label><input type="text" id="build-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="ملاحظات"/></div><button type="button" onclick="submitBuild()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تنفيذ التصنيع</button><p id="build-message" class="mt-3 text-sm hidden"></p></div>';
+    }
+    async function submitBuild() {
+      var bomId = document.getElementById('build-bom')?.value;
+      var quantity = Number(document.getElementById('build-qty')?.value) || 0;
+      var memo = document.getElementById('build-memo')?.value || '';
+      if (!bomId || quantity <= 0) { alert('اختر وصفة وأدخل كمية'); return; }
+      var msgEl = document.getElementById('build-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      try {
+        var j = await postJson('/manufacturing/build', { bomId, quantity, memo });
+        if (!j.success) throw new Error(j.error || 'فشل التنفيذ');
+        showToast('Success', (j.data && j.data.buildId) ? 'أمر تصنيع: ' + j.data.buildId : 'تم التنفيذ', 'success');
+        refreshAll();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      }
+    }
+
+    async function renderExpenses(container) {
+      var accR = await fetchJson('/accounts');
+      var accounts = accR.data || [];
+      var expenseAccounts = accounts.filter(function(a) { return a.type === 'expense'; });
+      var opts = expenseAccounts.map(function(a) { return '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>'; }).join('');
+      if (!opts) opts = '<option value="">لا حسابات مصروفات</option>';
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المصاريف</h3><p class="text-slate-500 text-sm mb-4">تسجيل راتب، إيجار، كهرباء، إلخ. من شجرة الحسابات (مدين مصروف، دائن صندوق).</p><div class="mb-4"><label class="text-slate-400 text-sm">الحساب (مصروف)</label><select id="exp-account" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + opts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">المبلغ ل.س</label><input type="number" id="exp-amount" min="0.01" step="any" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="المبلغ"/></div><div class="mb-4"><label class="text-slate-400 text-sm">البيان (اختياري)</label><input type="text" id="exp-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="مثال: راتب آذار"/></div><button type="button" onclick="submitExpense()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تسجيل المصروف</button><p id="exp-message" class="mt-3 text-sm hidden"></p></div>';
+    }
+    async function submitExpense() {
+      var accountId = document.getElementById('exp-account')?.value;
+      var amountSYP = Number(document.getElementById('exp-amount')?.value) || 0;
+      var memo = document.getElementById('exp-memo')?.value || '';
+      if (!accountId || amountSYP <= 0) { alert('اختر حساب مصروف وأدخل المبلغ'); return; }
+      var msgEl = document.getElementById('exp-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      try {
+        await postJson('/expenses', { accountId, amountSYP, memo });
+        showToast('Success', 'تم تسجيل المصروف', 'success');
+        document.getElementById('exp-amount').value = '';
+        document.getElementById('exp-memo').value = '';
+        refreshAll();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      }
+    }
+
+    async function renderReportsHub(container) {
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">مركز التقارير</h3><p class="text-slate-500 text-sm mb-6">اختر تقريراً لعرضه.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"><button type="button" onclick="showReport(\'balance-sheet\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">الميزانية العمومية</span><span class="text-slate-400 text-sm">الأصول والخصوم وحقوق الملكية</span></button><button type="button" onclick="showReport(\'profit-loss\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">قائمة الدخل</span><span class="text-slate-400 text-sm">صافي الربح/الخسارة</span></button><button type="button" onclick="showReport(\'warehouse\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">جرد المستودع</span><span class="text-slate-400 text-sm">قيمة المخزون (FIFO)</span></button></div><div id="report-result" class="mt-4"></div></div>';
+    }
+    async function showReport(reportId) {
+      var el = document.getElementById('report-result');
+      if (!el) return;
+      el.innerHTML = '<p class="text-slate-500">جاري التحميل…</p>';
+      try {
+        if (reportId === 'balance-sheet') {
+          var r = await fetchJson('/reports/balance-sheet');
+          var d = r.data || {};
+          var assets = (d.assets && d.assets.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-emerald-400">' + (row.debit - row.credit || 0) + '</td></tr>'; }).join('');
+          var liab = (d.liabilities && d.liabilities.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-amber-400">' + (row.credit - row.debit || 0) + '</td></tr>'; }).join('');
+          var eq = (d.equity && d.equity.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-amber-400">' + (row.credit - row.debit || 0) + '</td></tr>'; }).join('');
+          el.innerHTML = '<div class="glass-card rounded-xl p-4 overflow-x-auto"><h4 class="text-white font-medium mb-3">الميزانية العمومية</h4><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">كود</th><th class="p-2">الحساب</th><th class="p-2">المبلغ ل.س</th></tr></thead><tbody><tr class="text-emerald-300 font-medium"><td colspan="2" class="p-2">الأصول</td><td class="p-2">' + (d.assets && d.assets.total) + '</td></tr>' + assets + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">الخصوم</td><td class="p-2">' + (d.liabilities && d.liabilities.total) + '</td></tr>' + liab + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">حقوق الملكية</td><td class="p-2">' + (d.equity && d.equity.total) + '</td></tr>' + eq + '</tbody></table><p class="text-slate-500 text-sm mt-2">متوازنة: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
+        } else if (reportId === 'profit-loss') {
+          var pl = await fetchJson('/reports/profit-loss');
+          var p = pl.data || {};
+          el.innerHTML = '<div class="glass-card rounded-xl p-4"><h4 class="text-white font-medium mb-3">قائمة الدخل</h4><p class="text-slate-400">الإيرادات: <span class="text-emerald-400 font-medium">' + (p.revenue ?? '—') + '</span> ل.س</p><p class="text-slate-400">المصروفات: <span class="text-rose-400 font-medium">' + (p.expenses ?? '—') + '</span> ل.س</p><p class="text-slate-400 mt-2">إجمالي الربح: <span class="text-white font-medium">' + (p.grossProfit ?? '—') + '</span> ل.س</p><p class="text-slate-400">مكاسب/خسائر الصرف: ' + (p.exchangeGainLossSYP ?? '—') + ' ل.س</p><p class="text-emerald-300 font-medium mt-2">الربح الحقيقي (القوة الشرائية): ' + (p.trueProfit ?? '—') + ' ل.س</p></div>';
+        } else if (reportId === 'warehouse') {
+          var wh = await fetchJson('/reports/warehouse-valuation');
+          var w = wh.data || {};
+          var rows = (w.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.productName || row.productId) + '</td><td class="p-2">' + (row.unitName || row.unitId) + '</td><td class="p-2">' + (row.quantity || 0) + '</td><td class="p-2 text-emerald-400">' + (row.valueCostSYP || 0) + '</td></tr>'; }).join('');
+          el.innerHTML = '<div class="glass-card rounded-xl p-4 overflow-x-auto"><h4 class="text-white font-medium mb-3">جرد المستودع (قيمة بالتكلفة FIFO)</h4><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المادة</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th><th class="p-2">القيمة ل.س</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="3">الإجمالي</td><td class="p-2 text-emerald-400">' + (w.totalValueCostSYP ?? 0) + '</td></tr></tfoot></table></div>';
+        }
+      } catch (e) {
+        el.innerHTML = '<p class="text-rose-400">' + (e.message || 'خطأ') + '</p>';
+      }
+    }
+
+    function escapeAttr(s) {
+      if (s == null || s === undefined) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+    }
+    async function renderCompanySettings(container) {
+      var r = await fetchJson('/settings/company-profile');
+      var data = r.data || {};
+      var backupCard = '<div class="glass-card rounded-2xl p-6 mt-6"><h3 class="text-lg font-semibold text-white mb-4">النسخ الاحتياطي واستعادة البيانات</h3><p class="text-slate-500 text-sm mb-4">تصدير كل البيانات (دفتر اليومية، المخزون، الحركات، الوصفات، المصاريف، الملف) أو استعادتها من ملف.</p><div class="flex flex-wrap gap-3 mb-4"><button type="button" onclick="downloadBackup()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">تصدير نسخة احتياطية</button><button type="button" onclick="downloadExcelAudit()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">تصدير إلى Excel</button></div><div class="border-t border-white/10 pt-4 mt-4"><label class="text-slate-400 text-sm block mb-2">استعادة من نسخة احتياطية</label><input type="file" id="restore-file" accept=".json" class="hidden"/><button type="button" onclick="document.getElementById(\'restore-file\').click()" class="tap-haptic px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 font-medium text-sm">اختيار ملف JSON</button><span id="restore-filename" class="text-slate-500 text-sm mr-2"></span><button type="button" id="restore-do-btn" onclick="doRestoreFromFile()" class="tap-haptic px-4 py-2 rounded-lg bg-rose-500/20 text-rose-300 font-medium text-sm hidden">تنفيذ الاستعادة</button><p class="text-slate-500 text-xs mt-2">آخر نسخ تلقائي محلي: <span id="autosave-time">—</span></p><button type="button" onclick="restoreFromLocalAutosave()" class="tap-haptic mt-2 px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">استعادة من النسخ التلقائي المحلي</button><p id="backup-message" class="mt-2 text-sm hidden"></p></div></div>';
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">إعدادات الشركة</h3><p class="text-slate-500 text-sm mb-6">الشعار، الاسم، الرقم الضريبي، والعملة الافتراضية.</p><div class="mb-4"><label class="text-slate-400 text-sm">رابط الشعار (URL)</label><input type="text" id="cp-logo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="https://..." value="' + escapeAttr(data.logoUrl) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="cp-name" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Vault AI" value="' + escapeAttr(data.name) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">الرقم الضريبي</label><input type="text" id="cp-taxid" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="الرقم الضريبي" value="' + escapeAttr(data.taxId) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">العملة الافتراضية</label><input type="text" id="cp-currency" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="SYP" value="' + escapeAttr(data.defaultCurrency || 'SYP') + '"/></div><button type="button" onclick="submitCompanyProfile()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الإعدادات</button><p id="cp-message" class="mt-3 text-sm hidden"></p></div>' + backupCard;
+      var restoreInput = document.getElementById('restore-file');
+      if (restoreInput) {
+        restoreInput.addEventListener('change', function() {
+          var file = this.files && this.files[0] ? this.files[0] : null;
+          if (file) onRestoreFileChosen(file);
+          else {
+            _pendingRestoreData = null;
+            document.getElementById('restore-filename').textContent = '';
+            document.getElementById('restore-do-btn').classList.add('hidden');
+          }
+        });
+      }
+      var autosaveEl = document.getElementById('autosave-time');
+      if (autosaveEl) {
+        var t = localStorage.getItem('vault_autosave_time');
+        autosaveEl.textContent = t ? t.slice(0, 19).replace('T', ' ') : '—';
+      }
+    }
+    function restoreFromLocalAutosave() {
+      var raw = localStorage.getItem('vault_autosave_backup');
+      if (!raw) { showToast('تنبيه', 'لا يوجد نسخ تلقائي محلي', 'error'); return; }
+      var data;
+      try { data = JSON.parse(raw); } catch (e) { showToast('خطأ', 'النسخ المحلي تالف', 'error'); return; }
+      if (!data || data.version === undefined) { showToast('خطأ', 'النسخ المحلي غير صالح', 'error'); return; }
+      if (!confirm('سيتم استبدال جميع البيانات الحالية بالنسخة التلقائية المحلية. متأكد؟')) return;
+      postJson('/backup/restore', data).then(function() {
+        showToast('Success', 'تم الاستعادة من النسخ التلقائي', 'success');
+        if (typeof refreshAll === 'function') refreshAll();
+      }).catch(function(e) {
+        showToast('خطأ', e.message || 'فشل الاستعادة', 'error');
+      });
+    }
+    async function downloadBackup() {
+      try {
+        var res = await fetch(API + '/backup/export', { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error(res.statusText);
+        var blob = await res.blob();
+        var url = URL.createObjectURL(blob);
+        var a = document.createElement('a'); a.href = url; a.download = 'VaultAI_Backup_' + Date.now() + '.json'; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Success', 'تم تصدير النسخة الاحتياطية', 'success');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل التصدير', 'error');
+      }
+    }
+    async function downloadExcelAudit() {
+      try {
+        var accR = await fetchJson('/accounts');
+        var journalR = await fetchJson('/journal?limit=99999');
+        var whR = await fetchJson('/reports/warehouse-valuation');
+        var accMap = {};
+        (accR.data || []).forEach(function(a) { accMap[a.id] = (a.code || '') + ' ' + (a.name || ''); });
+        var rows = (journalR.data || []).map(function(e) {
+          return [e.date || '', accMap[e.debitAccountId] || e.debitAccountId, accMap[e.creditAccountId] || e.creditAccountId, e.amountSYP || '', (e.memo || '').replace(/"/g, '""')];
+        });
+        var csvLedger = '\uFEFF' + 'التاريخ,مدين,دائن,المبلغ ل.س,البيان\n' + rows.map(function(r) { return r.map(function(c) { return '"' + c + '"'; }).join(','); }).join('\n');
+        var whRows = (whR.data && whR.data.rows) || [];
+        var csvWh = '\uFEFF' + 'المادة,الوحدة,الكمية,القيمة ل.س\n' + whRows.map(function(r) { return '"' + (r.productName || r.productId) + '","' + (r.unitName || r.unitId) + '",' + (r.quantity || 0) + ',' + (r.valueCostSYP || 0); }).join('\n');
+        var ts = Date.now();
+        var a1 = document.createElement('a'); a1.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvLedger); a1.download = 'دفتر_الأستاذ_العام_' + ts + '.csv'; a1.click();
+        var a2 = document.createElement('a'); a2.href = 'data:text/csv;charset=utf-8,' + encodeURIComponent(csvWh); a2.download = 'جرد_المستودع_' + ts + '.csv'; a2.click();
+        showToast('Success', 'تم تصدير دفتر الأستاذ وجرد المستودع (CSV لـ Excel)', 'success');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل التصدير', 'error');
+      }
+    }
+    var _pendingRestoreData = null;
+    function doRestoreFromFile() {
+      var data = _pendingRestoreData;
+      if (!data) {
+        var msg = document.getElementById('backup-message');
+        if (msg) { msg.textContent = 'اختر ملفاً أولاً'; msg.classList.remove('hidden'); msg.className = 'mt-2 text-sm text-rose-400'; }
+        return;
+      }
+      if (!confirm('سيتم استبدال جميع البيانات الحالية بالنسخة الاحتياطية. هل أنت متأكد؟')) return;
+      var msgEl = document.getElementById('backup-message');
+      if (msgEl) msgEl.classList.add('hidden');
+      postJson('/backup/restore', data).then(function() {
+        showToast('Success', 'تم استعادة النسخة الاحتياطية', 'success');
+        _pendingRestoreData = null;
+        document.getElementById('restore-file').value = '';
+        document.getElementById('restore-filename').textContent = '';
+        document.getElementById('restore-do-btn').classList.add('hidden');
+        if (typeof refreshAll === 'function') refreshAll();
+      }).catch(function(e) {
+        if (msgEl) { msgEl.textContent = e.message || 'فشل الاستعادة'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      });
+    }
+    function onRestoreFileChosen(file) {
+      if (!file) return;
+      var reader = new FileReader();
+      reader.onload = function() {
+        try {
+          var data = JSON.parse(reader.result);
+          if (!data || data.version === undefined) throw new Error('ملف غير صالح');
+          _pendingRestoreData = data;
+          document.getElementById('restore-filename').textContent = file.name;
+          document.getElementById('restore-do-btn').classList.remove('hidden');
+          document.getElementById('backup-message').classList.add('hidden');
+        } catch (e) {
+          document.getElementById('backup-message').textContent = e.message || 'ملف JSON غير صالح';
+          document.getElementById('backup-message').className = 'mt-2 text-sm text-rose-400';
+          document.getElementById('backup-message').classList.remove('hidden');
+        }
+      };
+      reader.readAsText(file);
+    }
+    async function submitCompanyProfile() {
+      var logoUrl = document.getElementById('cp-logo')?.value?.trim() || null;
+      var name = document.getElementById('cp-name')?.value?.trim() || null;
+      var taxId = document.getElementById('cp-taxid')?.value?.trim() || null;
+      var defaultCurrency = document.getElementById('cp-currency')?.value?.trim() || null;
+      var msgEl = document.getElementById('cp-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      try {
+        await putJson('/settings/company-profile', { logoUrl: logoUrl || undefined, name: name || undefined, taxId: taxId || undefined, defaultCurrency: defaultCurrency || undefined });
+        showToast('Success', 'تم حفظ إعدادات الشركة', 'success');
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      }
+    }
+
     function renderSalesPlaceholder(container, moduleId) {
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">' + (moduleId === 'sales-invoice' ? 'فاتورة بيع' : 'مرتجع بيع') + '</h3><p class="text-slate-500">ربط مع نقطة البيع والمسودات. استخدم قسم المحاسبة للمعاملات الحالية.</p></div>';
+      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">مرتجع بيع</h3><p class="text-slate-500">ربط مع نقطة البيع والمسودات. استخدم قسم المحاسبة للمعاملات الحالية.</p></div>';
     }
 
     function refreshActiveModule() {
