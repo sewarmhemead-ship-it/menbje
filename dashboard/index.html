@@ -2,14 +2,15 @@
 <html lang="ar" dir="rtl">
 <head>
   <script>
-    (function() {
-      if ('serviceWorker' in navigator) {
-        navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
-      }
-      if ('caches' in window) {
-        caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
-      }
-    })();
+    // Service Worker / cache block disabled to prevent redirect loop from cached responses
+    // (function() {
+    //   if ('serviceWorker' in navigator) {
+    //     navigator.serviceWorker.getRegistrations().then(function(regs) { regs.forEach(function(r) { r.unregister(); }); });
+    //   }
+    //   if ('caches' in window) {
+    //     caches.keys().then(function(keys) { keys.forEach(function(k) { caches.delete(k); }); });
+    //   }
+    // })();
   </script>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
@@ -85,6 +86,7 @@
     .fab:active { transform: scale(0.95); }
     .splash-out { animation: splashOut 0.5s ease forwards; }
     @keyframes splashOut { to { opacity: 0; pointer-events: none; } }
+    body.splash-forced-done #splash { display: none !important; visibility: hidden !important; }
     .barter-swipe { touch-action: pan-y; }
     .barter-swipe.swipe-right { animation: swipeRight 0.3s ease forwards; }
     .barter-swipe.swipe-left { animation: swipeLeft 0.3s ease forwards; }
@@ -1118,6 +1120,11 @@
       var s = document.getElementById('splash');
       if (s) { s.classList.add('splash-out'); setTimeout(function() { s.remove(); }, 400); }
     }, 1000);
+    setTimeout(function() {
+      var s = document.getElementById('splash');
+      if (s) { s.remove(); }
+      document.body.classList.add('splash-forced-done');
+    }, 2500);
 
     function updateOfflineIndicator() {
       var el = document.getElementById('offline-indicator');
@@ -3635,7 +3642,7 @@
         '<table class="print-table">' +
         '<thead><tr><th class="print-th">رقم المرتجع</th><th class="print-th">اسم الزبون</th><th class="print-th">نوع العملية</th><th class="print-th">حالة البضاعة</th><th class="print-th">القيمة</th></tr></thead><tbody>' + tableRows + '</tbody></table></div>';
       var win = window.open('', '_blank', 'width=800,height=600');
-      win.document.write('<html dir="rtl"><head><title>' + reportTitle + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body>' + t.headerHTML + printFooter + mainContent + '<script>window.onbeforeprint=function(){var n=document.querySelector(".page-number");if(n)n.textContent=document.body.querySelector(".print-table")?1:"";};</script></body></html>');
+      win.document.write('<html dir="rtl"><head><title>' + reportTitle + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body>' + t.headerHTML + printFooter + mainContent + '<script>window.onbeforeprint=function(){var n=document.querySelector(".page-number");if(n)n.textContent=document.body.querySelector(".print-table")?1:"";};<\/script></body></html>');
       win.document.close();
       win.focus();
       setTimeout(function() { win.print(); win.close(); }, 300);
