@@ -936,8 +936,15 @@
 
     async function fetchJson(path) {
       const r = await fetch(API + path, { headers: getAuthHeaders() });
-      if (!r.ok) throw new Error(r.statusText);
-      return r.json();
+      const j = await r.json().catch(function() { return {}; });
+      if (!r.ok) {
+        var msg = (j && (j.error || j.message)) || r.statusText || 'خطأ في الطلب';
+        var err = new Error(msg);
+        err.status = r.status;
+        err.code = j && j.code;
+        throw err;
+      }
+      return j;
     }
     async function postJson(path, body) {
       const r = await fetch(API + path, { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify(body) });
@@ -2557,8 +2564,27 @@
         container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية. إدارة المستخدمين متاحة للمسؤولين فقط.</p></div>';
         return;
       }
-      var res = await fetchJson('/users');
-      var list = (res.data || []);
+      var res;
+      try {
+        res = await fetch(API + '/users', { headers: getAuthHeaders() });
+      } catch (e) {
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">لا يمكن الاتصال بالخادم. تأكد أن الخادم يعمل على ' + (API.replace(/\/api$/, '')) + ' وأن الشبكة متاحة.</p><p class="text-slate-500 text-sm mt-2">' + (e.message || '') + '</p></div>';
+        return;
+      }
+      var j = await res.json().catch(function() { return {}; });
+      if (!res.ok) {
+        var errMsg = j.error || j.message;
+        if (res.status === 401) errMsg = errMsg || 'انتهت الجلسة أو غير مصرح. يرجى تسجيل الدخول مرة أخرى.';
+        if (res.status === 403) errMsg = errMsg || 'صلاحيات غير كافية للوصول إلى إدارة المستخدمين.';
+        if (res.status === 404) errMsg = errMsg || 'المسار غير موجود (تحقق من أن الخادم محدث).';
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">' + (errMsg || 'خطأ من الخادم (' + res.status + ')') + '</p><p class="text-slate-500 text-sm mt-2">الرابط: ' + API + '/users</p></div>';
+        return;
+      }
+      if (!j.success || !Array.isArray(j.data)) {
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">استجابة غير متوقعة من الخادم.</p></div>';
+        return;
+      }
+      var list = j.data || [];
       var tableRows = list.map(function(u) {
         var delBtn = u.id === user.id ? '' : '<button type="button" onclick="userMgmtDelete(\'' + (u.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button>';
         return '<tr class="border-b border-white/10 text-right"><td class="p-2 text-white">' + (u.username || '') + '</td><td class="p-2 text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 text-slate-400">' + (u.role || '') + '</td><td class="p-2 text-slate-500">' + (u.status || '') + '</td><td class="p-2">' +
