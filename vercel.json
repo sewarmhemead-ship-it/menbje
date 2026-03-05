@@ -1,9 +1,8 @@
 {
   "version": 2,
   "rewrites": [
-    { "source": "/(.*)", "destination": "/api" }
+    { "source": "/", "destination": "/dashboard/index.html" }
   ],
-  "redirects": [],
   "functions": {
     "api/index.js": {
       "memory": 1024,
