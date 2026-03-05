@@ -13,6 +13,16 @@
   <style>
     .glass { background: rgba(11, 18, 32, 0.9); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     body { min-height: 100vh; }
+    .admin-demo-badge {
+      background: rgba(16, 185, 129, 0.08);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.2);
+    }
+    .admin-demo-badge:hover {
+      background: rgba(16, 185, 129, 0.15);
+      box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.08);
+    }
   </style>
 </head>
 <body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen flex items-center justify-center p-4">
@@ -26,18 +36,19 @@
       <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="current-password" />
       <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
       <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
-      <div class="mt-5 pt-4 border-t border-white/10">
-        <p class="text-slate-500 text-xs mb-2">حساب تطوير (Admin):</p>
-        <div class="bg-white/5 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 space-y-1">
-          <p><span class="text-slate-500">Email:</span> admin@vault.local &nbsp; <span class="text-slate-500">Pass:</span> admin123</p>
-        </div>
+      <div class="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-3">
+        <button type="button" id="btn-admin-demo" class="admin-demo-badge w-full max-w-[260px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
+          دخول تجريبي للمدير (Super Admin)
+        </button>
       </div>
     </div>
   </div>
   <script>
     const API = window.location.origin + '/api';
+    const ADMIN_EMAIL = 'admin@vault.local';
+    const ADMIN_PASS = 'admin123';
 
-    document.getElementById('btn-login').onclick = async () => {
+    async function doLogin() {
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
       const err = document.getElementById('login-error');
@@ -49,11 +60,24 @@
         if (!j.success) { err.textContent = j.error || 'فشل تسجيل الدخول'; err.classList.remove('hidden'); return; }
         localStorage.setItem('vault_token', j.data.token);
         localStorage.setItem('vault_user', JSON.stringify(j.data.user));
-        window.location.href = 'index.html';
+        const role = (j.data.user && j.data.user.role) || '';
+        if (role === 'SUPER_ADMIN') {
+          window.location.href = 'super-admin.html';
+        } else {
+          window.location.href = 'index.html';
+        }
       } catch (e) {
         err.textContent = 'خطأ في الاتصال';
         err.classList.remove('hidden');
       }
+    }
+
+    document.getElementById('btn-login').onclick = doLogin;
+
+    document.getElementById('btn-admin-demo').onclick = () => {
+      document.getElementById('login-email').value = ADMIN_EMAIL;
+      document.getElementById('login-password').value = ADMIN_PASS;
+      doLogin();
     };
   </script>
 </body>

@@ -24,7 +24,7 @@ import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
 import * as settings from '../config/settings.js';
-import { optionalAuth, requireAuth } from '../auth/middleware.js';
+import { optionalAuth, requireAuth, requireSuperAdmin } from '../auth/middleware.js';
 
 const router = Router();
 router.use(optionalAuth);
@@ -35,7 +35,8 @@ function getTenantId(req) {
 }
 
 function requireAdmin(req, res, next) {
-  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'superadmin')) {
+  const role = (req.user && req.user.role || '').toUpperCase();
+  if (!req.user || (role !== 'ADMIN' && role !== 'SUPER_ADMIN')) {
     return res.status(403).json({ success: false, error: 'صلاحيات غير كافية', code: 'FORBIDDEN' });
   }
   next();
@@ -66,14 +67,20 @@ function getUsersForTenant(tenantId) {
 
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
   try {
-    const tenantId = getTenantId(req);
-    const list = getUsersForTenant(tenantId).map((u) => ({
+    const role = (req.user && req.user.role || '').toUpperCase();
+    const list = (role === 'SUPER_ADMIN'
+      ? Array.from(users.values())
+      : getUsersForTenant(getTenantId(req))
+    ).map((u) => ({
       id: u.id,
       username: u.username || u.email,
       email: u.email,
       fullName: u.fullName || null,
       role: u.role || 'ADMIN',
+      industryType: u.industryType || 'GENERAL',
       status: u.status,
+      tier: u.tier,
+      tenantId: u.tenantId || 'default',
       createdAt: u.createdAt,
     }));
     res.json({ success: true, data: list });
@@ -84,7 +91,7 @@ router.get('/users', requireAuth, requireAdmin, (req, res) => {
 
 router.post('/users', requireAuth, requireAdmin, (req, res) => {
   try {
-    const { username, password, fullName, role } = req.body || {};
+    const { username, password, fullName, role, industryType } = req.body || {};
     const tenantId = getTenantId(req);
     if (!username || !password) {
       return res.status(400).json({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' });
@@ -94,6 +101,7 @@ router.post('/users', requireAuth, requireAdmin, (req, res) => {
       (u) => ((u.username || '').toLowerCase() === un || (u.email || '').toLowerCase() === un) && (u.tenantId || 'default') === tenantId
     );
     if (exists) return res.status(400).json({ success: false, error: 'اسم المستخدم أو البريد مستخدم مسبقاً' });
+    const validIndustry = ['GENERAL', 'SUPERMARKET', 'PHARMACY', 'CLOTHING', 'ELECTRONICS', 'CONSTRUCTION', 'RESTAURANT', 'BEAUTY', 'FURNITURE', 'STATIONERY'].includes(industryType) ? industryType : 'GENERAL';
     const id = 'u_' + Date.now();
     const user = {
       id,
@@ -102,6 +110,7 @@ router.post('/users', requireAuth, requireAdmin, (req, res) => {
       password: String(password).trim(),
       fullName: fullName ? String(fullName).trim() : null,
       role: role === 'CASHIER' ? 'CASHIER' : 'ADMIN',
+      industryType: validIndustry,
       tier: 'basic',
       status: 'active',
       tenantId,
@@ -117,6 +126,7 @@ router.post('/users', requireAuth, requireAdmin, (req, res) => {
         email: user.email,
         fullName: user.fullName,
         role: user.role,
+        industryType: user.industryType,
         status: user.status,
       },
     });
@@ -156,6 +166,60 @@ router.patch('/users/:id/password', requireAuth, requireAdmin, (req, res) => {
     }
     u.password = String(newPassword).trim();
     res.json({ success: true, data: { message: 'تم تغيير كلمة المرور' } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+const VALID_INDUSTRY = ['GENERAL', 'SUPERMARKET', 'PHARMACY', 'CLOTHING', 'ELECTRONICS', 'CONSTRUCTION', 'RESTAURANT', 'BEAUTY', 'FURNITURE', 'STATIONERY'];
+const VALID_STATUS = ['active', 'suspended', 'expired', 'pending'];
+
+router.patch('/users/:id', requireAuth, (req, res) => {
+  try {
+    const { industryType, status: bodyStatus, fullName } = req.body || {};
+    const targetId = req.params.id;
+    const u = users.get(targetId);
+    if (!u) return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+
+    const role = (req.user && req.user.role || '').toUpperCase();
+    const isSuperAdmin = role === 'SUPER_ADMIN';
+
+    if (industryType !== undefined || bodyStatus !== undefined) {
+      if (!isSuperAdmin) {
+        return res.status(403).json({ success: false, error: 'تعديل النشاط أو الحالة مسموح للمدير الأعلى فقط', code: 'FORBIDDEN' });
+      }
+      if (industryType !== undefined) {
+        u.industryType = VALID_INDUSTRY.includes(industryType) ? industryType : 'GENERAL';
+      }
+      if (bodyStatus !== undefined) {
+        if (!VALID_STATUS.includes(bodyStatus)) {
+          return res.status(400).json({ success: false, error: 'الحالة غير صالحة' });
+        }
+        u.status = bodyStatus;
+      }
+    } else {
+      if (role !== 'ADMIN' && !isSuperAdmin) {
+        return res.status(403).json({ success: false, error: 'صلاحيات غير كافية', code: 'FORBIDDEN' });
+      }
+      const tenantId = getTenantId(req);
+      if ((u.tenantId || 'default') !== tenantId) {
+        return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+      }
+      if (fullName !== undefined) u.fullName = String(fullName).trim() || null;
+    }
+
+    res.json({
+      success: true,
+      data: {
+        id: u.id,
+        username: u.username,
+        email: u.email,
+        fullName: u.fullName,
+        role: u.role,
+        industryType: u.industryType || 'GENERAL',
+        status: u.status,
+      },
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

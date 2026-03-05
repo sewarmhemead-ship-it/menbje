@@ -69,6 +69,14 @@ export function requireMasterKey(req, res, next) {
   next();
 }
 
+/** Only users with role SUPER_ADMIN may proceed. Use after requireAuth. */
+export function requireSuperAdmin(req, res, next) {
+  if (!req.user || (req.user.role || '').toUpperCase() !== 'SUPER_ADMIN') {
+    return res.status(403).json({ success: false, error: 'صلاحيات مدير أعلى مطلوبة', code: 'FORBIDDEN' });
+  }
+  next();
+}
+
 export function hasTierFeature(tier, feature) {
   const list = TIER_FEATURES[tier] || TIER_FEATURES.basic;
   return list.includes(feature);

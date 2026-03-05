@@ -8,7 +8,7 @@
   <title>Vault AI · محاسبة ومؤسسات عالمية</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script>
@@ -88,42 +88,91 @@
       #section-dashboard .grid { display: flex; flex-direction: column; gap: 1rem; }
       #section-dashboard .chart-card { min-width: 0; }
     }
-    /* ERP dark theme: select & option visibility */
+    /* Glassmorphism: all selects (Payment Type, Units, Items) */
     select.erp-select,
     #sales-invoice-root select,
     #module-content select {
       appearance: none;
       -webkit-appearance: none;
       -moz-appearance: none;
-      background: rgba(30, 41, 59, 0.95) !important;
-      backdrop-filter: blur(12px);
-      -webkit-backdrop-filter: blur(12px);
+      background: rgba(30, 41, 59, 0.65) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
       color: #f8fafc !important;
-      border: 1px solid rgba(16, 185, 129, 0.3);
+      border: 1px solid rgba(16, 185, 129, 0.4);
       border-radius: 0.5rem;
       padding: 0.5rem 2rem 0.5rem 0.75rem;
-      font-family: Cairo, system-ui, sans-serif;
-      transition: border-color 0.2s, box-shadow 0.2s;
+      font-family: Cairo, Tajawal, system-ui, sans-serif;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
     }
     select.erp-select:hover,
     #sales-invoice-root select:hover,
     #module-content select:hover {
-      border-color: rgba(16, 185, 129, 0.5);
-      background: rgba(30, 41, 59, 0.98) !important;
+      border-color: var(--primary-color);
+      background: rgba(30, 41, 59, 0.85) !important;
+      box-shadow: 0 0 0 1px color-mix(in srgb, var(--primary-color) 25%, transparent);
     }
     select.erp-select:focus,
     #sales-invoice-root select:focus,
     #module-content select:focus {
       outline: none;
-      border-color: color-mix(in srgb, var(--primary-color) 60%, transparent);
-      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent);
+      background: rgba(30, 41, 59, 0.9) !important;
     }
     select.erp-select option,
     #sales-invoice-root select option,
     #module-content select option {
-      background: #1e293b;
+      background: rgba(30, 41, 59, 0.98);
+      color: #e2e8f0;
+      font-family: Cairo, Tajawal, system-ui, sans-serif;
+      padding: 0.5rem;
+    }
+    select.erp-select option:checked,
+    #sales-invoice-root select option:checked,
+    #module-content select option:checked {
+      background: color-mix(in srgb, var(--primary-color) 25%, #1e293b);
       color: #f8fafc;
     }
+    /* Inputs: glass style + emerald glow for Unit Price & Quantity */
+    #sales-invoice-root input[type="number"],
+    #sales-invoice-root input[type="text"],
+    #module-content input[type="number"],
+    #module-content input[type="text"],
+    #module-content input[type="date"] {
+      font-family: Cairo, Tajawal, system-ui, sans-serif;
+      transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    }
+    #inv-price:focus,
+    #inv-qty:focus,
+    #sales-invoice-root .inv-line-price:focus,
+    #sales-invoice-root .inv-line-disc:focus,
+    #sales-invoice-root .vault-input:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary-color) 20%, transparent), 0 0 12px color-mix(in srgb, var(--primary-color) 30%, transparent);
+    }
+    input.vault-input {
+      background: rgba(30, 41, 59, 0.5) !important;
+      border: 1px solid rgba(16, 185, 129, 0.35);
+    }
+    input.vault-input:hover { border-color: rgba(16, 185, 129, 0.5); }
+    /* Global glassmorphism class for dropdowns (use with existing selects) */
+    select.vault-select {
+      appearance: none;
+      -webkit-appearance: none;
+      -moz-appearance: none;
+      background: rgba(30, 41, 59, 0.65) !important;
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      color: #f8fafc !important;
+      border: 1px solid rgba(16, 185, 129, 0.4);
+      font-family: Cairo, Tajawal, system-ui, sans-serif;
+      transition: border-color 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    }
+    select.vault-select:hover { border-color: var(--primary-color); background: rgba(30, 41, 59, 0.85) !important; }
+    select.vault-select:focus { outline: none; border-color: var(--primary-color); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 25%, transparent); }
+    select.vault-select option { background: rgba(30, 41, 59, 0.98); color: #e2e8f0; font-family: Cairo, Tajawal, system-ui, sans-serif; }
     /* 3D scale effect for buttons */
     .btn-3d {
       transition: transform 0.15s ease-out, box-shadow 0.2s ease;
@@ -653,6 +702,31 @@
     let tierFeatures = ['accounting', 'inventory', 'dashboard', 'settings'];
     window._appConfig = { settings: { branding: {}, localization: {}, features: {} }, user: {} };
 
+    var INDUSTRY_PRESETS = {
+      GENERAL: { unitIds: null, columns: [] },
+      SUPERMARKET: { unitIds: ['piece', 'carton', 'kg', 'gram'], columns: [] },
+      PHARMACY: { unitIds: ['box', 'strip', 'capsule', 'spray'], columns: ['expiryDate'] },
+      CLOTHING: { unitIds: ['piece', 'dozen'], columns: ['size', 'color'] },
+      ELECTRONICS: { unitIds: ['piece', 'set'], columns: ['serialImei'] },
+      CONSTRUCTION: { unitIds: ['linear_meter', 'sq_meter', 'cubic_meter', 'bag', 'ton', 'bundle'], columns: ['projectName'] },
+      RESTAURANT: { unitIds: ['meal', 'sandwich', 'order', 'person', 'kg'], columns: ['tableNo', 'addons'] },
+      BEAUTY: { unitIds: ['ml', 'tola', 'bottle', 'spray'], columns: ['concentration', 'gender'] },
+      FURNITURE: { unitIds: ['set', 'board', 'fabric_meter'], columns: ['width', 'height'] },
+      STATIONERY: { unitIds: ['dozen', 'packet', 'piece', 'stationery_bundle'], columns: ['publisherBrand'] },
+    };
+    function getIndustryType() {
+      return (window._appConfig.user && window._appConfig.user.industryType) || 'GENERAL';
+    }
+    function getUnitsForIndustry(units) {
+      var preset = INDUSTRY_PRESETS[getIndustryType()] || INDUSTRY_PRESETS.GENERAL;
+      var ids = preset.unitIds;
+      if (!ids || !ids.length) return units || [];
+      return (units || []).filter(function(u) { return ids.indexOf(u.id) !== -1; });
+    }
+    function getIndustryColumns() {
+      return (INDUSTRY_PRESETS[getIndustryType()] || INDUSTRY_PRESETS.GENERAL).columns || [];
+    }
+
     async function loadAppConfig() {
       try {
         var settingsRes = await fetch(API + '/settings', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }).catch(function() { return { success: false }; });
@@ -670,8 +744,9 @@
       document.documentElement.style.setProperty('--secondary-color', secondary);
     }
     function applyRBAC() {
-      var role = (window._appConfig.user && window._appConfig.user.role) || 'ADMIN';
-      document.querySelectorAll('[data-rbac="admin"]').forEach(function(el) { el.style.display = role === 'CASHIER' ? 'none' : ''; });
+      var role = ((window._appConfig.user && window._appConfig.user.role) || 'ADMIN').toUpperCase();
+      var showAdminTools = role === 'ADMIN' || role === 'SUPER_ADMIN';
+      document.querySelectorAll('[data-rbac="admin"]').forEach(function(el) { el.style.display = showAdminTools ? '' : 'none'; });
       var name = (window._appConfig.settings.branding && window._appConfig.settings.branding.companyName) || 'Vault AI';
       document.querySelectorAll('.app-name-placeholder').forEach(function(el) { el.textContent = name; });
     }
@@ -1819,7 +1894,10 @@
         var dataUnit = (p.defaultUnitId != null && p.defaultUnitId !== '') ? p.defaultUnitId : defaultUnitId;
         return '<option value="' + id + '" data-id="' + id + '" data-unit="' + dataUnit + '" data-name="' + name + '" data-barcode="' + barcode + '">' + (p.name || p.id) + (p.barcode ? ' (' + p.barcode + ')' : '') + '</option>';
       }).join('');
-      const unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      var filteredUnits = getUnitsForIndustry(units);
+      if (filteredUnits.length === 0) filteredUnits = units;
+      window._salesUnitsFiltered = filteredUnits;
+      const unitOpts = filteredUnits.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
       const debtorOpts = accounts.filter(function(a) { return a.type === 'asset' && (a.id === '1200' || (a.code && a.code.startsWith('12'))); }).map(function(a) { return '<option value="' + a.id + '">' + (a.name || a.code) + '</option>'; }).join('');
       const today = new Date().toISOString().slice(0, 10);
       window._invoiceLines = [];
@@ -1837,14 +1915,14 @@
         '<div class="glass-card rounded-2xl p-4 shadow-lg">' +
         '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h3 class="text-sm font-medium text-slate-400">الرأسية</h3><span id="inv-status-badge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium badge-pending">قيد الانتظار</span></div>' +
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"><div class="relative"><label class="text-slate-500 text-xs">العميل</label><div class="flex gap-1 mt-1"><input type="text" id="inv-customer" list="inv-customer-list" placeholder="معرف أو اسم العميل" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><button type="button" onclick="quickAddCustomer()" class="btn-3d px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm shrink-0">إضافة سريعة</button></div><div id="inv-customer-insight" class="insight-card hidden"><p class="text-xs text-slate-500 mb-1">رصيد العميل</p><p id="inv-insight-balance" class="text-emerald-400 font-medium">—</p><p class="text-xs text-slate-500 mt-2">آخر عملية</p><p id="inv-insight-last" class="text-slate-300 text-sm">—</p></div></div>' +
-        '<div><label class="text-slate-500 text-xs">نوع الدفع</label><select id="inv-payment-type" class="erp-select w-full mt-1"><option value="cash">نقدي</option><option value="credit">آجل</option></select></div>' +
+        '<div><label class="text-slate-500 text-xs">نوع الدفع</label><select id="inv-payment-type" class="vault-select erp-select w-full mt-1"><option value="cash">نقدي</option><option value="credit">آجل</option></select></div>' +
         '<div><label class="text-slate-500 text-xs">تاريخ الفاتورة</label><input type="date" id="inv-date" value="' + today + '" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div></div></div>' +
         '<datalist id="inv-customer-list">' + (accounts.length ? accounts.map(function(a){ return '<option value="' + (a.name||a.id) + '">'; }).join('') : '') + '</datalist>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg"><h3 class="text-sm font-medium text-slate-400 mb-3">مسح الباركود</h3><input type="text" id="inv-barcode-scan" placeholder="امسح الباركود أو اكتبه ثم Enter" class="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20" autocomplete="off"/>' +
         '<h3 class="text-sm font-medium text-slate-400 mt-4 mb-3">الأصناف</h3>' +
         '<label id="inv-margin-wrap" class="flex items-center gap-2 mb-2 cursor-pointer text-slate-500 text-xs" data-rbac="admin"><input type="checkbox" id="inv-margin-toggle" class="rounded bg-white/5 border-white/20 text-emerald-500"/> إظهار هامش الربح / تحذير تحت التكلفة</label>' +
-        '<div class="flex flex-wrap gap-2 mb-3"><select id="inv-product" class="erp-select min-w-[180px]">' + productOpts + '</select>' +
-        '<select id="inv-unit" class="erp-select w-24">' + unitOpts + '</select>' +
+        '<div class="flex flex-wrap gap-2 mb-3"><select id="inv-product" class="vault-select erp-select min-w-[180px]">' + productOpts + '</select>' +
+        '<select id="inv-unit" class="vault-select erp-select w-24">' + unitOpts + '</select>' +
         '<span id="inv-stock" class="self-center text-slate-500 text-xs px-2">متوفر: — · <span id="inv-warehouse" class="text-slate-500">المخزن الرئيسي</span></span>' +
         '<input type="number" id="inv-price" placeholder="سعر الوحدة" min="0" step="0.01" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-28"/>' +
         '<input type="number" id="inv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-20"/>' +
@@ -2126,18 +2204,45 @@
       if (!el) return;
       var lines = window._invoiceLines || [];
       var units = window._salesUnits || [];
-      var unitOpts = (units || []).map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      var filteredUnits = (window._salesUnitsFiltered && window._salesUnitsFiltered.length) ? window._salesUnitsFiltered : getUnitsForIndustry(units);
+      if (filteredUnits.length === 0) filteredUnits = units;
+      var unitIdSet = {};
+      filteredUnits.forEach(function(u) { unitIdSet[u.id] = true; });
+      function unitOptionsForLine(lineUnitId) {
+        var list = filteredUnits.slice();
+        if (lineUnitId && !unitIdSet[lineUnitId] && units.length) {
+          var extra = units.find(function(u) { return u.id === lineUnitId; });
+          if (extra) list = [extra].concat(list.filter(function(u) { return u.id !== lineUnitId; }));
+        }
+        return list;
+      }
+      var unitOpts = (filteredUnits || []).map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
       var isCashier = (window._appConfig.user && window._appConfig.user.role === 'CASHIER');
       var showMargin = !isCashier && document.getElementById('inv-margin-toggle')?.checked;
-      if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm py-4">لا أصناف. أضف سطراً من الأعلى.</p>'; return; }
-      var thead = '<thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">منتج/باركود</th><th class="p-2">وحدة</th><th class="p-2">متوفر</th><th class="p-2">سعر الوحدة</th><th class="p-2">كمية</th><th class="p-2">خصم سطر</th><th class="p-2">المجموع</th><th class="p-2 w-16"></th></tr></thead>';
+      var industryCols = getIndustryColumns();
+      var theadExtra = '<th class="p-2 inv-col-expiry">تاريخ الانتهاء</th><th class="p-2 inv-col-size">المقاس</th><th class="p-2 inv-col-color">اللون</th><th class="p-2 inv-col-serial">مسلسل/IMEI</th>' +
+        '<th class="p-2 inv-col-projectName">المشروع</th><th class="p-2 inv-col-tableNo">رقم الطاولة</th><th class="p-2 inv-col-addons">الإضافات</th><th class="p-2 inv-col-concentration">التركيز</th><th class="p-2 inv-col-gender">الجنس</th><th class="p-2 inv-col-width">العرض</th><th class="p-2 inv-col-height">الارتفاع</th><th class="p-2 inv-col-publisherBrand">الناشر/العلامة</th>';
+      var thead = '<thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">منتج/باركود</th><th class="p-2">وحدة</th><th class="p-2">متوفر</th><th class="p-2">سعر الوحدة</th><th class="p-2">كمية</th><th class="p-2">خصم سطر</th><th class="p-2">المجموع</th>' + theadExtra + '<th class="p-2 w-16"></th></tr></thead>';
       var rows = lines.map(function(l, i) {
         var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
         var stockDisplay = (l.available != null && l.available !== '') ? l.available : '—';
         var costPerUnit = isCashier ? 0 : getCostForUnit(l.productId, l.unitId || 'piece');
         var belowCost = !isCashier && (Number(l.unitPrice) || 0) < costPerUnit;
         var priceClass = belowCost ? ' inv-price-below-cost bg-rose-500/15 border-rose-500/50' : '';
-        var unitSelect = '<select class="erp-select inv-line-unit w-full min-w-0 text-sm" data-idx="' + i + '">' + (units || []).map(function(u) { return '<option value="' + u.id + '"' + ((l.unitId || 'piece') === u.id ? ' selected' : '') + '>' + (u.name || u.symbol) + '</option>'; }).join('') + '</select>';
+        var lineUnits = unitOptionsForLine(l.unitId || 'piece');
+        var unitSelect = '<select class="vault-select erp-select inv-line-unit w-full min-w-0 text-sm" data-idx="' + i + '">' + lineUnits.map(function(u) { return '<option value="' + u.id + '"' + ((l.unitId || 'piece') === u.id ? ' selected' : '') + '>' + (u.name || u.symbol) + '</option>'; }).join('') + '</select>';
+        var extraCells = '<td class="p-2 inv-col-expiry"><input type="text" data-idx="' + i + '" class="vault-input inv-line-expiry w-24 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.expiryDate || '') + '" placeholder="YYYY-MM-DD"/></td>' +
+          '<td class="p-2 inv-col-size"><input type="text" data-idx="' + i + '" class="vault-input inv-line-size w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.size || '') + '"/></td>' +
+          '<td class="p-2 inv-col-color"><input type="text" data-idx="' + i + '" class="vault-input inv-line-color w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.color || '') + '"/></td>' +
+          '<td class="p-2 inv-col-serial"><input type="text" data-idx="' + i + '" class="vault-input inv-line-serial w-28 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.serialImei || '') + '"/></td>' +
+          '<td class="p-2 inv-col-projectName"><input type="text" data-idx="' + i + '" class="vault-input inv-line-projectName w-28 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.projectName || '') + '" placeholder="اسم المشروع"/></td>' +
+          '<td class="p-2 inv-col-tableNo"><input type="text" data-idx="' + i + '" class="vault-input inv-line-tableNo w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.tableNo || '') + '" placeholder="رقم الطاولة"/></td>' +
+          '<td class="p-2 inv-col-addons"><input type="text" data-idx="' + i + '" class="vault-input inv-line-addons w-24 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.addons || '') + '" placeholder="إضافات"/></td>' +
+          '<td class="p-2 inv-col-concentration"><input type="text" data-idx="' + i + '" class="vault-input inv-line-concentration w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.concentration || '') + '"/></td>' +
+          '<td class="p-2 inv-col-gender"><input type="text" data-idx="' + i + '" class="vault-input inv-line-gender w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.gender || '') + '" placeholder="ذكر/أنثى"/></td>' +
+          '<td class="p-2 inv-col-width"><input type="text" data-idx="' + i + '" class="vault-input inv-line-width w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.width || '') + '"/></td>' +
+          '<td class="p-2 inv-col-height"><input type="text" data-idx="' + i + '" class="vault-input inv-line-height w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.height || '') + '"/></td>' +
+          '<td class="p-2 inv-col-publisherBrand"><input type="text" data-idx="' + i + '" class="vault-input inv-line-publisherBrand w-24 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.publisherBrand || '') + '"/></td>';
         return '<tr class="border-b border-white/5 text-right inv-line-row" data-idx="' + i + '">' +
           '<td class="p-2 text-white">' + (l.productName || l.productId) + '</td>' +
           '<td class="p-2">' + unitSelect + '</td>' +
@@ -2146,6 +2251,7 @@
           '<td class="p-2">' + (l.quantity || 0) + '</td>' +
           '<td class="p-2"><input type="number" min="0" data-idx="' + i + '" class="inv-line-disc w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.lineDiscount || 0) + '"/></td>' +
           '<td class="p-2 text-emerald-400 line-total">' + lineTotal.toFixed(0) + '</td>' +
+          extraCells +
           '<td class="p-2"><button type="button" onclick="removeInvoiceLine(' + i + ')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button></td></tr>';
       });
       var marginRow = '';
@@ -2155,9 +2261,14 @@
           var below = (Number(l.unitPrice) || 0) < cost;
           return (l.productName || l.productId) + ': ' + (below ? '<span class="text-rose-400">تحت التكلفة</span>' : 'تكلفة ' + cost.toFixed(0));
         });
-        marginRow = '<tr class="border-t border-white/10 text-slate-500 text-xs"><td colspan="8" class="p-2 text-right">هامش: ' + marginParts.join(' | ') + '</td></tr>';
+        marginRow = '<tr class="border-t border-white/10 text-slate-500 text-xs"><td colspan="20" class="p-2 text-right">هامش: ' + marginParts.join(' | ') + '</td></tr>';
       }
       el.innerHTML = '<table class="w-full text-sm inv-grid-table">' + thead + '<tbody>' + rows.join('') + marginRow + '</tbody></table>';
+      ['inv-col-expiry', 'inv-col-size', 'inv-col-color', 'inv-col-serial', 'inv-col-projectName', 'inv-col-tableNo', 'inv-col-addons', 'inv-col-concentration', 'inv-col-gender', 'inv-col-width', 'inv-col-height', 'inv-col-publisherBrand'].forEach(function(cls) {
+        var col = cls.replace('inv-col-', ''); col = col === 'expiry' ? 'expiryDate' : col === 'serial' ? 'serialImei' : col;
+        var show = industryCols.indexOf(col) !== -1;
+        el.querySelectorAll('.' + cls).forEach(function(cell) { cell.style.display = show ? '' : 'none'; });
+      });
       el.querySelectorAll('.inv-line-unit').forEach(function(sel) {
         sel.addEventListener('change', function() {
           var idx = parseInt(this.getAttribute('data-idx'), 10);
@@ -2195,6 +2306,42 @@
           }
           updateSalesSummary();
         });
+      });
+      el.querySelectorAll('.inv-line-expiry').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].expiryDate = this.value; });
+      });
+      el.querySelectorAll('.inv-line-size').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].size = this.value; });
+      });
+      el.querySelectorAll('.inv-line-color').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].color = this.value; });
+      });
+      el.querySelectorAll('.inv-line-serial').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].serialImei = this.value; });
+      });
+      el.querySelectorAll('.inv-line-projectName').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].projectName = this.value; });
+      });
+      el.querySelectorAll('.inv-line-tableNo').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].tableNo = this.value; });
+      });
+      el.querySelectorAll('.inv-line-addons').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].addons = this.value; });
+      });
+      el.querySelectorAll('.inv-line-concentration').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].concentration = this.value; });
+      });
+      el.querySelectorAll('.inv-line-gender').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].gender = this.value; });
+      });
+      el.querySelectorAll('.inv-line-width').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].width = this.value; });
+      });
+      el.querySelectorAll('.inv-line-height').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].height = this.value; });
+      });
+      el.querySelectorAll('.inv-line-publisherBrand').forEach(function(inp) {
+        inp.addEventListener('input', function() { var idx = parseInt(this.getAttribute('data-idx'), 10); if (!isNaN(idx) && window._invoiceLines[idx]) window._invoiceLines[idx].publisherBrand = this.value; });
       });
     }
     function getInvoiceGrandTotal() {
@@ -2608,9 +2755,13 @@
         return;
       }
       var list = j.data || [];
+      var industryOpts = '<option value="GENERAL">عام</option><option value="SUPERMARKET">سوبرماركت</option><option value="PHARMACY">صيدلية</option><option value="CLOTHING">ملابس</option><option value="ELECTRONICS">إلكترونيات</option><option value="CONSTRUCTION">بناء</option><option value="RESTAURANT">مطعم</option><option value="BEAUTY">عطور/تجميل</option><option value="FURNITURE">أثاث</option><option value="STATIONERY">قرطاسية</option>';
       var tableRows = list.map(function(u) {
+        var ind = (u.industryType || 'GENERAL');
+        var indSelectHtml = industryOpts.replace('value="' + ind + '"', 'value="' + ind + '" selected');
+        var indSelect = '<select class="vault-select erp-select w-full min-w-0 text-xs border border-white/10 rounded px-2 py-1 text-white bg-white/5" onchange="userMgmtSetIndustry(\'' + (u.id || '').replace(/'/g, "\\'") + '\', this.value)">' + indSelectHtml + '</select>';
         var delBtn = u.id === user.id ? '' : '<button type="button" onclick="userMgmtDelete(\'' + (u.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button>';
-        return '<tr class="border-b border-white/10 text-right"><td class="p-2 text-white">' + (u.username || '') + '</td><td class="p-2 text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 text-slate-400">' + (u.role || '') + '</td><td class="p-2 text-slate-500">' + (u.status || '') + '</td><td class="p-2">' +
+        return '<tr class="border-b border-white/10 text-right"><td class="p-2 text-white">' + (u.username || '') + '</td><td class="p-2 text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 text-slate-400">' + (u.role || '') + '</td><td class="p-2"><span class="text-slate-500">' + (ind === 'GENERAL' ? 'عام' : ind === 'SUPERMARKET' ? 'سوبرماركت' : ind === 'PHARMACY' ? 'صيدلية' : ind === 'CLOTHING' ? 'ملابس' : ind === 'ELECTRONICS' ? 'إلكترونيات' : ind === 'CONSTRUCTION' ? 'بناء' : ind === 'RESTAURANT' ? 'مطعم' : ind === 'BEAUTY' ? 'عطور/تجميل' : ind === 'FURNITURE' ? 'أثاث' : ind === 'STATIONERY' ? 'قرطاسية' : ind) + '</span></td><td class="p-2" style="min-width:100px">' + indSelect + '</td><td class="p-2 text-slate-500">' + (u.status || '') + '</td><td class="p-2">' +
           '<button type="button" onclick="userMgmtChangePassword(\'' + (u.id || '').replace(/'/g, "\\'") + '\', \'' + (u.username || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">كلمة المرور</button> ' + delBtn + '</td></tr>';
       }).join('');
       container.innerHTML =
@@ -2619,11 +2770,12 @@
         '<div><label class="text-slate-400 text-xs">اسم المستخدم</label><input type="text" id="um-username" placeholder="username" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
         '<div><label class="text-slate-400 text-xs">كلمة المرور</label><input type="password" id="um-password" placeholder="••••••••" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
         '<div><label class="text-slate-400 text-xs">الاسم الكامل</label><input type="text" id="um-fullname" placeholder="الاسم الكامل" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
-        '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
+        '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="vault-select erp-select w-full mt-1"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
+        '<div><label class="text-slate-400 text-xs">نوع النشاط</label><select id="um-industry" class="vault-select erp-select w-full mt-1">' + industryOpts + '</select></div>' +
         '</div><button type="button" onclick="userMgmtAdd()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">إضافة مستخدم</button>' +
         '<p id="um-add-msg" class="mt-2 text-sm hidden"></p></div>' +
         '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المستخدمون</h3>' +
-        '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">اسم المستخدم</th><th class="p-2">الاسم الكامل</th><th class="p-2">الدور</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody id="user-mgmt-tbody">' + tableRows + '</tbody></table></div></div>' +
+        '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">اسم المستخدم</th><th class="p-2">الاسم الكامل</th><th class="p-2">الدور</th><th class="p-2">النشاط</th><th class="p-2">تغيير النشاط</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody id="user-mgmt-tbody">' + tableRows + '</tbody></table></div></div>' +
         '<div id="user-password-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeUserPasswordModal()">' +
         '<div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()">' +
         '<h3 class="text-white font-medium mb-3">تغيير كلمة المرور</h3><p id="user-password-username" class="text-slate-500 text-sm mb-3"></p>' +
@@ -2657,16 +2809,36 @@
         showToast('خطأ', e.message || 'فشل تغيير كلمة المرور', 'error');
       }
     }
+    async function userMgmtSetIndustry(userId, industryType) {
+      if (!userId || !industryType) return;
+      try {
+        var r = await fetch(API + '/users/' + encodeURIComponent(userId), { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ industryType: industryType }) });
+        var j = await r.json().catch(function() { return {}; });
+        if (!r.ok) throw new Error(j.error || 'فشل التحديث');
+        showToast('Success', 'تم تحديث نوع النشاط', 'success');
+        var me = window._appConfig && window._appConfig.user;
+        if (me && me.id === userId) {
+          var meRes = await fetch(API + '/auth/me', { headers: getAuthHeaders() });
+          var meJ = await meRes.json().catch(function() { return {}; });
+          if (meJ.success && meJ.data && meJ.data.user) { currentUser = meJ.data.user; window._appConfig.user = meJ.data.user; applyRBAC(); }
+        }
+        var tab = openTabs.find(function(t) { return t.moduleId === 'user-management'; });
+        if (tab) renderModulePanel('user-management');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل التحديث', 'error');
+      }
+    }
     async function userMgmtAdd() {
       var username = document.getElementById('um-username')?.value?.trim();
       var password = document.getElementById('um-password')?.value;
       var fullName = document.getElementById('um-fullname')?.value?.trim();
       var role = document.getElementById('um-role')?.value || 'ADMIN';
+      var industryType = document.getElementById('um-industry')?.value || 'GENERAL';
       var msgEl = document.getElementById('um-add-msg');
       if (msgEl) { msgEl.classList.add('hidden'); }
       if (!username || !password) { if (msgEl) { msgEl.textContent = 'اسم المستخدم وكلمة المرور مطلوبان'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; } return; }
       try {
-        await postJson('/users', { username, password, fullName: fullName || null, role });
+        await postJson('/users', { username, password, fullName: fullName || null, role, industryType: industryType });
         showToast('Success', 'تم إضافة المستخدم', 'success');
         if (msgEl) { msgEl.textContent = ''; msgEl.classList.add('hidden'); }
         document.getElementById('um-username').value = '';
