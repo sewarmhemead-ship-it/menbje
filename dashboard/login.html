@@ -37,7 +37,7 @@
       <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
       <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
       <div class="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-3">
-        <button type="button" id="btn-admin-demo" class="admin-demo-badge w-full max-w-[260px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
+        <button type="button" id="btn-admin-demo" onclick="adminQuickLogin(); return false;" class="admin-demo-badge w-full max-w-[260px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
           دخول تجريبي للمدير (Super Admin)
         </button>
       </div>
@@ -74,11 +74,12 @@
 
     document.getElementById('btn-login').onclick = doLogin;
 
-    document.getElementById('btn-admin-demo').onclick = () => {
+    function adminQuickLogin() {
       document.getElementById('login-email').value = ADMIN_EMAIL;
       document.getElementById('login-password').value = ADMIN_PASS;
       doLogin();
-    };
+    }
+    document.getElementById('btn-admin-demo').onclick = adminQuickLogin;
   </script>
 </body>
 </html>
