@@ -93,7 +93,7 @@ export function seedUsers() {
   if (users.size > 0) return;
   const now = new Date();
   const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  users.set('u-demo-basic', { id: 'u-demo-basic', username: 'basic', email: 'basic@demo.local', password: 'demo', fullName: 'مدير أساسي', tier: 'basic', status: 'active', tenantId: 'default', role: 'ADMIN', industryType: 'GENERAL', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-basic', { id: 'u-demo-basic', username: 'basic', email: 'basic@demo.local', password: 'password123', fullName: 'مدير أساسي', tier: 'basic', status: 'active', tenantId: 'default', role: 'ADMIN', industryType: 'GENERAL', expiresAt: exp, createdAt: now.toISOString() });
   users.set('u-demo-pro', { id: 'u-demo-pro', username: 'pro', email: 'pro@demo.local', password: 'demo', fullName: 'مدير احترافي', tier: 'pro', status: 'active', tenantId: 'default', role: 'ADMIN', industryType: 'GENERAL', expiresAt: exp, createdAt: now.toISOString() });
   users.set('u-demo-enterprise', { id: 'u-demo-enterprise', username: 'enterprise', email: 'enterprise@demo.local', password: 'demo', fullName: 'مدير مؤسسة', tier: 'enterprise', status: 'active', tenantId: 'default', role: 'ADMIN', industryType: 'GENERAL', expiresAt: exp, createdAt: now.toISOString() });
   users.set('u-demo-cashier', { id: 'u-demo-cashier', username: 'cashier', email: 'cashier@demo.local', password: 'demo', fullName: 'كاشير تجريبي', tier: 'basic', status: 'active', tenantId: 'default', role: 'CASHIER', industryType: 'SUPERMARKET', expiresAt: exp, createdAt: now.toISOString() });

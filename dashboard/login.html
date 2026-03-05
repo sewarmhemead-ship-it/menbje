@@ -52,13 +52,19 @@
       <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
       <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
       <div class="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-3">
-        <button type="button" id="btn-admin-demo" onclick="adminQuickLogin(); return false;" class="admin-demo-badge w-full max-w-[260px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
-          دخول تجريبي للمدير (Super Admin)
-        </button>
-        <div class="login-credentials-box">
+        <div class="flex flex-wrap justify-center gap-2 w-full max-w-[320px]">
+          <button type="button" id="btn-admin-demo" onclick="adminQuickLogin(); return false;" class="admin-demo-badge flex-1 min-w-[140px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
+            دخول تجريبي للمدير (Super Admin)
+          </button>
+          <button type="button" id="btn-store-demo" onclick="storeQuickLogin(); return false;" class="admin-demo-badge flex-1 min-w-[140px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
+            دخول زبون تجريبي
+          </button>
+        </div>
+        <div class="login-credentials-box w-full max-w-[320px]">
           <div class="label">بيانات الدخول التجريبي:</div>
-          <div class="line">Email: admin@vault.local</div>
-          <div class="line">Password: admin123</div>
+          <div class="line">Email: admin@vault.local · Password: admin123</div>
+          <div class="label mt-3">بيانات دخول زبون (Store Admin):</div>
+          <div class="line">Email: basic@demo.local · Password: password123</div>
         </div>
       </div>
     </div>
@@ -67,6 +73,8 @@
     const API = window.location.origin + '/api';
     const ADMIN_EMAIL = 'admin@vault.local';
     const ADMIN_PASS = 'admin123';
+    const STORE_EMAIL = 'basic@demo.local';
+    const STORE_PASS = 'password123';
 
     async function doLogin() {
       const email = document.getElementById('login-email').value.trim();
@@ -99,7 +107,13 @@
       document.getElementById('login-password').value = ADMIN_PASS;
       doLogin();
     }
+    function storeQuickLogin() {
+      document.getElementById('login-email').value = STORE_EMAIL;
+      document.getElementById('login-password').value = STORE_PASS;
+      doLogin();
+    }
     document.getElementById('btn-admin-demo').onclick = adminQuickLogin;
+    document.getElementById('btn-store-demo').onclick = storeQuickLogin;
   </script>
 </body>
 </html>
