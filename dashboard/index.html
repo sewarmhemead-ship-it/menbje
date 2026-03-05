@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#0b1220" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <title>Vault AI · محاسبة ومؤسسات عالمية</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E" type="image/svg+xml" />
+  <link rel="icon" href="data:," />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
@@ -721,6 +721,14 @@
   </div>
 
   <script>
+    (function() {
+      try {
+        var c = localStorage.getItem('vault_branding');
+        if (c) JSON.parse(c);
+      } catch (e) {
+        try { localStorage.removeItem('vault_branding'); } catch (e2) {}
+      }
+    })();
     const API = window.location.origin + '/api';
     let currencyChart = null;
     let rateHistory = [];
@@ -778,15 +786,20 @@
       document.querySelectorAll('.app-name-placeholder').forEach(function(el) { el.textContent = name; });
     }
 
-    /** Central branding: always read from _appConfig.settings.branding (or localStorage fallback). Never throws; missing logo uses default placeholder. */
+    /** Central branding: never reload/redirect. Always returns a safe object; missing/invalid data returns hardcoded default only. */
     function getBranding() {
       var def = { companyName: 'Vault AI', logoBase64: '' };
       try {
         var b = (window._appConfig && window._appConfig.settings && window._appConfig.settings.branding) || {};
         var cached = localStorage.getItem('vault_branding');
         if (cached) {
-          var parsed = JSON.parse(cached);
-          if (parsed && (parsed.companyName || parsed.logoBase64)) b = { companyName: b.companyName || parsed.companyName, logoBase64: b.logoBase64 || parsed.logoBase64 };
+          try {
+            var parsed = JSON.parse(cached);
+            if (parsed && typeof parsed === 'object') b = { companyName: b.companyName || parsed.companyName, logoBase64: b.logoBase64 || parsed.logoBase64 };
+          } catch (parseErr) {
+            try { localStorage.removeItem('vault_branding'); } catch (e2) {}
+            return def;
+          }
         }
         var name = (b.companyName || def.companyName).trim();
         var logo = (b.logoBase64 || '').trim();
@@ -1082,6 +1095,10 @@
       var s = document.getElementById('splash');
       if (s) { s.classList.add('splash-out'); setTimeout(function() { s.remove(); }, 600); }
     }, 1500);
+    setTimeout(function() {
+      var s = document.getElementById('splash');
+      if (s) { s.classList.add('splash-out'); s.remove(); }
+    }, 3000);
 
     function updateOfflineIndicator() {
       var el = document.getElementById('offline-indicator');
