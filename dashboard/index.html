@@ -1675,29 +1675,46 @@
       var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
       var tax = Number(document.getElementById('inv-tax')?.value) || 0;
       var grand = subtotal - totalLineDisc - globalDisc + tax;
+      var currencySym = (window._appConfig.settings && window._appConfig.settings.localization && window._appConfig.settings.localization.currencySymbol) || 'ل.س';
       var rows = lines.map(function(l) {
         var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
-        return '<tr class="border-b border-slate-200"><td class="py-1 text-right">' + (l.productName || l.productId) + '</td><td class="py-1 text-center">' + (l.quantity || 0) + '</td><td class="py-1 text-left">' + lineTotal.toFixed(0) + '</td></tr>';
+        return '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px;text-align:right;font-family:Cairo,Tajawal,sans-serif">' + (l.productName || l.productId) + '</td><td style="padding:8px;text-align:center;font-family:Cairo,Tajawal,sans-serif">' + (l.quantity || 0) + '</td><td style="padding:8px;text-align:left;font-family:Cairo,Tajawal,sans-serif">' + lineTotal.toFixed(0) + '</td></tr>';
       }).join('');
       var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
       var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
       var logoBase64 = branding.logoBase64 || '';
+      var companyPhone = (branding.companyPhone || '').replace(/</g, '&lt;');
+      var companyAddress = (branding.companyAddress || '').replace(/</g, '&lt;');
+      var returnsPolicy = (branding.returnsPolicy || 'Thank you for your business.').replace(/</g, '&lt;');
       var loc = (window._appConfig.settings && window._appConfig.settings.localization) || {};
-      var isTaxEnabled = loc.isTaxEnabled !== false;
-      var headerHtml = (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded inline-block align-middle mr-2"/>' : '') + '<span class="text-lg font-bold">' + companyName + '</span>';
-      var taxLine = isTaxEnabled ? ('<p class="text-right"><strong>الضريبة:</strong> ' + tax.toFixed(0) + ' ل.س</p>') : '';
-      var html = '<div class="print-area p-4 a4" dir="rtl" style="font-family: Cairo, sans-serif; color: #111;">' +
-        '<div class="mb-4">' + headerHtml + '</div>' +
-        '<h2 class="text-lg font-bold mb-2">فاتورة بيع</h2>' +
-        '<p><strong>العميل:</strong> ' + customer + ' &nbsp; | &nbsp; <strong>التاريخ:</strong> ' + invDate + ' &nbsp; | &nbsp; <strong>نوع الدفع:</strong> ' + payLabel + '</p>' +
-        '<table class="w-full text-sm my-4"><thead><tr class="border-b-2 border-slate-300"><th class="py-2 text-right">الصنف</th><th class="py-2 text-center">الكمية</th><th class="py-2 text-left">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
-        '<p class="text-right"><strong>المجموع الفرعي:</strong> ' + subtotal.toFixed(0) + ' ل.س</p>' +
-        '<p class="text-right"><strong>خصم الأسطر:</strong> ' + totalLineDisc.toFixed(0) + ' ل.س</p>' +
-        '<p class="text-right"><strong>خصم عام:</strong> ' + globalDisc.toFixed(0) + ' ل.س</p>' +
+      var isTaxEnabled = loc.isTaxEnabled === true;
+      var invIdForQr = 'INV-' + (document.getElementById('inv-status-badge') ? 'PREVIEW' : Date.now());
+      var qrUrl = 'https://api.qrserver.com/v1/create-qr-code/?size=100x100&data=' + encodeURIComponent(invIdForQr);
+      var logoImg = logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" style="width:100px;height:auto;object-fit:contain;display:block"/>' : '';
+      var headerBlock = '<div style="margin-bottom:8px"><span style="font-size:1.25rem;font-weight:700;font-family:Cairo,Tajawal,sans-serif">' + companyName + '</span></div>' +
+        (companyPhone ? '<div style="font-size:0.875rem;color:#475569;font-family:Cairo,Tajawal,sans-serif">' + companyPhone + '</div>' : '') +
+        (companyAddress ? '<div style="font-size:0.875rem;color:#475569;font-family:Cairo,Tajawal,sans-serif">' + companyAddress + '</div>' : '');
+      var taxLine = isTaxEnabled ? ('<p style="text-align:left;margin:4px 0;font-family:Cairo,Tajawal,sans-serif"><strong>الضريبة:</strong> ' + tax.toFixed(0) + ' ' + currencySym + '</p>') : '';
+      var html = '<div class="print-area p-4 a4" dir="rtl" style="font-family:Cairo,Tajawal,sans-serif;color:#111;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px;gap:16px">' +
+        '<div><img src="' + qrUrl + '" alt="QR" style="width:100px;height:100px;display:block"/><span style="font-size:10px;color:#64748b">' + invIdForQr + '</span></div>' +
+        '<div style="flex:1;text-align:right">' + logoImg + headerBlock + '</div>' +
+        '</div>' +
+        '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:8px;font-family:Cairo,Tajawal,sans-serif">فاتورة بيع</h2>' +
+        '<p style="margin-bottom:12px;font-family:Cairo,Tajawal,sans-serif"><strong>العميل:</strong> ' + customer + ' &nbsp; | &nbsp; <strong>التاريخ:</strong> ' + invDate + ' &nbsp; | &nbsp; <strong>نوع الدفع:</strong> ' + payLabel + '</p>' +
+        '<table class="inv-print-table" style="width:100%;font-size:0.875rem;margin:16px 0;border-collapse:collapse;font-family:Cairo,Tajawal,sans-serif"><thead><tr style="border:2px solid #334155;background:#f1f5f9"><th style="padding:10px;text-align:right">الصنف</th><th style="padding:10px;text-align:center">الكمية</th><th style="padding:10px;text-align:left">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<div style="text-align:left;margin-top:12px;font-family:Cairo,Tajawal,sans-serif">' +
+        '<p style="margin:4px 0"><strong>المجموع الفرعي:</strong> ' + subtotal.toFixed(0) + ' ' + currencySym + '</p>' +
+        '<p style="margin:4px 0"><strong>خصم الأسطر:</strong> ' + totalLineDisc.toFixed(0) + ' ' + currencySym + '</p>' +
+        '<p style="margin:4px 0"><strong>خصم عام:</strong> ' + globalDisc.toFixed(0) + ' ' + currencySym + '</p>' +
         taxLine +
-        '<p class="text-right text-lg font-bold mt-2">الإجمالي: ' + grand.toFixed(0) + ' ل.س</p>' +
-        (notes ? '<p class="mt-4 text-sm text-slate-600">ملاحظات: ' + notes + '</p>' : '') +
-        '</div>';
+        '<p style="margin:12px 0 0;font-size:1.25rem;font-weight:700">الإجمالي النهائي: ' + grand.toFixed(0) + ' ' + currencySym + '</p>' +
+        '</div>' +
+        (notes ? '<p style="margin-top:16px;font-size:0.875rem;color:#475569;font-family:Cairo,Tajawal,sans-serif">ملاحظات: ' + notes + '</p>' : '') +
+        '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center;font-family:Cairo,Tajawal,sans-serif">' +
+        '<p style="font-weight:600;margin-bottom:8px">Thank you for your business!</p>' +
+        '<p style="font-size:0.8rem;color:#64748b">' + returnsPolicy + '</p>' +
+        '</div></div>';
       var wrap = document.getElementById('print-preview-content');
       var modal = document.getElementById('print-preview-modal');
       if (wrap) wrap.innerHTML = html;
@@ -1711,7 +1728,7 @@
       var wrap = document.getElementById('print-preview-content');
       if (!wrap || !wrap.innerHTML) return;
       var win = window.open('', '_blank');
-      win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Cairo,sans-serif;padding:16px;color:#111;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:6px;text-align:right;}</style></head><body>' + wrap.innerHTML + '</body></html>');
+      win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"/><style>body{font-family:Cairo,Tajawal,sans-serif;padding:16px;color:#111;} .inv-print-table thead tr{border:2px solid #334155;} .inv-print-table th,.inv-print-table td{border:1px solid #e2e8f0;} .inv-print-table th{background:#f1f5f9;padding:10px;} .inv-print-table td{padding:8px;}</style></head><body>' + wrap.innerHTML + '</body></html>');
       win.document.close();
       win.focus();
       setTimeout(function() { win.print(); win.close(); }, 300);
@@ -1814,7 +1831,7 @@
       container.innerHTML =
         '<div id="sales-invoice-root" class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 font-sans" dir="rtl">' +
         '<div class="space-y-4">' +
-        '<div id="inv-dynamic-header" class="glass-card rounded-2xl p-3 shadow-lg flex items-center gap-3">' +
+        '<div id="inv-dynamic-header" class="glass-card rounded-2xl px-5 py-4 shadow-lg flex items-center gap-3 border-b border-white/10">' +
         (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded"/>' : '') +
         '<span class="text-white font-semibold">' + (companyName.replace(/</g, '&lt;')) + '</span></div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg">' +
@@ -1838,7 +1855,7 @@
         '<div class="flex flex-wrap gap-2 items-center"><button type="button" onclick="holdSalesInvoice()" class="btn-3d px-4 py-3 rounded-xl bg-amber-500/20 text-amber-300 font-medium">تعليق</button><button type="button" onclick="submitSalesInvoice()" class="btn-3d flex-1 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ الفاتورة</button><button type="button" onclick="openPrintPreview()" class="btn-3d px-4 py-3 rounded-xl bg-white/10 text-slate-300 font-medium">معاينة الطباعة</button></div>' +
         '<div id="inv-resumable-wrap" class="glass-card rounded-2xl p-4 hidden"><h3 class="text-sm font-medium text-slate-400 mb-2">فواتير معلقة</h3><ul id="inv-resumable-list" class="text-sm text-slate-300 space-y-1"></ul></div>' +
         '<p id="invoice-message" class="text-sm hidden"></p></div>' +
-        '<div class="lg:sticky lg:top-24"><div class="glass-card rounded-2xl p-5 border border-white/10 shadow-lg"><h3 class="text-sm font-medium text-slate-400 mb-3">ملخص مالي</h3>' +
+        '<div class="lg:sticky lg:top-24"><div class="glass-card rounded-2xl p-6 border border-white/10 shadow-2xl shadow-black/30 backdrop-blur-xl ring-1 ring-white/5"><h3 class="text-sm font-medium text-slate-400 mb-3">ملخص مالي</h3>' +
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>المجموع الفرعي</span><span id="inv-subtotal">0</span> ل.س</p>' +
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم الأسطر</span><span id="inv-total-disc">0</span> ل.س</p>' +
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم عام</span><input type="number" id="inv-global-disc" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
@@ -2487,6 +2504,9 @@
         '</div>' +
         '<div id="sys-tab-general" class="sys-tab-pane space-y-3">' +
         '<label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="sys-companyName" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyName) + '" placeholder="Vault AI"/>' +
+        '<label class="text-slate-400 text-sm">هاتف الشركة</label><input type="text" id="sys-companyPhone" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyPhone || '') + '" placeholder="+963..."/>' +
+        '<label class="text-slate-400 text-sm">عنوان الشركة</label><input type="text" id="sys-companyAddress" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyAddress || '') + '" placeholder="العنوان"/>' +
+        '<label class="text-slate-400 text-sm">سياسة المرتجعات (تظهر في طباعة الفاتورة)</label><textarea id="sys-returnsPolicy" rows="2" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="نص سياسة المرتجعات">' + escapeAttr(b.returnsPolicy || '') + '</textarea>' +
         '</div>' +
         '<div id="sys-tab-branding" class="sys-tab-pane hidden space-y-3">' +
         '<label class="text-slate-400 text-sm">الشعار (Base64 أو اترك فارغاً)</label><textarea id="sys-logoBase64" rows="3" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="data:image/png;base64,...">' + escapeAttr(b.logoBase64 || '') + '</textarea>' +
@@ -2530,6 +2550,9 @@
           logoBase64: document.getElementById('sys-logoBase64')?.value?.trim() || null,
           primaryColor: document.getElementById('sys-primaryColor')?.value?.trim() || '#10b981',
           secondaryColor: document.getElementById('sys-secondaryColor')?.value?.trim() || '#34d399',
+          companyPhone: document.getElementById('sys-companyPhone')?.value?.trim() || '',
+          companyAddress: document.getElementById('sys-companyAddress')?.value?.trim() || '',
+          returnsPolicy: document.getElementById('sys-returnsPolicy')?.value?.trim() || '',
         },
         localization: {
           currencySymbol: document.getElementById('sys-currencySymbol')?.value?.trim() || 'ل.س',

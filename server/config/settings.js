@@ -9,6 +9,9 @@ const defaultSettings = {
     logoBase64: null,
     primaryColor: '#10b981',
     secondaryColor: '#34d399',
+    companyPhone: '',
+    companyAddress: '',
+    returnsPolicy: 'المرتجعات خلال 14 يوماً من تاريخ الشراء. يرجى إرجاع المنتج بحالته الأصلية.',
   },
   localization: {
     currencySymbol: 'ل.س',
