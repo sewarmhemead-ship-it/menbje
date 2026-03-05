@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: menbje-app
+    env: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start

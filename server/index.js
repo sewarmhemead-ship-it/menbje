@@ -37,9 +37,11 @@ app.use('/api', apiRoutes);
 app.use('/api/fractioning', fractioningRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
-// Dashboard (static) — DISABLED on Vercel: Vercel serves static via rewrites; Express serving here causes 307 loop
-// app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
-// Root redirect (local dev only; Vercel rewrites / to static, so this does not run on Vercel)
+// Dashboard (static) — enabled when not on Vercel (Render / local); Vercel serves static via rewrites
+if (!process.env.VERCEL) {
+  app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
+}
+// Root redirect (local/Render; on Vercel this path is not hit)
 app.get('/', (req, res) => res.redirect('/dashboard/'));
 
 // WhatsApp webhook (Meta expects this path often)
