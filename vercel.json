@@ -4,6 +4,10 @@
   "cleanUrls": false,
   "rewrites": [
     {
+      "source": "/login",
+      "destination": "/dashboard/login.html"
+    },
+    {
       "source": "/api/:path*",
       "destination": "/api"
     },

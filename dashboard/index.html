@@ -917,7 +917,8 @@
     function redirectToLoginIfAllowed() {
       if (Date.now() < REDIRECT_BYPASS_UNTIL) return;
       if (window.location.pathname.includes('login') || window.location.href.indexOf('login') !== -1) return;
-      window.location.href = 'login.html';
+      console.log('Redirecting to login...');
+      window.location.href = '/dashboard/login.html';
     }
     function logout() {
       localStorage.removeItem('vault_token');
