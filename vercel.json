@@ -3,6 +3,7 @@
   "rewrites": [
     { "source": "/(.*)", "destination": "/api" }
   ],
+  "redirects": [],
   "functions": {
     "api/index.js": {
       "memory": 1024,

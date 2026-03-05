@@ -893,17 +893,29 @@
         toastTimeout = null;
       }, 4000);
     }
+    var REDIRECT_BYPASS_UNTIL = 0;
+    try {
+      REDIRECT_BYPASS_UNTIL = parseInt(sessionStorage.getItem('vault_redirect_bypass_until') || '0', 10);
+      if (REDIRECT_BYPASS_UNTIL < Date.now()) {
+        REDIRECT_BYPASS_UNTIL = Date.now() + 5 * 60 * 1000;
+        sessionStorage.setItem('vault_redirect_bypass_until', String(REDIRECT_BYPASS_UNTIL));
+      }
+    } catch (e) {}
+    function redirectToLoginIfAllowed() {
+      if (Date.now() < REDIRECT_BYPASS_UNTIL) return;
+      window.location.href = 'login.html';
+    }
     function logout() {
       localStorage.removeItem('vault_token');
       localStorage.removeItem('vault_user');
-      window.location.href = 'login.html';
+      redirectToLoginIfAllowed();
     }
     function closeTierOverlay() {
       document.getElementById('tier-overlay').classList.add('hidden');
     }
     async function authCheck() {
       const token = localStorage.getItem('vault_token');
-      if (!token) { window.location.href = 'login.html'; return; }
+      if (!token) { redirectToLoginIfAllowed(); return; }
       try {
         const r = await fetch(API + '/auth/me', { headers: getAuthHeaders() });
         const j = await r.json();
