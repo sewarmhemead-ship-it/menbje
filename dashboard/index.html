@@ -11,6 +11,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
   <script>
     tailwind.config = {
       theme: {
@@ -40,6 +41,15 @@
     .um-table .um-col-role { min-width: 80px; }
     .um-table .um-col-status { min-width: 70px; }
     .um-table .um-col-actions { min-width: 160px; width: 40%; }
+    .return-excel-table { border-collapse: separate; border-spacing: 0; }
+    .return-excel-table th, .return-excel-table td { border: 1px solid rgba(255,255,255,0.08); }
+    .return-table-row:hover { background: rgba(255,255,255,0.1) !important; }
+    @media print {
+      .return-receipt-80mm { width: 80mm !important; max-width: 80mm; padding: 4px; font-size: 11px; }
+    }
+    .reports-returns-table { border-collapse: collapse; }
+    .reports-returns-table th, .reports-returns-table td { border: 1px solid rgba(255,255,255,0.08); padding: 10px 12px; }
+    .reports-returns-table tbody tr:hover { background: rgba(255,255,255,0.08); }
     .sidebar-item.active { background: rgba(16, 185, 129, 0.15); border-right: 3px solid #10b981; color: #34d399; }
     .top-nav { background: #0d1524; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: none; box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.35), 0 0 20px rgba(16, 185, 129, 0.08); }
     .topnav-item { color: #94a3b8; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
@@ -243,6 +253,12 @@
   </div>
 
   <!-- Toast (Success / Error) -->
+  <div id="export-generating-overlay" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm">
+    <div class="glass-card rounded-2xl px-8 py-6 flex items-center gap-3 border border-emerald-500/30">
+      <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center"><svg class="w-5 h-5 text-emerald-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg></div>
+      <span class="text-white font-medium">Generating Report... / جاري إنشاء التقرير...</span>
+    </div>
+  </div>
   <div id="toast" class="fixed bottom-20 left-4 right-4 md:left-auto md:right-8 md:max-w-sm z-[60] rounded-xl shadow-lg transform transition-all duration-300 translate-y-24 opacity-0 pointer-events-none" role="alert" aria-live="polite">
     <div id="toast-inner" class="glass-card rounded-xl p-4 flex items-center gap-3">
       <span id="toast-icon" class="shrink-0 w-10 h-10 rounded-full flex items-center justify-center"></span>
@@ -386,7 +402,8 @@
       </nav>
       <div class="w-32 flex-shrink-0 flex justify-end">
         <div class="flex items-center gap-2">
-          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
+          <img id="global-brand-logo" alt="" class="h-9 w-9 object-contain rounded-xl shrink-0 hidden" data-branding="logo"/>
+          <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 global-brand-fallback">
             <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
           <span class="app-name-placeholder text-lg font-semibold text-white whitespace-nowrap">Vault AI</span>
@@ -742,6 +759,7 @@
         window._appConfig.user = currentUser || {};
         applyTheme();
         applyRBAC();
+        applyBrandingToDOM();
       } catch (e) {}
     }
     function applyTheme() {
@@ -757,6 +775,71 @@
       document.querySelectorAll('[data-rbac="admin"]').forEach(function(el) { el.style.display = showAdminTools ? '' : 'none'; });
       var name = (window._appConfig.settings.branding && window._appConfig.settings.branding.companyName) || 'Vault AI';
       document.querySelectorAll('.app-name-placeholder').forEach(function(el) { el.textContent = name; });
+    }
+
+    /** Central branding: always read from _appConfig.settings.branding (or localStorage fallback). */
+    function getBranding() {
+      var b = (window._appConfig && window._appConfig.settings && window._appConfig.settings.branding) || {};
+      try {
+        var cached = localStorage.getItem('vault_branding');
+        if (cached) {
+          var parsed = JSON.parse(cached);
+          if (parsed && (parsed.companyName || parsed.logoBase64)) b = { companyName: b.companyName || parsed.companyName, logoBase64: b.logoBase64 || parsed.logoBase64 };
+        }
+      } catch (e) {}
+      return {
+        companyName: (b.companyName || 'Vault AI').trim(),
+        logoBase64: (b.logoBase64 || '').trim()
+      };
+    }
+
+    /** Reusable print header: logo+name (right), title (center), date+page (left). Returns { css, headerHTML }. */
+    function getPrintHeaderTemplate(reportTitle, printDate, options) {
+      var opt = options || {};
+      var showPage = opt.showPageNumber !== false;
+      var branding = getBranding();
+      var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var logoBase64 = (branding.logoBase64 || '').replace(/"/g, '&quot;');
+      var logoImg = logoBase64 ? '<img src="' + logoBase64 + '" alt="" class="print-logo"/>' : '<div class="print-logo-placeholder"></div>';
+      var headerHTML = '<header class="print-header">' +
+        '<div class="print-header-right">' + logoImg + '<span class="print-store-name">' + companyName + '</span></div>' +
+        '<div class="print-header-center">' + (reportTitle || '') + '</div>' +
+        '<div class="print-header-left">' + (printDate || '') + (showPage ? ' &nbsp;|&nbsp; <span class="print-page">صفحة </span><span class="page-number"></span>' : '') + '</div>' +
+        '</header>';
+      var css = '<style>' +
+        'body { margin: 0; font-family: Cairo, sans-serif; color: #111; background: #fff; }' +
+        '.print-header, .print-footer { display: none; }' +
+        '@media print {' +
+        'body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+        '.print-header { display: flex !important; position: fixed; top: 0; left: 0; right: 0; height: 56px; align-items: center; justify-content: space-between; padding: 0 16px; border-bottom: 1px solid #000; background: #fff; font-size: 12px; z-index: 9999; }' +
+        '.print-header-right { display: flex; align-items: center; gap: 8px; }' +
+        '.print-logo { height: 36px; width: 36px; object-fit: contain; }' +
+        '.print-logo-placeholder { width: 36px; height: 36px; background: #e2e8f0; border: 1px solid #cbd5e1; }' +
+        '.print-store-name { font-weight: 700; color: #000; }' +
+        '.print-header-center { font-weight: 700; color: #000; font-size: 14px; }' +
+        '.print-header-left { color: #333; }' +
+        '.print-footer { display: block !important; position: fixed; bottom: 0; left: 0; right: 0; padding: 8px 16px; text-align: center; font-size: 10px; color: #444; border-top: 1px solid #000; background: #fff; z-index: 9999; }' +
+        '.print-body { padding: 64px 16px 48px; max-width: 800px; margin: 0 auto; }' +
+        '.print-period { font-size: 12px; color: #333; margin-bottom: 12px; }' +
+        '.print-table { width: 100%; border-collapse: collapse; font-size: 11px; }' +
+        '.print-th, .print-td { border: 1px solid #000; padding: 8px; text-align: right; }' +
+        '.print-th { background: #f1f5f9; font-weight: 700; color: #000; }' +
+        '.print-td { color: #111; }' +
+        '}</style>';
+      return { css: css, headerHTML: headerHTML };
+    }
+
+    /** Update all on-screen branding (name + logo) without refresh. Call after settings load/save. */
+    function applyBrandingToDOM() {
+      var b = getBranding();
+      document.querySelectorAll('.app-name-placeholder').forEach(function(el) { el.textContent = b.companyName; });
+      var logoEl = document.getElementById('global-brand-logo');
+      var fallback = document.querySelector('.global-brand-fallback');
+      if (logoEl) {
+        if (b.logoBase64) { logoEl.src = b.logoBase64; logoEl.classList.remove('hidden'); if (fallback) fallback.classList.add('hidden'); }
+        else { logoEl.removeAttribute('src'); logoEl.classList.add('hidden'); if (fallback) fallback.classList.remove('hidden'); }
+      }
+      try { localStorage.setItem('vault_branding', JSON.stringify({ companyName: b.companyName, logoBase64: b.logoBase64 })); } catch (e) {}
     }
 
     function getAuthHeaders() {
@@ -1763,12 +1846,13 @@
         var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
         return '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px;text-align:right;font-family:Cairo,Tajawal,sans-serif">' + (l.productName || l.productId) + '</td><td style="padding:8px;text-align:center;font-family:Cairo,Tajawal,sans-serif">' + (l.quantity || 0) + '</td><td style="padding:8px;text-align:left;font-family:Cairo,Tajawal,sans-serif">' + lineTotal.toFixed(0) + '</td></tr>';
       }).join('');
-      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var branding = getBranding();
       var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
       var logoBase64 = branding.logoBase64 || '';
-      var companyPhone = (branding.companyPhone || '').replace(/</g, '&lt;');
-      var companyAddress = (branding.companyAddress || '').replace(/</g, '&lt;');
-      var returnsPolicy = (branding.returnsPolicy || 'Thank you for your business.').replace(/</g, '&lt;');
+      var bFull = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var companyPhone = (bFull.companyPhone || '').replace(/</g, '&lt;');
+      var companyAddress = (bFull.companyAddress || '').replace(/</g, '&lt;');
+      var returnsPolicy = (bFull.returnsPolicy || 'Thank you for your business.').replace(/</g, '&lt;');
       var loc = (window._appConfig.settings && window._appConfig.settings.localization) || {};
       var isTaxEnabled = loc.isTaxEnabled === true;
       var invIdForQr = 'INV-' + (document.getElementById('inv-status-badge') ? 'PREVIEW' : Date.now());
@@ -1810,8 +1894,11 @@
     function doPrintInvoice() {
       var wrap = document.getElementById('print-preview-content');
       if (!wrap || !wrap.innerHTML) return;
+      var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+      var t = getPrintHeaderTemplate('فاتورة بيع', printDate, { showPageNumber: false });
+      var extraCss = 'body{padding:16px;color:#111;}.print-body{padding-top:16px;}.inv-print-table thead tr{border:2px solid #334155;}.inv-print-table th,.inv-print-table td{border:1px solid #e2e8f0;}.inv-print-table th{background:#f1f5f9;padding:10px;}.inv-print-table td{padding:8px;}';
       var win = window.open('', '_blank');
-      win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"/><style>body{font-family:Cairo,Tajawal,sans-serif;padding:16px;color:#111;} .inv-print-table thead tr{border:2px solid #334155;} .inv-print-table th,.inv-print-table td{border:1px solid #e2e8f0;} .inv-print-table th{background:#f1f5f9;padding:10px;} .inv-print-table td{padding:8px;}</style></head><body>' + wrap.innerHTML + '</body></html>');
+      win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"/>' + t.css + '<style>' + extraCss + '</style></head><body>' + t.headerHTML + '<div class="print-body" style="font-family:Cairo,Tajawal,sans-serif">' + wrap.innerHTML + '</div></body></html>');
       win.document.close();
       win.focus();
       setTimeout(function() { win.print(); win.close(); }, 300);
@@ -2728,6 +2815,7 @@
         window._appConfig.settings = j.data || payload;
         applyTheme();
         applyRBAC();
+        applyBrandingToDOM();
         showToast('Success', 'تم حفظ إعدادات النظام', 'success');
       } catch (e) {
         if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
@@ -3007,6 +3095,7 @@
 
     var _returnInvoice = null;
     var _returnLines = [];
+    var _lastReturnDoc = null;
 
     async function renderSalesReturn(container) {
       const [productsR, unitsR] = await Promise.all([fetchJson('/products'), fetchJson('/units')]);
@@ -3032,12 +3121,19 @@
         '</div>' +
         '<p id="return-inv-meta" class="text-slate-500 text-sm mt-2 hidden"></p></div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4" id="return-table-wrap">' +
-        '<h3 class="text-sm font-medium text-slate-400 mb-3">أصناف المرتجع</h3>' +
-        '<p id="return-table-empty" class="text-slate-500 text-sm py-4">قم بتحميل فاتورة أولاً.</p>' +
+        '<div id="return-table-empty" class="py-12 flex flex-col items-center justify-center text-center">' +
+        '<div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4"><svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>' +
+        '<p class="text-slate-400 text-base">أدخل رقم الفاتورة للبدء بعملية المرتجع الذكية</p>' +
+        '<p id="return-print-last-wrap" class="mt-3 hidden"><button type="button" onclick="printReturnReceipt()" class="text-emerald-400 hover:underline text-sm">طباعة إيصال آخر مرتجع</button></p></div>' +
         '<div id="return-lines-table" class="overflow-x-auto hidden"></div>' +
-        '<div class="mt-3 flex flex-wrap items-center gap-3"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="return-refund-cash" checked class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300 text-sm">استرداد نقدي</span></label></div>' +
-        '<button type="button" onclick="submitSalesReturn()" class="btn-3d mt-4 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ المرتجع</button>' +
-        '<p id="return-message" class="text-sm mt-2 hidden"></p></div></div>';
+        '<div id="return-options-row" class="hidden mt-4 space-y-3">' +
+        '<div class="flex flex-wrap gap-4"><span class="text-slate-400 text-sm">طريقة الاسترداد:</span>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="return-refund-type" value="cash" checked class="text-emerald-500"/> <span class="text-slate-300 text-sm">استرداد نقدي (Cash)</span></label>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="return-refund-type" value="credit" class="text-emerald-500"/> <span class="text-slate-300 text-sm">خصم من الحساب (Credit Account)</span></label></div>' +
+        '<div class="flex flex-wrap gap-3"><button type="button" onclick="submitSalesReturn()" class="btn-3d px-6 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ المرتجع</button>' +
+        '<button type="button" onclick="printReturnReceipt()" class="btn-3d px-6 py-3 rounded-xl bg-white/10 text-slate-300 font-medium">طباعة إيصال المرتجع</button></div>' +
+        '<p id="return-message" class="text-sm mt-2 hidden"></p></div></div>' +
+        '<div id="return-receipt-print" class="hidden"></div></div>';
     }
 
     async function loadInvoiceForReturn() {
@@ -3056,6 +3152,7 @@
             originalQty: line.quantity || 0,
             returnQty: 0,
             unitPrice: line.unitPrice || 0,
+            restock: true,
           };
         });
         document.getElementById('return-inv-meta').textContent = 'التاريخ: ' + (r.data.date || '—') + ' | العميل: ' + (r.data.customerId || '—');
@@ -3069,31 +3166,46 @@
       }
     }
 
+    function returnSelectAll() {
+      var checked = document.getElementById('return-select-all');
+      if (!checked) return;
+      _returnLines.forEach(function(l) { l.returnQty = checked.checked ? l.originalQty : 0; });
+      renderReturnLinesTable();
+    }
+
     function renderReturnLinesTable() {
       var wrap = document.getElementById('return-table-wrap');
       var empty = document.getElementById('return-table-empty');
       var table = document.getElementById('return-lines-table');
+      var optionsRow = document.getElementById('return-options-row');
       if (!wrap) return;
       if (!_returnLines.length) {
         if (empty) empty.classList.remove('hidden');
         if (table) { table.classList.add('hidden'); table.innerHTML = ''; }
+        if (optionsRow) optionsRow.classList.add('hidden');
         return;
       }
       if (empty) empty.classList.add('hidden');
+      if (optionsRow) optionsRow.classList.remove('hidden');
       if (table) {
         table.classList.remove('hidden');
-        var thead = '<thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">المنتج</th><th class="p-2">وحدة</th><th class="p-2">الكمية الأصلية</th><th class="p-2">كمية المرتجع</th><th class="p-2">سعر الوحدة</th><th class="p-2">المجموع</th></tr></thead>';
+        var allSelected = _returnLines.length && _returnLines.every(function(l) { return (l.returnQty || 0) >= (l.originalQty || 0); });
+        var thead = '<thead><tr class="text-slate-400 border-b border-white/20 text-right">' +
+          '<th class="p-3"><label class="cursor-pointer flex items-center justify-end gap-1"><input type="checkbox" id="return-select-all" ' + (allSelected ? 'checked' : '') + ' onchange="returnSelectAll()" class="rounded border-white/20 text-emerald-500"/> <span class="text-xs">كل الفاتورة</span></label></th>' +
+          '<th class="p-3">اسم الصنف</th><th class="p-3">الكمية المباعة</th><th class="p-3">كمية المرتجع</th><th class="p-3">سعر الوحدة</th><th class="p-3">الضريبة</th><th class="p-3">الإجمالي المرتجع</th><th class="p-3">إعادة للمخزن</th></tr></thead>';
         var rows = _returnLines.map(function(l, i) {
           var lineTotal = (l.returnQty || 0) * (l.unitPrice || 0);
-          return '<tr class="border-b border-white/5 text-right">' +
-            '<td class="p-2 text-white">' + (l.productName || l.productId) + '</td>' +
-            '<td class="p-2 text-slate-300">' + (l.unitId || 'piece') + '</td>' +
-            '<td class="p-2">' + (l.originalQty || 0) + '</td>' +
-            '<td class="p-2"><input type="number" min="0" max="' + (l.originalQty || 0) + '" value="' + (l.returnQty || 0) + '" data-idx="' + i + '" class="return-qty-input w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm text-right"/></td>' +
-            '<td class="p-2">' + (l.unitPrice || 0) + '</td>' +
-            '<td class="p-2 text-emerald-400">' + lineTotal.toFixed(0) + '</td></tr>';
+          return '<tr class="return-table-row border-b border-white/10 text-right hover:bg-white/10 bg-white/[0.02]">' +
+            '<td class="p-3"></td>' +
+            '<td class="p-3 text-white font-medium">' + (l.productName || l.productId) + '</td>' +
+            '<td class="p-3 text-slate-300">' + (l.originalQty || 0) + '</td>' +
+            '<td class="p-3"><input type="number" min="0" max="' + (l.originalQty || 0) + '" value="' + (l.returnQty || 0) + '" data-idx="' + i + '" class="return-qty-input w-20 bg-white/10 border border-emerald-500/30 rounded px-2 py-1.5 text-white text-sm text-right focus:ring-2 focus:ring-emerald-500/50"/>' +
+            '</td><td class="p-3 text-slate-300">' + (l.unitPrice || 0) + '</td>' +
+            '<td class="p-3 text-slate-500">0</td>' +
+            '<td class="p-3 text-emerald-400 font-medium">' + lineTotal.toFixed(0) + '</td>' +
+            '<td class="p-3"><label class="cursor-pointer flex items-center justify-end gap-1"><input type="checkbox" data-idx="' + i + '" class="return-restock-check rounded border-white/20 text-emerald-500" ' + (l.restock !== false ? 'checked' : '') + '/> <span class="text-xs text-slate-400">إعادة للمخزن</span></label></td></tr>';
         });
-        table.innerHTML = '<table class="w-full text-sm">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
+        table.innerHTML = '<table class="w-full text-sm return-excel-table">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
         table.querySelectorAll('.return-qty-input').forEach(function(inp) {
           inp.addEventListener('input', function() {
             var idx = parseInt(this.getAttribute('data-idx'), 10);
@@ -3103,27 +3215,38 @@
             }
           });
         });
+        table.querySelectorAll('.return-restock-check').forEach(function(cb) {
+          cb.addEventListener('change', function() {
+            var idx = parseInt(this.getAttribute('data-idx'), 10);
+            if (!isNaN(idx) && _returnLines[idx]) _returnLines[idx].restock = this.checked;
+          });
+        });
       }
     }
 
     async function submitSalesReturn() {
       if (!_returnInvoice || !_returnInvoice.id) { showToast('تنبيه', 'قم بتحميل الفاتورة أولاً', 'error'); return; }
       var items = _returnLines.filter(function(l) { return (l.returnQty || 0) > 0; }).map(function(l) {
-        return { productId: l.productId, unitId: l.unitId, returnQuantity: l.returnQty, unitPrice: l.unitPrice };
+        return { productId: l.productId, unitId: l.unitId, returnQuantity: l.returnQty, unitPrice: l.unitPrice, restock: l.restock !== false };
       });
       if (!items.length) { showToast('تنبيه', 'أدخل كميات مرتجع لصنف واحد على الأقل', 'error'); return; }
-      var refundToCash = document.getElementById('return-refund-cash')?.checked !== false;
+      var refundCashRadio = document.querySelector('input[name="return-refund-type"][value="cash"]');
+      var refundToCash = !refundCashRadio || refundCashRadio.checked;
       var msgEl = document.getElementById('return-message');
       if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
       try {
         var j = await postJson('/sales/return', { invoiceId: _returnInvoice.id, items: items, refundToCash: refundToCash });
         if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        var totalAmount = items.reduce(function(s, l) { return s + (l.returnQuantity || 0) * (l.unitPrice || 0); }, 0);
+        _lastReturnDoc = { returnId: j.data && j.data.returnId, invoiceId: _returnInvoice.id, date: new Date().toISOString(), items: _returnLines.filter(function(l) { return (l.returnQty || 0) > 0; }), totalAmount: totalAmount, refundToCash: refundToCash };
         showToast('Success', 'تم حفظ المرتجع بنجاح', 'success');
         refreshAll();
         _returnInvoice = null;
         _returnLines = [];
         document.getElementById('return-inv-id').value = '';
         document.getElementById('return-inv-meta').classList.add('hidden');
+        var opt = document.getElementById('return-options-row');
+        if (opt) opt.classList.add('hidden');
         renderReturnLinesTable();
         document.getElementById('return-table-empty').classList.remove('hidden');
         document.getElementById('return-lines-table').classList.add('hidden');
@@ -3131,6 +3254,46 @@
         if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
         showToast('خطأ', e.message || 'فشل الحفظ', 'error');
       }
+    }
+
+    function printReturnReceipt() {
+      if (!_lastReturnDoc) { showToast('تنبيه', 'احفظ مرتجعاً أولاً لطباعة الإيصال', 'error'); return; }
+      var d = _lastReturnDoc;
+      var b = getBranding();
+      var storeName = (b.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var logoHtml = b.logoBase64 ? '<img src="' + (b.logoBase64 || '').replace(/"/g, '&quot;') + '" alt="" style="height:28px;width:auto;object-fit:contain;display:block;margin:0 auto 4px"/>' : '';
+      var dateStr = d.date ? d.date.slice(0, 19).replace('T', ' ') : '';
+      var itemsHtml = (d.items || []).map(function(l) {
+        var tot = (l.returnQty || 0) * (l.unitPrice || 0);
+        return '<tr><td style="padding:4px 0;border-bottom:1px dotted #333">' + (l.productName || l.productId) + '</td><td style="text-align:left">' + (l.returnQty || 0) + ' x ' + (l.unitPrice || 0) + ' = ' + tot.toFixed(0) + ' ل.س</td></tr>';
+      }).join('');
+      var creditNotice = d.refundToCash ? '' : '<p style="margin-top:12px;font-weight:bold;font-size:11px">تم خصم المبلغ من رصيد العميل (Store Credit)</p>';
+      var wrap = document.getElementById('return-receipt-print');
+      if (!wrap) return;
+      wrap.innerHTML = '<div id="return-receipt-content" class="return-receipt-80mm">' +
+        (logoHtml ? logoHtml : '') +
+        '<p style="text-align:center;font-weight:bold;font-size:11px;margin-bottom:4px">' + storeName + '</p>' +
+        '<p style="text-align:center;font-weight:bold;margin-bottom:8px">إيصال مرتجع</p>' +
+        '<p style="font-size:10px">فاتورة أصلية: ' + (d.invoiceId || '—') + '</p>' +
+        '<p style="font-size:10px">تاريخ المرتجع: ' + dateStr + '</p>' +
+        '<table style="width:100%;margin:8px 0;font-size:10px">' + itemsHtml + '</table>' +
+        '<p style="text-align:left;font-weight:bold">الإجمالي المرتجع: ' + (d.totalAmount || 0).toFixed(0) + ' ل.س</p>' +
+        creditNotice +
+        '<p style="margin-top:12px;font-size:9px;text-align:center">شكراً لتعاملكم</p></div>';
+      wrap.classList.remove('hidden');
+      var printEl = document.getElementById('return-receipt-content');
+      if (printEl) {
+        var win = window.open('', '_blank', 'width=320,height=480');
+        win.document.write('<html dir="rtl"><head><title>إيصال مرتجع</title><style>' +
+          '@media print { body { width: 80mm; margin: 0; padding: 8px; font-family: Arial, sans-serif; font-size: 12px; } .return-receipt-80mm { width: 80mm !important; max-width: 80mm; } }' +
+          'body { width: 80mm; margin: 0; padding: 8px; font-family: Cairo, Arial, sans-serif; font-size: 12px; }' +
+          '.return-receipt-80mm { width: 80mm; max-width: 80mm; }' +
+          '</style></head><body>' + (printEl && printEl.outerHTML ? printEl.outerHTML : '') + '</body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(function() { win.print(); win.close(); }, 250);
+      }
+      wrap.classList.add('hidden');
     }
 
     async function renderSalesReports(container) {
@@ -3152,20 +3315,42 @@
         '<div><label class="text-slate-500 text-xs">العميل (اختياري)</label><input type="text" id="reports-customer" placeholder="معرّف العميل" class="block mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-40"/></div>' +
         '<button type="button" onclick="loadSalesReports()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">تحديث</button>' +
         '</div></div>' +
-        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
-        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي الإيرادات</p><p id="reports-revenue" class="text-2xl font-bold text-emerald-400">0</p> ل.س</div>' +
-        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي الربح</p><p id="reports-profit" class="text-2xl font-bold text-emerald-400">0</p> ل.س</div>' +
-        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي المرتجعات</p><p id="reports-returns" class="text-2xl font-bold text-rose-400">0</p> ل.س</div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 mb-4">' +
+        '<div class="glass-card rounded-2xl p-4 border border-white/10"><p class="text-slate-500 text-sm">إجمالي الإيرادات</p><p id="reports-revenue" class="text-2xl font-bold text-emerald-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 border border-white/10"><p class="text-slate-500 text-sm">إجمالي الربح</p><p id="reports-profit" class="text-2xl font-bold text-emerald-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 border border-white/10"><p class="text-slate-500 text-sm">إجمالي المرتجعات</p><p id="reports-returns" class="text-2xl font-bold text-rose-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 border border-rose-500/20 bg-rose-500/5"><p class="text-slate-400 text-sm">الأرباح المفقودة</p><p id="reports-profit-lost" class="text-xl font-bold text-rose-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 border border-rose-500/20 bg-rose-500/5"><p class="text-slate-400 text-sm">إجمالي التوالف</p><p id="reports-damaged" class="text-xl font-bold text-rose-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 border border-white/10"><p class="text-slate-500 text-sm">المرتجع الآجل</p><p id="reports-credit-returns" class="text-xl font-bold text-amber-400">0</p> <span class="text-slate-500 text-sm">ل.س</span></div>' +
         '</div>' +
-        '<div class="glass-card rounded-2xl p-4 shadow-lg">' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4">' +
         '<h3 class="text-sm font-medium text-slate-400 mb-3">الفواتير</h3>' +
         '<div id="reports-invoices-table" class="overflow-x-auto"><p class="text-slate-500 py-4">جاري التحميل…</p></div></div>' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg border border-white/10">' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">كشف المرتجعات</h3>' +
+        '<input type="text" id="reports-returns-search" placeholder="بحث سريع (رقم مرتجع، زبون، كاش، دين…)" class="w-full mb-3 bg-white/5 border border-emerald-500/30 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500"/>' +
+        '<div class="flex flex-wrap gap-2 mb-3"><button type="button" onclick="exportReturnsExcel()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium">تصدير Excel</button>' +
+        '<button type="button" onclick="printReturnsReport()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm font-medium">طباعة كشف جرد</button></div>' +
+        '<div id="reports-returns-table-wrap" class="overflow-x-auto"><table class="w-full text-sm text-right reports-returns-table"><thead><tr class="text-slate-400 border-b border-white/20"><th class="p-3">رقم المرتجع</th><th class="p-3">اسم الزبون</th><th class="p-3">نوع العملية</th><th class="p-3">حالة البضاعة</th><th class="p-3">القيمة</th><th class="p-3">الإجراء</th></tr></thead><tbody id="reports-returns-tbody"></tbody></table></div>' +
+        '<p id="reports-returns-empty" class="text-slate-500 py-4 text-center hidden">لا مرتجعات في هذه الفترة.</p></div>' +
         '<div id="invoice-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeInvoiceDetailModal()">' +
         '<div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">' +
         '<h3 class="text-white font-medium mb-3">تفاصيل الفاتورة</h3>' +
         '<div id="invoice-detail-content"></div>' +
         '<button type="button" onclick="closeInvoiceDetailModal()" class="btn-3d mt-4 px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div>';
       await loadSalesReports();
+    }
+
+    function formatSYP(n) {
+      var x = Math.round(Number(n) || 0);
+      if (x === 0) return '0';
+      var s = String(x);
+      var out = '';
+      for (var i = s.length - 1, c = 0; i >= 0; i--, c++) {
+        if (c && c % 3 === 0) out = ',' + out;
+        out = s[i] + out;
+      }
+      return out;
     }
 
     async function loadSalesReports() {
@@ -3183,30 +3368,235 @@
         var totalRevenue = list.reduce(function(s, i) { return s + (Number(i.totalRevenue) || 0); }, 0);
         var totalProfit = list.reduce(function(s, i) { return s + (Number(i.totalRevenue) || 0) - (Number(i.totalCogsSYP) || 0); }, 0);
         var totalReturns = returnsList.reduce(function(s, r) { return s + (Number(r.totalAmount) || 0); }, 0);
-        document.getElementById('reports-revenue').textContent = totalRevenue.toFixed(0);
-        document.getElementById('reports-profit').textContent = totalProfit.toFixed(0);
-        document.getElementById('reports-returns').textContent = totalReturns.toFixed(0);
-        var map = window._salesProductMap || {};
+        var totalProfitLost = 0;
+        var totalDamaged = 0;
+        var totalCreditReturns = 0;
+        returnsList.forEach(function(r) {
+          var inv = list.find(function(i) { return i.id === r.invoiceId; });
+          var rev = Number(inv && inv.totalRevenue) || 0;
+          var cogs = Number(inv && inv.totalCogsSYP) || 0;
+          if (rev > 0) totalProfitLost += (Number(r.totalAmount) || 0) * ((rev - cogs) / rev);
+          totalDamaged += Number(r.totalDamagedAmount) || 0;
+          if (!r.refundToCash) totalCreditReturns += Number(r.totalAmount) || 0;
+        });
+        document.getElementById('reports-revenue').textContent = formatSYP(totalRevenue);
+        document.getElementById('reports-profit').textContent = formatSYP(totalProfit);
+        document.getElementById('reports-returns').textContent = formatSYP(totalReturns);
+        var profitLostEl = document.getElementById('reports-profit-lost');
+        var damagedEl = document.getElementById('reports-damaged');
+        var creditEl = document.getElementById('reports-credit-returns');
+        if (profitLostEl) profitLostEl.textContent = formatSYP(totalProfitLost);
+        if (damagedEl) damagedEl.textContent = formatSYP(totalDamaged);
+        if (creditEl) creditEl.textContent = formatSYP(totalCreditReturns);
+        window._salesReportsInvoices = list;
+        window._salesReportsReturns = returnsList;
         var tableHtml = list.length === 0
           ? '<p class="text-slate-500 py-4">لا توجد فواتير في هذه الفترة.</p>'
           : '<table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">رقم الفاتورة</th><th class="p-2">العميل</th><th class="p-2">المبلغ</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody>' +
             list.map(function(inv) {
               var dateStr = inv.date ? inv.date.slice(0, 10) : '—';
               var cust = inv.customerId || '—';
-              var amt = (Number(inv.totalRevenue) || 0).toFixed(0);
-              return '<tr class="border-b border-white/5">' +
+              return '<tr class="border-b border-white/5 hover:bg-white/5">' +
                 '<td class="p-2 text-slate-300">' + dateStr + '</td>' +
                 '<td class="p-2 text-white">' + (inv.id || '—') + '</td>' +
                 '<td class="p-2">' + cust + '</td>' +
-                '<td class="p-2 text-emerald-400">' + amt + '</td>' +
+                '<td class="p-2 text-emerald-400">' + formatSYP(inv.totalRevenue) + '</td>' +
                 '<td class="p-2 text-slate-500">—</td>' +
                 '<td class="p-2"><button type="button" onclick="openInvoiceDetail(\'' + (inv.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">عرض</button> <button type="button" onclick="printInvoiceFromReport(\'' + (inv.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-slate-400 text-xs px-2 py-1 rounded">طباعة</button></td></tr>';
             }).join('') + '</tbody></table>';
         document.getElementById('reports-invoices-table').innerHTML = tableHtml;
-        window._salesReportsInvoices = list;
+        renderReportsReturnsTable(returnsList, list);
+        var searchEl = document.getElementById('reports-returns-search');
+        if (searchEl && !searchEl._bound) {
+          searchEl._bound = true;
+          searchEl.addEventListener('input', function() { filterReportsReturnsTable(this.value.trim()); });
+        }
       } catch (e) {
         document.getElementById('reports-invoices-table').innerHTML = '<p class="text-rose-400 py-4">' + (e.message || 'خطأ في التحميل') + '</p>';
       }
+    }
+
+    function renderReportsReturnsTable(returnsList, invoicesList) {
+      var tbody = document.getElementById('reports-returns-tbody');
+      var emptyEl = document.getElementById('reports-returns-empty');
+      var tableWrap = document.getElementById('reports-returns-table-wrap');
+      if (!tbody) return;
+      var invMap = {};
+      (invoicesList || []).forEach(function(i) { invMap[i.id] = i; });
+      var rows = (returnsList || []).map(function(r) {
+        var inv = invMap[r.invoiceId];
+        var customerName = (inv && inv.customerId) ? inv.customerId : '—';
+        var opType = r.refundToCash ? 'كاش' : 'دين';
+        var condition = (Number(r.totalDamagedAmount) || 0) > 0 ? 'تالف' : 'سليم';
+        var value = formatSYP(r.totalAmount);
+        return '<tr class="reports-return-row border-b border-white/10 hover:bg-white/10" data-return-id="' + (r.id || '').replace(/"/g, '&quot;') + '" data-customer="' + (customerName || '').replace(/"/g, '&quot;') + '" data-op="' + opType + '" data-condition="' + condition + '" data-value="' + value + '">' +
+          '<td class="p-3 text-white font-medium">' + (r.id || '—') + '</td>' +
+          '<td class="p-3 text-slate-300">' + customerName + '</td>' +
+          '<td class="p-3">' + opType + '</td>' +
+          '<td class="p-3 ' + (condition === 'تالف' ? 'text-rose-400' : 'text-emerald-400') + '">' + condition + '</td>' +
+          '<td class="p-3 text-rose-300">' + value + ' ل.س</td>' +
+          '<td class="p-3"><button type="button" onclick="openReturnDetail(\'' + (r.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">عرض</button></td></tr>';
+      }).join('');
+      tbody.innerHTML = rows;
+      if (emptyEl) emptyEl.classList.toggle('hidden', (returnsList || []).length > 0);
+      if (tableWrap) tableWrap.classList.toggle('hidden', (returnsList || []).length === 0);
+    }
+
+    function filterReportsReturnsTable(q) {
+      var rows = document.querySelectorAll('#reports-returns-tbody .reports-return-row');
+      var lower = (q || '').toLowerCase();
+      rows.forEach(function(tr) {
+        var id = (tr.getAttribute('data-return-id') || '').toLowerCase();
+        var customer = (tr.getAttribute('data-customer') || '').toLowerCase();
+        var op = (tr.getAttribute('data-op') || '').toLowerCase();
+        var condition = (tr.getAttribute('data-condition') || '').toLowerCase();
+        var value = (tr.getAttribute('data-value') || '').toLowerCase();
+        var show = !lower || id.indexOf(lower) !== -1 || customer.indexOf(lower) !== -1 || op.indexOf(lower) !== -1 || condition.indexOf(lower) !== -1 || value.indexOf(lower) !== -1;
+        tr.style.display = show ? '' : 'none';
+      });
+    }
+
+    function openReturnDetail(returnId) {
+      var list = window._salesReportsReturns || [];
+      var r = list.find(function(x) { return x.id === returnId; });
+      if (!r) return;
+      var inv = (window._salesReportsInvoices || []).find(function(i) { return i.id === r.invoiceId; });
+      var customerName = (inv && inv.customerId) || '—';
+      var opType = r.refundToCash ? 'كاش' : 'دين';
+      var condition = (Number(r.totalDamagedAmount) || 0) > 0 ? 'تالف' : 'سليم';
+      var lines = (r.items || []).map(function(l) { return (l.productId || '') + ' | ' + (l.returnQuantity || 0) + ' x ' + (l.unitPrice || 0) + ' = ' + formatSYP((l.returnQuantity || 0) * (l.unitPrice || 0)) + ' ل.س'; }).join('<br/>');
+      document.getElementById('invoice-detail-content').innerHTML =
+        '<p class="text-slate-500 text-sm mb-2">مرتجع: ' + (r.id || '') + ' | فاتورة: ' + (r.invoiceId || '') + ' | ' + (r.date ? r.date.slice(0, 16) : '') + '</p>' +
+        '<p>الزبون: ' + customerName + ' | نوع العملية: ' + opType + ' | حالة البضاعة: ' + condition + '</p>' +
+        '<p class="text-emerald-400 font-medium mt-2">القيمة: ' + formatSYP(r.totalAmount) + ' ل.س</p>' +
+        '<div class="mt-2 text-slate-300 text-sm">' + (lines || '—') + '</div>';
+      document.getElementById('invoice-detail-modal').querySelector('h3').textContent = 'تفاصيل المرتجع';
+      document.getElementById('invoice-detail-modal').classList.remove('hidden');
+    }
+
+    function exportReturnsExcel() {
+      var overlay = document.getElementById('export-generating-overlay');
+      if (overlay) overlay.classList.remove('hidden');
+      var fromDate = document.getElementById('reports-from')?.value || '';
+      var toDate = document.getElementById('reports-to')?.value || '';
+      var returnsList = window._salesReportsReturns || [];
+      var invoicesList = window._salesReportsInvoices || [];
+      var invMap = {};
+      invoicesList.forEach(function(i) { invMap[i.id] = i; });
+      var branding = getBranding();
+      var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var footerText = 'تم استخراج هذا التقرير بواسطة نظام Vault AI المحاسبي - 2026';
+      function done() { if (overlay) overlay.classList.add('hidden'); }
+      if (typeof ExcelJS === 'undefined') {
+        var rows = document.querySelectorAll('#reports-returns-tbody .reports-return-row');
+        var visible = Array.from(rows).filter(function(tr) { return tr.style.display !== 'none'; });
+        var headers = ['رقم المرتجع', 'اسم الزبون', 'نوع العملية', 'حالة البضاعة', 'القيمة (ل.س)'];
+        var csv = '\uFEFF' + headers.join(',') + '\n';
+        visible.forEach(function(tr) {
+          var id = (tr.getAttribute('data-return-id') || '').replace(/"/g, '""');
+          var customer = (tr.getAttribute('data-customer') || '').replace(/"/g, '""');
+          var op = (tr.getAttribute('data-op') || '');
+          var condition = (tr.getAttribute('data-condition') || '');
+          var value = (tr.getAttribute('data-value') || '');
+          csv += '"' + id + '","' + customer + '","' + op + '","' + condition + '","' + value + '"\n';
+        });
+        csv += '\n' + footerText + '\n';
+        var blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
+        var a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = 'كشف_المرتجعات_' + new Date().toISOString().slice(0, 10) + '.csv';
+        a.click();
+        URL.revokeObjectURL(a.href);
+        done();
+        return;
+      }
+      (async function() {
+        try {
+          var wb = new ExcelJS.Workbook();
+          var ws = wb.addWorksheet('المرتجعات', { views: [{ rightToLeft: true }] });
+          ws.mergeCells('A1:E1');
+          ws.getCell('A1').value = companyName;
+          ws.getCell('A1').font = { bold: true, size: 16 };
+          ws.getCell('A1').alignment = { horizontal: 'center' };
+          ws.mergeCells('A2:E2');
+          ws.getCell('A2').value = 'الفترة: ' + fromDate + ' إلى ' + toDate;
+          ws.getCell('A2').font = { size: 11 };
+          ws.getCell('A2').alignment = { horizontal: 'center' };
+          var headerRow = 3;
+          var colTitles = ['رقم المرتجع', 'اسم الزبون', 'نوع العملية', 'حالة البضاعة', 'القيمة (ل.س)'];
+          colTitles.forEach(function(t, i) {
+            var cell = ws.getCell(headerRow, i + 1);
+            cell.value = t;
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FF059669' } };
+            cell.font = { bold: true, color: { argb: 'FFFFFFFF' }, size: 11 };
+            cell.alignment = { horizontal: 'right' };
+          });
+          returnsList.forEach(function(r, idx) {
+            var inv = invMap[r.invoiceId];
+            var customerName = (inv && inv.customerId) ? inv.customerId : '—';
+            var opType = r.refundToCash ? 'كاش' : 'دين';
+            var condition = (Number(r.totalDamagedAmount) || 0) > 0 ? 'تالف' : 'سليم';
+            var row = headerRow + 1 + idx;
+            ws.getCell(row, 1).value = r.id || '—';
+            ws.getCell(row, 2).value = customerName;
+            ws.getCell(row, 3).value = opType;
+            ws.getCell(row, 4).value = condition;
+            ws.getCell(row, 5).value = formatSYP(r.totalAmount);
+          });
+          var dataEndRow = headerRow + returnsList.length;
+          var footerRow = dataEndRow + 2;
+          ws.mergeCells('A' + footerRow + ':E' + footerRow);
+          ws.getCell('A' + footerRow).value = footerText;
+          ws.getCell('A' + footerRow).font = { italic: true, size: 9 };
+          ws.getCell('A' + footerRow).alignment = { horizontal: 'center' };
+          ws.getColumn(1).width = 18;
+          ws.getColumn(2).width = 22;
+          ws.getColumn(3).width = 12;
+          ws.getColumn(4).width = 12;
+          ws.getColumn(5).width = 14;
+          var buf = await wb.xlsx.writeBuffer();
+          var blob = new Blob([buf], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+          var a = document.createElement('a');
+          a.href = URL.createObjectURL(blob);
+          a.download = 'كشف_المرتجعات_' + new Date().toISOString().slice(0, 10) + '.xlsx';
+          a.click();
+          URL.revokeObjectURL(a.href);
+        } catch (e) {
+          console.error(e);
+          showToast('تنبيه', e.message || 'فشل التصدير', 'error');
+        }
+        done();
+      })();
+    }
+
+    function printReturnsReport() {
+      var returnsList = window._salesReportsReturns || [];
+      var invoicesList = window._salesReportsInvoices || [];
+      var invMap = {};
+      invoicesList.forEach(function(i) { invMap[i.id] = i; });
+      var fromDate = document.getElementById('reports-from')?.value || '';
+      var toDate = document.getElementById('reports-to')?.value || '';
+      var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+      var reportTitle = 'تقرير المرتجعات التفصيلي';
+      var footerText = 'تم استخراج هذا التقرير بواسطة نظام Vault AI المحاسبي - 2026';
+      var t = getPrintHeaderTemplate(reportTitle, printDate, { showPageNumber: true });
+      var tableRows = returnsList.map(function(r) {
+        var inv = invMap[r.invoiceId];
+        var customerName = (inv && inv.customerId) ? inv.customerId : '—';
+        var opType = r.refundToCash ? 'كاش' : 'دين';
+        var condition = (Number(r.totalDamagedAmount) || 0) > 0 ? 'تالف' : 'سليم';
+        return '<tr><td class="print-td">' + (r.id || '—') + '</td><td class="print-td">' + customerName + '</td><td class="print-td">' + opType + '</td><td class="print-td">' + condition + '</td><td class="print-td">' + formatSYP(r.totalAmount) + ' ل.س</td></tr>';
+      }).join('');
+      var printFooter = '<footer class="print-footer">' + footerText + '</footer>';
+      var mainContent = '<div class="print-body">' +
+        '<p class="print-period">الفترة: ' + fromDate + ' إلى ' + toDate + '</p>' +
+        '<table class="print-table">' +
+        '<thead><tr><th class="print-th">رقم المرتجع</th><th class="print-th">اسم الزبون</th><th class="print-th">نوع العملية</th><th class="print-th">حالة البضاعة</th><th class="print-th">القيمة</th></tr></thead><tbody>' + tableRows + '</tbody></table></div>';
+      var win = window.open('', '_blank', 'width=800,height=600');
+      win.document.write('<html dir="rtl"><head><title>' + reportTitle + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body>' + t.headerHTML + printFooter + mainContent + '<script>window.onbeforeprint=function(){var n=document.querySelector(".page-number");if(n)n.textContent=document.body.querySelector(".print-table")?1:"";};</script></body></html>');
+      win.document.close();
+      win.focus();
+      setTimeout(function() { win.print(); win.close(); }, 300);
     }
 
     function openInvoiceDetail(invoiceId) {
@@ -3223,6 +3613,8 @@
       document.getElementById('invoice-detail-content').innerHTML =
         '<p class="text-slate-500 text-sm mb-2">' + (inv.id || '') + ' | ' + (inv.date ? inv.date.slice(0, 10) : '') + ' | ' + (inv.customerId || '—') + (inv.createdBy ? ' | أنشأها: ' + inv.createdBy : '') + '</p>' +
         '<table class="w-full text-sm"><thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">الصنف</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">سعر</th><th class="p-2">المجموع</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      var modalTitle = document.getElementById('invoice-detail-modal').querySelector('h3');
+      if (modalTitle) modalTitle.textContent = 'تفاصيل الفاتورة';
       document.getElementById('invoice-detail-modal').classList.remove('hidden');
     }
 
@@ -3241,18 +3633,14 @@
         var total = (l.quantity || 0) * (l.unitPrice || 0);
         return '<tr class="border-b border-slate-200"><td class="py-1 text-right">' + name + '</td><td class="py-1 text-center">' + (l.quantity || 0) + '</td><td class="py-1 text-left">' + total.toFixed(0) + '</td></tr>';
       }).join('');
-      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
-      var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
-      var logoBase64 = branding.logoBase64 || '';
-      var headerHtml = (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" style="height:40px;width:40px;object-fit:contain;border-radius:4px;vertical-align:middle;margin-left:8px"/>' : '') + '<span style="font-size:1.125rem;font-weight:700">' + companyName + '</span>';
-      var html = '<div dir="rtl" style="font-family: Cairo, sans-serif; color: #111;">' +
-        '<div style="margin-bottom:1rem">' + headerHtml + '</div>' +
-        '<h2 class="text-lg font-bold mb-2">فاتورة بيع ' + (inv.id || '') + '</h2>' +
+      var printDate = (inv.date ? inv.date.slice(0, 10) : '') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+      var t = getPrintHeaderTemplate('فاتورة بيع ' + (inv.id || ''), printDate, { showPageNumber: false });
+      var bodyHtml = '<div class="print-body" style="font-family:Cairo,sans-serif;color:#111;padding-top:16px">' +
         '<p>التاريخ: ' + (inv.date ? inv.date.slice(0, 10) : '') + ' | العميل: ' + (inv.customerId || '—') + '</p>' +
-        '<table class="w-full text-sm my-4"><thead><tr class="border-b-2 border-slate-300"><th class="py-2 text-right">الصنف</th><th class="py-2 text-center">الكمية</th><th class="py-2 text-left">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<table class="w-full text-sm my-4" style="width:100%;border-collapse:collapse"><thead><tr class="border-b-2 border-slate-300"><th class="py-2 text-right" style="border:1px solid #ddd;padding:6px">الصنف</th><th class="py-2 text-center" style="border:1px solid #ddd;padding:6px">الكمية</th><th class="py-2 text-left" style="border:1px solid #ddd;padding:6px">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<p class="text-right font-bold">الإجمالي: ' + (Number(inv.totalRevenue) || 0).toFixed(0) + ' ل.س</p></div>';
       var win = window.open('', '_blank');
-      win.document.write('<html dir="rtl"><head><title>فاتورة ' + (inv.id || '') + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Cairo,sans-serif;padding:16px;color:#111;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:6px;text-align:right;}</style></head><body>' + html + '</body></html>');
+      win.document.write('<html dir="rtl"><head><title>فاتورة ' + (inv.id || '') + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '<style>body{padding:16px;color:#111;} th,td{border:1px solid #ddd;padding:6px;text-align:right;}</style></head><body>' + t.headerHTML + bodyHtml + '</body></html>');
       win.document.close();
       win.focus();
       setTimeout(function() { win.print(); win.close(); }, 300);
