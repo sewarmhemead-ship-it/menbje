@@ -4,6 +4,8 @@
   "trailingSlash": false,
   "rewrites": [
     { "source": "/api/(.*)", "destination": "/api" },
+    { "source": "/favicon.ico", "destination": "/dashboard/favicon.svg" },
+    { "source": "/favicon.png", "destination": "/dashboard/favicon.svg" },
     { "source": "/(.*)", "destination": "/dashboard/index.html" }
   ]
 }
