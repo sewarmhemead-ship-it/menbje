@@ -32,9 +32,14 @@
     .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); transition: transform 0.2s ease-out, box-shadow 0.25s ease; }
     .glass-card:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); }
-    .um-table { width: 100%; border-collapse: collapse; }
+    .um-table { width: 100%; border-collapse: collapse; table-layout: auto; min-width: 100%; }
     .um-table th, .um-table td { padding: 10px 12px; text-align: right; }
     .um-table thead tr { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .um-table .um-col-username { min-width: 100px; }
+    .um-table .um-col-fullname { min-width: 100px; }
+    .um-table .um-col-role { min-width: 80px; }
+    .um-table .um-col-status { min-width: 70px; }
+    .um-table .um-col-actions { min-width: 160px; width: 40%; }
     .sidebar-item.active { background: rgba(16, 185, 129, 0.15); border-right: 3px solid #10b981; color: #34d399; }
     .top-nav { background: #0d1524; backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-bottom: none; box-shadow: 0 1px 0 0 rgba(16, 185, 129, 0.35), 0 0 20px rgba(16, 185, 129, 0.08); }
     .topnav-item { color: #94a3b8; border-bottom: 2px solid transparent; transition: color 0.2s, border-color 0.2s; }
@@ -2733,7 +2738,7 @@
     async function renderUserManagement(container) {
       var user = (window._appConfig && window._appConfig.user) || currentUser || {};
       var role = String(user.role || '').toUpperCase();
-      var isSuperAdmin = (role === 'SUPER_ADMIN');
+      var isSuperAdmin = !!(window._appConfig && window._appConfig.user && String(window._appConfig.user.role).toUpperCase() === 'SUPER_ADMIN');
       if (role === 'CASHIER') {
         container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية. إدارة المستخدمين متاحة للمسؤولين فقط.</p></div>';
         return;
@@ -2766,19 +2771,17 @@
         var indSelect = '<select class="vault-select erp-select w-full min-w-0 text-xs border border-white/10 rounded px-2 py-1 text-white bg-white/5" onchange="userMgmtSetIndustry(\'' + (u.id || '').replace(/'/g, "\\'") + '\', this.value)">' + indSelectHtml + '</select>';
         var delBtn = u.id === user.id ? '' : '<button type="button" onclick="userMgmtDelete(\'' + (u.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button>';
         var industryCells = isSuperAdmin ? '<td class="p-2"><span class="text-slate-500">' + indLabel(ind) + '</span></td><td class="p-2 um-col-industry" style="min-width:100px">' + indSelect + '</td>' : '';
-        return '<tr class="border-b border-white/10 text-right"><td class="p-2 text-white">' + (u.username || '') + '</td><td class="p-2 text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 text-slate-400">' + (u.role || '') + '</td>' + industryCells + '<td class="p-2 text-slate-500">' + (u.status || '') + '</td><td class="p-2">' +
+        return '<tr class="border-b border-white/10 text-right"><td class="p-2 um-col-username text-white">' + (u.username || '') + '</td><td class="p-2 um-col-fullname text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 um-col-role text-slate-400">' + (u.role || '') + '</td>' + industryCells + '<td class="p-2 um-col-status text-slate-500">' + (u.status || '') + '</td><td class="p-2 um-col-actions">' +
           '<button type="button" onclick="userMgmtChangePassword(\'' + (u.id || '').replace(/'/g, "\\'") + '\', \'' + (u.username || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">كلمة المرور</button> ' + delBtn + '</td></tr>';
       }).join('');
-      var theadRow = '<tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">اسم المستخدم</th><th class="p-2">الاسم الكامل</th><th class="p-2">الدور</th>' + (isSuperAdmin ? '<th class="p-2">النشاط</th><th class="p-2">تغيير النشاط</th>' : '') + '<th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr>';
-      var addUserIndustryBlock = isSuperAdmin ? '<div><label class="text-slate-400 text-xs">نوع النشاط</label><select id="um-industry" class="vault-select erp-select w-full mt-1">' + industryOpts + '</select></div>' : '';
+      var theadRow = '<tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2 um-col-username">اسم المستخدم</th><th class="p-2 um-col-fullname">الاسم الكامل</th><th class="p-2 um-col-role">الدور</th>' + (isSuperAdmin ? '<th class="p-2">النشاط</th><th class="p-2">تغيير النشاط</th>' : '') + '<th class="p-2 um-col-status">الحالة</th><th class="p-2 um-col-actions">إجراءات</th></tr>';
       container.innerHTML =
         '<div class="glass-card rounded-2xl p-6 mb-6"><h3 class="text-lg font-semibold text-white mb-4">إضافة مستخدم</h3>' +
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">' +
         '<div><label class="text-slate-400 text-xs">اسم المستخدم</label><input type="text" id="um-username" placeholder="username" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
         '<div><label class="text-slate-400 text-xs">كلمة المرور</label><input type="password" id="um-password" placeholder="••••••••" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
         '<div><label class="text-slate-400 text-xs">الاسم الكامل</label><input type="text" id="um-fullname" placeholder="الاسم الكامل" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
-        '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="vault-select erp-select w-full mt-1"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
-        addUserIndustryBlock +
+        '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="vault-select erp-select um-role-select w-full mt-1 max-w-full"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
         '</div><button type="button" onclick="userMgmtAdd()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">إضافة مستخدم</button>' +
         '<p id="um-add-msg" class="mt-2 text-sm hidden"></p></div>' +
         '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المستخدمون</h3>' +
