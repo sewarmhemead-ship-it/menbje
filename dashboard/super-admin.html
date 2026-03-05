@@ -20,8 +20,34 @@
   <style>
     .glass-gold { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(251, 191, 36, 0.2); }
     .gold-accent { color: #fbbf24; border-color: rgba(251, 191, 36, 0.4); }
-    .vault-select { background: rgba(30, 41, 59, 0.6); border: 1px solid rgba(16, 185, 129, 0.35); color: #f8fafc; border-radius: 0.5rem; padding: 0.35rem 0.5rem; font-size: 0.875rem; }
-    .vault-select:focus { outline: none; border-color: #10b981; }
+    .sa-table-wrap { overflow-x: auto; -webkit-overflow-scrolling: touch; }
+    .sa-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; min-width: 640px; }
+    .sa-table th,
+    .sa-table td { padding: 12px 15px; text-align: right; }
+    .sa-table thead th { border-bottom: 1px solid rgba(255,255,255,0.1); }
+    .sa-table tbody tr { background: rgba(255,255,255,0.03); }
+    .sa-table tbody tr:hover { background: rgba(255,255,255,0.06); }
+    .vault-select.industry-switch {
+      width: 140px;
+      min-width: 140px;
+      font-size: 0.8125rem;
+      background: rgba(30, 41, 59, 0.6);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      color: #f8fafc;
+      border-radius: 0.5rem;
+      padding: 0.4rem 0.5rem;
+    }
+    .vault-select.industry-switch:focus { outline: none; border-color: #10b981; }
+    .status-badge {
+      display: inline-block;
+      padding: 0.35rem 0.65rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+    .status-badge.text-emerald-400 { background: rgba(16, 185, 129, 0.2); color: #34d399; }
+    .status-badge.text-rose-400 { background: rgba(244, 63, 94, 0.2); color: #fb7185; }
+    .status-badge.text-slate-500 { background: rgba(100, 116, 139, 0.2); color: #94a3b8; }
   </style>
 </head>
 <body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen p-6">
@@ -30,15 +56,15 @@
       <h1 class="text-2xl font-bold gold-accent">Super Admin · إدارة المستأجرين (Tenant Manager)</h1>
       <a href="index.html" class="text-slate-400 hover:text-white text-sm">← العودة للوحة التحكم</a>
     </header>
-    <div class="glass-gold rounded-2xl p-6 mb-6 overflow-x-auto">
-      <table class="w-full text-sm">
+    <div class="glass-gold rounded-2xl p-6 mb-6 sa-table-wrap">
+      <table class="sa-table text-sm">
         <thead>
-          <tr class="text-slate-400 border-b border-white/10 text-right">
-            <th class="py-3 px-2">المستخدم / البريد</th>
-            <th class="py-3 px-2">نوع النشاط</th>
-            <th class="py-3 px-2">الحالة</th>
-            <th class="py-3 px-2">Master Switch (نوع النشاط)</th>
-            <th class="py-3 px-2">إجراء</th>
+          <tr class="text-slate-400">
+            <th>المستخدم / البريد</th>
+            <th>نوع النشاط</th>
+            <th>الحالة</th>
+            <th>Master Switch (نوع النشاط)</th>
+            <th>إجراء</th>
           </tr>
         </thead>
         <tbody id="users-tbody"></tbody>
@@ -118,13 +144,13 @@
             const ind = u.industryType || 'GENERAL';
             const status = u.status || 'active';
             const indLabel = INDUSTRY_OPTIONS.find(o => o.value === ind)?.label || ind;
-            return `<tr class="border-b border-white/5 hover:bg-white/5">
-              <td class="py-3 px-2 text-white">${name}<br><span class="text-slate-500 text-xs">${email}</span></td>
-              <td class="py-3 px-2 text-slate-300">${indLabel}</td>
-              <td class="py-3 px-2"><span class="status-badge ${status === 'active' ? 'text-emerald-400' : status === 'suspended' ? 'text-rose-400' : 'text-slate-500'}">${statusLabel(status)}</span></td>
-              <td class="py-3 px-2">${industrySelect(ind, u.id)}</td>
-              <td class="py-3 px-2">
-                <button type="button" class="btn-status px-3 py-1 rounded text-xs font-medium ${status === 'suspended' ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'}" data-id="${u.id}" data-current="${status}">${status === 'suspended' ? 'تفعيل' : 'إيقاف'}</button>
+            return `<tr>
+              <td class="text-white">${name}<br><span class="text-slate-500 text-xs">${email}</span></td>
+              <td class="text-slate-300">${indLabel}</td>
+              <td><span class="status-badge ${status === 'active' ? 'text-emerald-400' : status === 'suspended' ? 'text-rose-400' : 'text-slate-500'}">${statusLabel(status)}</span></td>
+              <td>${industrySelect(ind, u.id)}</td>
+              <td>
+                <button type="button" class="btn-status px-3 py-1.5 rounded-lg text-xs font-medium transition-colors ${status === 'suspended' ? 'bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30' : 'bg-rose-500/20 text-rose-400 hover:bg-rose-500/30'}" data-id="${u.id}" data-current="${status}">${status === 'suspended' ? 'تفعيل' : 'إيقاف'}</button>
               </td>
             </tr>`;
           }).join('');
