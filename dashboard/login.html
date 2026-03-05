@@ -91,9 +91,9 @@
         localStorage.setItem('vault_user', JSON.stringify(j.data.user));
         const role = (j.data.user && j.data.user.role) || '';
         if (role === 'SUPER_ADMIN') {
-          window.location.href = 'super-admin.html';
+          // window.location.href = 'super-admin.html';
         } else {
-          window.location.href = 'index.html';
+          // window.location.href = 'index.html';
         }
       } catch (e) {
         err.textContent = 'خطأ في الاتصال';

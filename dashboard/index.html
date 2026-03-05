@@ -913,7 +913,7 @@
     } catch (e) {}
     function redirectToLoginIfAllowed() {
       if (Date.now() < REDIRECT_BYPASS_UNTIL) return;
-      window.location.href = 'login.html';
+      // window.location.href = 'login.html';
     }
     function logout() {
       localStorage.removeItem('vault_token');

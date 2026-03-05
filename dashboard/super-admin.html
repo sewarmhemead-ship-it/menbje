@@ -89,7 +89,7 @@
         if (raw) user = JSON.parse(raw);
       } catch (e) {}
       if (!token || !user || (user.role || '').toUpperCase() !== 'SUPER_ADMIN') {
-        window.location.href = 'login.html';
+        // window.location.href = 'login.html';
         return false;
       }
       return true;
@@ -124,7 +124,7 @@
       errEl.classList.add('hidden');
       fetch(API + '/users', { headers: getAuthHeaders() })
         .then(r => {
-          if (r.status === 401) { window.location.href = 'login.html'; return null; }
+          if (r.status === 401) { /* window.location.href = 'login.html'; */ return null; }
           return r.json();
         })
         .then(j => {

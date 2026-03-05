@@ -30,7 +30,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 
 // Dashboard (static)
 app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
-app.get('/', (req, res) => res.redirect('/dashboard/'));
+// app.get('/', (req, res) => res.redirect('/dashboard/'));
 
 // WhatsApp webhook (Meta expects this path often)
 app.use('/webhook/whatsapp', whatsappRoutes);
