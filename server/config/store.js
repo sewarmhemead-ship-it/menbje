@@ -28,6 +28,10 @@ const visionCache = [];
 const purchaseInvoices = [];
 const purchaseReturns = [];
 
+// Sales: invoices and returns (for lookup and reports)
+const salesInvoices = [];           // { id, date, customerId, items: [{ productId, unitId, quantity, unitPrice }], totalRevenue, totalCogsSYP }
+const salesReturns = [];            // { id, invoiceId, date, items: [{ productId, unitId, returnQuantity, unitPrice }], totalAmount, refundToCash }
+
 // Manufacturing: BOMs and build orders
 const boms = [];                   // { id, finishedProductId, finishedUnitId, components: [{ productId, unitId, quantityPerUnit }] }
 
@@ -38,7 +42,7 @@ const expenseRecords = [];
 const companyProfile = { logoUrl: null, taxId: null, defaultCurrency: 'SYP', name: 'Vault AI' };
 
 // Auth: users and sessions (in-memory)
-const users = new Map();       // id -> { id, email, password, tier, status, expiresAt, createdAt }
+const users = new Map();       // id -> { id, username, email, password, fullName, role, tier, status, tenantId, expiresAt, createdAt }
 const sessions = new Map();    // token -> { userId, createdAt }
 
 export const store = {
@@ -63,6 +67,8 @@ export const store = {
   visionCache,
   purchaseInvoices,
   purchaseReturns,
+  salesInvoices,
+  salesReturns,
   boms,
   expenseRecords,
   companyProfile,

@@ -14,13 +14,16 @@ function makeToken() {
 }
 
 router.post('/login', (req, res) => {
-  const { email, password } = req.body || {};
-  if (!email || !password) {
-    return res.status(400).json({ success: false, error: 'البريد وكلمة المرور مطلوبان' });
+  const { email, username, password } = req.body || {};
+  const loginId = (email || username || '').toString().trim().toLowerCase();
+  if (!loginId || !password) {
+    return res.status(400).json({ success: false, error: 'معرف الدخول (بريد أو اسم مستخدم) وكلمة المرور مطلوبان' });
   }
-  const user = Array.from(store.users.values()).find(u => (u.email || '').toLowerCase() === (email || '').toLowerCase());
+  const user = Array.from(store.users.values()).find(u =>
+    (u.email || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId
+  );
   if (!user || user.password !== password) {
-    return res.status(401).json({ success: false, error: 'البريد أو كلمة المرور غير صحيحة' });
+    return res.status(401).json({ success: false, error: 'معرف الدخول أو كلمة المرور غير صحيحة' });
   }
   if (user.status === 'suspended') {
     return res.status(403).json({ success: false, error: 'تم إيقاف الحساب، يرجى مراجعة الإدارة', code: 'SUSPENDED' });
@@ -38,9 +41,13 @@ router.post('/login', (req, res) => {
       token,
       user: {
         id: user.id,
+        username: user.username || user.email,
         email: user.email,
+        fullName: user.fullName || user.email,
         tier: user.tier,
         status: user.status,
+        tenantId: user.tenantId || 'default',
+        role: user.role || 'ADMIN',
         expiresAt: user.expiresAt,
         daysRemaining: daysLeft,
       },
@@ -86,9 +93,13 @@ router.get('/me', requireAuth, (req, res) => {
     data: {
       user: {
         id: u.id,
+        username: u.username || u.email,
         email: u.email,
+        fullName: u.fullName || u.email,
         tier: u.tier,
         status: u.status,
+        tenantId: u.tenantId || 'default',
+        role: u.role || 'ADMIN',
         expiresAt: u.expiresAt,
         daysRemaining,
       },

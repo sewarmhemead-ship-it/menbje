@@ -28,6 +28,7 @@ export function seedDemoData() {
   const p3 = getNextId('products');
   products.set(p1, {
     id: p1,
+    tenantId: 'default',
     name: 'Tomato Paste Can',
     sku: 'TP-001',
     defaultUnitId: 'carton',
@@ -36,6 +37,7 @@ export function seedDemoData() {
   });
   products.set(p2, {
     id: p2,
+    tenantId: 'default',
     name: 'Olive Oil',
     sku: 'OO-002',
     defaultUnitId: 'carton',
@@ -44,6 +46,7 @@ export function seedDemoData() {
   });
   products.set(p3, {
     id: p3,
+    tenantId: 'default',
     name: 'Milk',
     sku: 'MLK-003',
     defaultUnitId: 'piece',
@@ -67,7 +70,8 @@ export function seedUsers() {
   if (users.size > 0) return;
   const now = new Date();
   const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
-  users.set('u-demo-basic', { id: 'u-demo-basic', email: 'basic@demo.local', password: 'demo', tier: 'basic', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
-  users.set('u-demo-pro', { id: 'u-demo-pro', email: 'pro@demo.local', password: 'demo', tier: 'pro', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
-  users.set('u-demo-enterprise', { id: 'u-demo-enterprise', email: 'enterprise@demo.local', password: 'demo', tier: 'enterprise', status: 'active', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-basic', { id: 'u-demo-basic', username: 'basic', email: 'basic@demo.local', password: 'demo', fullName: 'مدير أساسي', tier: 'basic', status: 'active', tenantId: 'default', role: 'ADMIN', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-pro', { id: 'u-demo-pro', username: 'pro', email: 'pro@demo.local', password: 'demo', fullName: 'مدير احترافي', tier: 'pro', status: 'active', tenantId: 'default', role: 'ADMIN', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-enterprise', { id: 'u-demo-enterprise', username: 'enterprise', email: 'enterprise@demo.local', password: 'demo', fullName: 'مدير مؤسسة', tier: 'enterprise', status: 'active', tenantId: 'default', role: 'ADMIN', expiresAt: exp, createdAt: now.toISOString() });
+  users.set('u-demo-cashier', { id: 'u-demo-cashier', username: 'cashier', email: 'cashier@demo.local', password: 'demo', fullName: 'كاشير تجريبي', tier: 'basic', status: 'active', tenantId: 'default', role: 'CASHIER', expiresAt: exp, createdAt: now.toISOString() });
 }

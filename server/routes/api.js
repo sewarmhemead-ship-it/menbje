@@ -18,24 +18,163 @@ import * as debtLedger from '../accounting/debtLedger.js';
 import * as vouchers from '../accounting/vouchers.js';
 import { postSaleJournal } from '../accounting/transactions.js';
 import { recordStockMovement } from '../inventory/stockMovement.js';
+import * as fifo from '../inventory/fifo.js';
 import * as procurement from '../modules/procurement/index.js';
 import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
+import * as settings from '../config/settings.js';
+import { optionalAuth, requireAuth } from '../auth/middleware.js';
 
 const router = Router();
-const { products, units, draftOrders, accounts, stockMovements } = store;
+router.use(optionalAuth);
+const { products, units, draftOrders, accounts, stockMovements, salesInvoices, salesReturns, users } = store;
 
-// —— Products & Units (for dashboard and WhatsApp resolver) ——
+function getTenantId(req) {
+  return (req.user && req.user.tenantId) || 'default';
+}
+
+function requireAdmin(req, res, next) {
+  if (!req.user || (req.user.role !== 'ADMIN' && req.user.role !== 'superadmin')) {
+    return res.status(403).json({ success: false, error: 'صلاحيات غير كافية', code: 'FORBIDDEN' });
+  }
+  next();
+}
+
+// —— Global settings (white-label config) ——
+router.get('/settings', (req, res) => {
+  try {
+    res.json({ success: true, data: settings.getSettings() });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/settings', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const updated = settings.updateSettings(req.body || {});
+    res.json({ success: true, data: updated });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— User Management (Admin only; tenant-scoped) ——
+function getUsersForTenant(tenantId) {
+  return Array.from(users.values()).filter((u) => (u.tenantId || 'default') === tenantId);
+}
+
+router.get('/users', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const list = getUsersForTenant(tenantId).map((u) => ({
+      id: u.id,
+      username: u.username || u.email,
+      email: u.email,
+      fullName: u.fullName || null,
+      role: u.role || 'ADMIN',
+      status: u.status,
+      createdAt: u.createdAt,
+    }));
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/users', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const { username, password, fullName, role } = req.body || {};
+    const tenantId = getTenantId(req);
+    if (!username || !password) {
+      return res.status(400).json({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' });
+    }
+    const un = String(username).trim().toLowerCase();
+    const exists = Array.from(users.values()).some(
+      (u) => ((u.username || '').toLowerCase() === un || (u.email || '').toLowerCase() === un) && (u.tenantId || 'default') === tenantId
+    );
+    if (exists) return res.status(400).json({ success: false, error: 'اسم المستخدم أو البريد مستخدم مسبقاً' });
+    const id = 'u_' + Date.now();
+    const user = {
+      id,
+      username: un,
+      email: un.includes('@') ? un : un + '@local',
+      password: String(password).trim(),
+      fullName: fullName ? String(fullName).trim() : null,
+      role: role === 'CASHIER' ? 'CASHIER' : 'ADMIN',
+      tier: 'basic',
+      status: 'active',
+      tenantId,
+      expiresAt: null,
+      createdAt: new Date().toISOString(),
+    };
+    users.set(id, user);
+    res.status(201).json({
+      success: true,
+      data: {
+        id: user.id,
+        username: user.username,
+        email: user.email,
+        fullName: user.fullName,
+        role: user.role,
+        status: user.status,
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.delete('/users/:id', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const targetId = req.params.id;
+    if (req.user.id === targetId) {
+      return res.status(400).json({ success: false, error: 'لا يمكنك حذف حسابك' });
+    }
+    const tenantId = getTenantId(req);
+    const u = users.get(targetId);
+    if (!u || (u.tenantId || 'default') !== tenantId) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+    users.delete(targetId);
+    res.json({ success: true, data: { message: 'تم حذف المستخدم' } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.patch('/users/:id/password', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const { newPassword } = req.body || {};
+    if (!newPassword || String(newPassword).trim().length < 1) {
+      return res.status(400).json({ success: false, error: 'كلمة المرور الجديدة مطلوبة' });
+    }
+    const tenantId = getTenantId(req);
+    const u = users.get(req.params.id);
+    if (!u || (u.tenantId || 'default') !== tenantId) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+    u.password = String(newPassword).trim();
+    res.json({ success: true, data: { message: 'تم تغيير كلمة المرور' } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Products & Units (tenant-filtered) ——
 router.get('/products', (req, res) => {
-  res.json({ success: true, data: Array.from(products.values()) });
+  const tenantId = getTenantId(req);
+  const list = Array.from(products.values()).filter((p) => (p.tenantId || 'default') === tenantId);
+  res.json({ success: true, data: list });
 });
 
 router.post('/products', (req, res) => {
   const { name, sku, barcode, defaultUnitId, costPerDefaultUnit, salesPricePerUnit } = req.body;
   const id = getNextId('products');
+  const tenantId = getTenantId(req);
   const p = {
     id,
+    tenantId,
     name,
     sku: sku || id,
     barcode: barcode || null,
@@ -49,8 +188,9 @@ router.post('/products', (req, res) => {
 });
 
 router.patch('/products/:id', (req, res) => {
+  const tenantId = getTenantId(req);
   const p = products.get(req.params.id);
-  if (!p) return res.status(404).json({ success: false, error: 'Product not found' });
+  if (!p || (p.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'Product not found' });
   const { costPerDefaultUnit, salesPricePerUnit, barcode, name } = req.body;
   if (costPerDefaultUnit !== undefined) {
     const oldVal = p.costPerDefaultUnit;
@@ -342,7 +482,7 @@ router.post('/vouchers/transfer', (req, res) => {
 });
 
 // —— Sales Invoice (Logic Bridge): validate all → deduct stock → ONE journal entry → multiple stock movements ——
-router.post('/sales/invoice', (req, res) => {
+router.post('/sales/invoice', requireAuth, (req, res) => {
   try {
     const { items = [], customerId } = req.body;
     if (!Array.isArray(items) || items.length === 0) {
@@ -407,6 +547,25 @@ router.post('/sales/invoice', (req, res) => {
       amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? totalRevenue * rates.SYP : null,
     });
 
+    const tenantId = getTenantId(req);
+    const createdBy = req.user ? (req.user.fullName || req.user.username || req.user.email || req.user.id) : 'user';
+    const invoiceDoc = {
+      id: invoiceId,
+      tenantId,
+      createdBy,
+      date: new Date().toISOString(),
+      customerId: customerId || null,
+      items: items.map((l) => ({
+        productId: l.productId,
+        unitId: l.unitId || 'piece',
+        quantity: l.quantity,
+        unitPrice: l.unitPrice,
+      })),
+      totalRevenue,
+      totalCogsSYP,
+    };
+    salesInvoices.push(invoiceDoc);
+
     res.status(201).json({
       success: true,
       data: {
@@ -417,6 +576,141 @@ router.post('/sales/invoice', (req, res) => {
         customerId: customerId || null,
       },
     });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/sales/invoices', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    let list = [...salesInvoices].filter((inv) => (inv.tenantId || 'default') === tenantId);
+    const { fromDate, toDate, customerId } = req.query;
+    if (fromDate) list = list.filter((inv) => inv.date >= fromDate);
+    if (toDate) list = list.filter((inv) => inv.date <= toDate);
+    if (customerId) list = list.filter((inv) => inv.customerId === customerId);
+    list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/sales/invoices/:id', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const inv = salesInvoices.find((i) => i.id === req.params.id && (i.tenantId || 'default') === tenantId);
+    if (!inv) return res.status(404).json({ success: false, error: 'Invoice not found' });
+    res.json({ success: true, data: inv });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/sales/return', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { invoiceId, items = [], refundToCash = true } = req.body;
+    if (!invoiceId || !Array.isArray(items) || items.length === 0) {
+      return res.status(400).json({ success: false, error: 'invoiceId and items array required' });
+    }
+    const inv = salesInvoices.find((i) => i.id === invoiceId && (i.tenantId || 'default') === tenantId);
+    if (!inv) return res.status(404).json({ success: false, error: 'Invoice not found' });
+
+    const returnId = 'sret-' + Date.now();
+    let totalAmount = 0;
+    const movements = [];
+
+    for (const line of items) {
+      const { productId, unitId, returnQuantity, unitPrice } = line;
+      const u = unitId || 'piece';
+      const returnQty = Number(returnQuantity) || 0;
+      if (!productId || returnQty <= 0) continue;
+
+      const origLine = inv.items.find((i) => i.productId === productId && (i.unitId || 'piece') === u);
+      if (!origLine) {
+        return res.status(400).json({ success: false, error: 'Line not found on invoice', productId, unitId: u });
+      }
+      const maxReturn = Number(origLine.quantity) || 0;
+      if (returnQty > maxReturn) {
+        return res.status(400).json({
+          success: false,
+          error: 'Return quantity exceeds original',
+          productId,
+          unitId: u,
+          returnQuantity: returnQty,
+          originalQuantity: maxReturn,
+        });
+      }
+
+      const price = Number(unitPrice) != null ? Number(unitPrice) : Number(origLine.unitPrice) || 0;
+      totalAmount += returnQty * price;
+
+      const rule = fractioning.getFractioningRule(productId, u);
+      if (rule) {
+        const bulkQty = Math.ceil(returnQty / rule.factor);
+        fractioning.addBulkInventory(productId, rule.bulkUnitId, bulkQty);
+        fifo.receiveLot(productId, rule.bulkUnitId, bulkQty, 0);
+      } else {
+        fractioning.addBulkInventory(productId, u, returnQty);
+        fifo.receiveLot(productId, u, returnQty, 0);
+      }
+      const mov = recordStockMovement(productId, u, returnQty, 'in', 'sales_return', returnId);
+      movements.push(mov);
+    }
+
+    if (totalAmount <= 0) {
+      return res.status(400).json({ success: false, error: 'No valid return items' });
+    }
+
+    const SALES_RETURNS = '4010';
+    const CASH_SYP = '1010';
+    const DEBTORS = '1200';
+    const creditAccountId = refundToCash ? CASH_SYP : DEBTORS;
+    if (!accounts.has(SALES_RETURNS) || !accounts.has(creditAccountId)) {
+      return res.status(500).json({ success: false, error: 'Account not found' });
+    }
+    const rates = multiCurrency.getRates();
+    const r = journal.postDoubleEntry(SALES_RETURNS, creditAccountId, totalAmount, {
+      refType: 'sales_return',
+      refId: returnId,
+      memo: 'مرتجع بيع ' + invoiceId,
+      amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? totalAmount * rates.SYP : null,
+    });
+    if (!r.success) return res.status(400).json(r);
+
+    const doc = {
+      id: returnId,
+      tenantId,
+      invoiceId,
+      date: new Date().toISOString(),
+      items: items.filter((l) => (Number(l.returnQuantity) || 0) > 0),
+      totalAmount,
+      refundToCash,
+      entryIds: [r.entry.id],
+      movements: movements.map((m) => m.id),
+    };
+    salesReturns.push(doc);
+
+    res.status(201).json({
+      success: true,
+      data: { returnId, totalAmount, movements, entry: r.entry },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/sales/returns', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    let list = [...salesReturns].filter((r) => (r.tenantId || 'default') === tenantId);
+    const { fromDate, toDate, invoiceId } = req.query;
+    if (fromDate) list = list.filter((r) => r.date >= fromDate);
+    if (toDate) list = list.filter((r) => r.date <= toDate);
+    if (invoiceId) list = list.filter((r) => r.invoiceId === invoiceId);
+    list.sort((a, b) => (b.date || '').localeCompare(a.date || ''));
+    res.json({ success: true, data: list });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

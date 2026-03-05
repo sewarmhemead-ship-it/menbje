@@ -25,6 +25,10 @@
     };
   </script>
   <style>
+    :root {
+      --primary-color: #10b981;
+      --secondary-color: #34d399;
+    }
     .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); transition: transform 0.2s ease-out, box-shadow 0.25s ease; }
     .glass-card:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); }
@@ -111,8 +115,8 @@
     #sales-invoice-root select:focus,
     #module-content select:focus {
       outline: none;
-      border-color: rgba(16, 185, 129, 0.6);
-      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+      border-color: color-mix(in srgb, var(--primary-color) 60%, transparent);
+      box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary-color) 20%, transparent);
     }
     select.erp-select option,
     #sales-invoice-root select option,
@@ -126,7 +130,7 @@
     }
     .btn-3d:hover {
       transform: scale(1.02);
-      box-shadow: 0 6px 20px -4px rgba(0,0,0,0.35), 0 0 0 1px rgba(16, 185, 129, 0.15);
+      box-shadow: 0 6px 20px -4px rgba(0,0,0,0.35), 0 0 0 1px color-mix(in srgb, var(--primary-color) 15%, transparent);
     }
     .btn-3d:active {
       transform: scale(0.98);
@@ -205,8 +209,10 @@
         <div class="menu-item-wrap relative group">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">ملف</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[180px] glass rounded-lg shadow-xl py-1 border border-white/10">
-            <button type="button" onclick="openModule('dashboard','لوحة التحكم')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">لوحة التحكم</button>
-            <button type="button" onclick="openModule('company-settings','إعدادات الشركة')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">إعدادات الشركة</button>
+            <button type="button" data-rbac="admin" onclick="openModule('dashboard','لوحة التحكم')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">لوحة التحكم</button>
+            <button type="button" data-rbac="admin" onclick="openModule('company-settings','إعدادات الشركة')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">إعدادات الشركة</button>
+            <button type="button" data-rbac="admin" onclick="openModule('system-settings','إعدادات النظام')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">إعدادات النظام</button>
+            <button type="button" data-rbac="admin" onclick="openModule('user-management','إدارة المستخدمين')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">إدارة المستخدمين</button>
             <button type="button" onclick="logout()" class="w-full text-right px-4 py-2 text-sm text-rose-400 hover:bg-white/5">خروج</button>
           </div>
         </div>
@@ -221,23 +227,23 @@
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('sales-invoice','فاتورة بيع')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">فاتورة بيع</button>
             <button type="button" onclick="openModule('sales-return','مرتجع بيع')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">مرتجع بيع</button>
-            <button type="button" onclick="openModule('trial-balance','تقارير المبيعات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">تقارير المبيعات</button>
+            <button type="button" data-rbac="admin" onclick="openModule('sales-reports','تقارير المبيعات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">تقارير المبيعات</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">المشتريات</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('purchase-invoice','فاتورة مشتريات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">فاتورة مشتريات</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">التصنيع</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('manufacturing-bom','وصفات BOM')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">وصفات (BOM)</button>
             <button type="button" onclick="openModule('manufacturing-build','أمر تصنيع')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">أمر تصنيع</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">المستودع</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('item-card','بطاقة مادة')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">بطاقة مادة</button>
@@ -245,7 +251,7 @@
             <button type="button" onclick="showSection('inventory')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">جرد وتقارير</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">السندات</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('voucher-receipt','سند قبض')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">سند قبض</button>
@@ -254,7 +260,7 @@
             <button type="button" onclick="openModule('voucher-transfer','سند تحويل عملات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">سند تحويل عملات</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">المحاسبة</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[220px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('chart-of-accounts','شجرة الحسابات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">شجرة الحسابات</button>
@@ -266,7 +272,7 @@
             <button type="button" onclick="showSection('accounting')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">تقارير محاسبية</button>
           </div>
         </div>
-        <div class="menu-item-wrap relative group">
+        <div class="menu-item-wrap relative group" data-rbac="admin">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">ملحق</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[180px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('currency-manager','العملات والذهب')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">العملات والذهب</button>
@@ -326,7 +332,7 @@
           <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0">
             <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
-          <span class="text-lg font-semibold text-white whitespace-nowrap">Vault AI</span>
+          <span class="app-name-placeholder text-lg font-semibold text-white whitespace-nowrap">Vault AI</span>
         </div>
       </div>
     </div>
@@ -364,7 +370,7 @@
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
             <div id="dashboard-tb" class="text-white text-sm">جاري التحميل…</div>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-4 flex flex-col items-center">
+          <div class="glass-card bento-tilt rounded-2xl p-4 flex flex-col items-center" data-rbac="admin">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ربح القوة الشرائية</h3>
             <div class="flex items-baseline gap-2"><span id="dashboard-pl" class="text-2xl font-semibold text-emerald-400">—</span><span class="text-slate-500 text-sm">ل.س</span></div>
             <div class="w-full mt-3 progress-track"><div id="dashboard-pl-bar" class="progress-fill" style="width: 0%"></div></div>
@@ -420,7 +426,7 @@
             <button type="button" onclick="toggleDetail('tb-detail')" class="mt-3 text-xs text-emerald-400 hover:underline transition-opacity hover:opacity-80">عرض التفاصيل</button>
             <div id="tb-detail" class="detail-panel mt-2"><pre id="tb-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden font-mono"></pre></div>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-5 flex flex-col items-center justify-center">
+          <div class="glass-card bento-tilt rounded-2xl p-5 flex flex-col items-center justify-center" data-rbac="admin">
             <h3 class="text-sm font-medium text-slate-400 mb-3">ربح القوة الشرائية (الأرباح والخسائر)</h3>
             <p class="text-xs text-slate-500 mb-1">أخضر = ربح · أحمر = خسارة تضخم</p>
             <div class="relative w-36 h-36">
@@ -645,6 +651,30 @@
     let rateHistory = [];
     let currentUser = null;
     let tierFeatures = ['accounting', 'inventory', 'dashboard', 'settings'];
+    window._appConfig = { settings: { branding: {}, localization: {}, features: {} }, user: {} };
+
+    async function loadAppConfig() {
+      try {
+        var settingsRes = await fetch(API + '/settings', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }).catch(function() { return { success: false }; });
+        if (settingsRes.success && settingsRes.data) window._appConfig.settings = settingsRes.data;
+        window._appConfig.user = currentUser || {};
+        applyTheme();
+        applyRBAC();
+      } catch (e) {}
+    }
+    function applyTheme() {
+      var b = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var primary = b.primaryColor || '#10b981';
+      var secondary = b.secondaryColor || '#34d399';
+      document.documentElement.style.setProperty('--primary-color', primary);
+      document.documentElement.style.setProperty('--secondary-color', secondary);
+    }
+    function applyRBAC() {
+      var role = (window._appConfig.user && window._appConfig.user.role) || 'ADMIN';
+      document.querySelectorAll('[data-rbac="admin"]').forEach(function(el) { el.style.display = role === 'CASHIER' ? 'none' : ''; });
+      var name = (window._appConfig.settings.branding && window._appConfig.settings.branding.companyName) || 'Vault AI';
+      document.querySelectorAll('.app-name-placeholder').forEach(function(el) { el.textContent = name; });
+    }
 
     function getAuthHeaders() {
       const t = localStorage.getItem('vault_token');
@@ -761,17 +791,21 @@
         if (moduleId === 'stock-movements') { await renderStockMovements(mc); return; }
         if (moduleId === 'currency-manager') { await renderCurrencyManager(mc); return; }
         if (moduleId === 'sales-invoice') { await renderSalesInvoice(mc); return; }
-        if (moduleId === 'sales-return') { renderSalesPlaceholder(mc, moduleId); return; }
+        if (moduleId === 'sales-return') { await renderSalesReturn(mc); return; }
+        if (moduleId === 'sales-reports') { await renderSalesReports(mc); return; }
         if (moduleId === 'purchase-invoice') { await renderPurchaseInvoice(mc); return; }
         if (moduleId === 'manufacturing-bom') { await renderManufacturingBOM(mc); return; }
         if (moduleId === 'manufacturing-build') { await renderManufacturingBuild(mc); return; }
         if (moduleId === 'expenses') { await renderExpenses(mc); return; }
         if (moduleId === 'reports') { await renderReportsHub(mc); return; }
         if (moduleId === 'company-settings') { await renderCompanySettings(mc); return; }
+        if (moduleId === 'system-settings') { await renderSystemSettings(mc); return; }
+        if (moduleId === 'user-management') { await renderUserManagement(mc); return; }
         mc.innerHTML = '<p class="text-slate-500 p-4">الشاشة قيد الإعداد.</p>';
       } catch (e) {
         mc.innerHTML = '<p class="text-rose-400 p-4">' + (e.message || 'خطأ') + '</p>';
       }
+      if (typeof applyRBAC === 'function') applyRBAC();
     }
 
     function renderTabStrip() {
@@ -1626,24 +1660,34 @@
       var payLabel = paymentType && paymentType.value === 'credit' ? 'آجل' : 'نقدي';
       var invDate = document.getElementById('inv-date')?.value || '—';
       var notes = document.getElementById('inv-notes')?.value || '';
-      var subtotal = 0, totalDisc = 0;
+      var subtotal = 0, totalLineDisc = 0;
       lines.forEach(function(l) {
         subtotal += (l.quantity || 0) * (l.unitPrice || 0);
-        totalDisc += l.lineDiscount || 0;
+        totalLineDisc += l.lineDiscount || 0;
       });
+      var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
       var tax = Number(document.getElementById('inv-tax')?.value) || 0;
-      var grand = subtotal - totalDisc + tax;
+      var grand = subtotal - totalLineDisc - globalDisc + tax;
       var rows = lines.map(function(l) {
         var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
         return '<tr class="border-b border-slate-200"><td class="py-1 text-right">' + (l.productName || l.productId) + '</td><td class="py-1 text-center">' + (l.quantity || 0) + '</td><td class="py-1 text-left">' + lineTotal.toFixed(0) + '</td></tr>';
       }).join('');
+      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var logoBase64 = branding.logoBase64 || '';
+      var loc = (window._appConfig.settings && window._appConfig.settings.localization) || {};
+      var isTaxEnabled = loc.isTaxEnabled !== false;
+      var headerHtml = (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded inline-block align-middle mr-2"/>' : '') + '<span class="text-lg font-bold">' + companyName + '</span>';
+      var taxLine = isTaxEnabled ? ('<p class="text-right"><strong>الضريبة:</strong> ' + tax.toFixed(0) + ' ل.س</p>') : '';
       var html = '<div class="print-area p-4 a4" dir="rtl" style="font-family: Cairo, sans-serif; color: #111;">' +
+        '<div class="mb-4">' + headerHtml + '</div>' +
         '<h2 class="text-lg font-bold mb-2">فاتورة بيع</h2>' +
         '<p><strong>العميل:</strong> ' + customer + ' &nbsp; | &nbsp; <strong>التاريخ:</strong> ' + invDate + ' &nbsp; | &nbsp; <strong>نوع الدفع:</strong> ' + payLabel + '</p>' +
         '<table class="w-full text-sm my-4"><thead><tr class="border-b-2 border-slate-300"><th class="py-2 text-right">الصنف</th><th class="py-2 text-center">الكمية</th><th class="py-2 text-left">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
         '<p class="text-right"><strong>المجموع الفرعي:</strong> ' + subtotal.toFixed(0) + ' ل.س</p>' +
-        '<p class="text-right"><strong>الخصم:</strong> ' + totalDisc.toFixed(0) + ' ل.س</p>' +
-        '<p class="text-right"><strong>الضريبة:</strong> ' + tax.toFixed(0) + ' ل.س</p>' +
+        '<p class="text-right"><strong>خصم الأسطر:</strong> ' + totalLineDisc.toFixed(0) + ' ل.س</p>' +
+        '<p class="text-right"><strong>خصم عام:</strong> ' + globalDisc.toFixed(0) + ' ل.س</p>' +
+        taxLine +
         '<p class="text-right text-lg font-bold mt-2">الإجمالي: ' + grand.toFixed(0) + ' ل.س</p>' +
         (notes ? '<p class="mt-4 text-sm text-slate-600">ملاحظات: ' + notes + '</p>' : '') +
         '</div>';
@@ -1706,11 +1750,26 @@
         var name = (p.name || id || '').toString().trim();
         var barcode = (p.barcode != null && p.barcode !== '') ? (p.barcode).toString().trim() : '';
         var defaultUnit = (p.defaultUnitId != null && p.defaultUnitId !== '') ? p.defaultUnitId : defaultUnitId;
-        byId[id] = { id: id, name: name, barcode: barcode, defaultUnitId: defaultUnit };
+        var cost = (p.costPerDefaultUnit != null && p.costPerDefaultUnit !== '') ? Number(p.costPerDefaultUnit) : 0;
+        byId[id] = { id: id, name: name, barcode: barcode, defaultUnitId: defaultUnit, costPerDefaultUnit: cost };
         if (barcode) byBarcode[barcode] = id;
         if (name && !byName[name]) byName[name] = id;
       });
       return { byId: byId, byBarcode: byBarcode, byName: byName };
+    }
+    function getUnitFactor(productId, unitId) {
+      var rules = window._salesFractioningRules || [];
+      var r = rules.find(function(x) { return x.productId === productId; });
+      if (!r) return 1;
+      if ((r.subUnitId || '') === (unitId || '')) return 1;
+      if ((r.bulkUnitId || '') === (unitId || '')) return Number(r.factor) || 1;
+      return 1;
+    }
+    function convertUnitPrice(productId, oldUnitId, newUnitId, oldPrice) {
+      var fOld = getUnitFactor(productId, oldUnitId);
+      var fNew = getUnitFactor(productId, newUnitId);
+      if (fOld === 0) return oldPrice;
+      return (Number(oldPrice) || 0) * (fNew / fOld);
     }
     function resolveProductIdFromInput(value) {
       var map = window._salesProductMap;
@@ -1722,10 +1781,11 @@
       return null;
     }
     async function renderSalesInvoice(container) {
-      const [productsR, unitsR, accountsR] = await Promise.all([fetchJson('/products'), fetchJson('/units'), fetchJson('/accounts')]);
+      const [productsR, unitsR, accountsR, rulesR] = await Promise.all([fetchJson('/products'), fetchJson('/units'), fetchJson('/accounts'), fetchJson('/fractioning/rules').catch(function() { return { data: [] }; })]);
       const products = productsR.data || [];
       const units = unitsR.data || [];
       const accounts = accountsR.data || [];
+      window._salesFractioningRules = rulesR.data || [];
       var defaultUnitId = (units && units.length) ? units[0].id : 'piece';
       window._salesProductMap = buildProductMap(products, units);
       const productOpts = products.map(function(p) {
@@ -1741,9 +1801,15 @@
       window._invoiceLines = [];
       window._salesProducts = products;
       window._salesUnits = units;
+      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var companyName = branding.companyName || 'Vault AI';
+      var logoBase64 = branding.logoBase64 || '';
       container.innerHTML =
         '<div id="sales-invoice-root" class="grid grid-cols-1 lg:grid-cols-[1fr_280px] gap-6 font-sans" dir="rtl">' +
         '<div class="space-y-4">' +
+        '<div id="inv-dynamic-header" class="glass-card rounded-2xl p-3 shadow-lg flex items-center gap-3">' +
+        (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded"/>' : '') +
+        '<span class="text-white font-semibold">' + (companyName.replace(/</g, '&lt;')) + '</span></div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg">' +
         '<div class="flex flex-wrap items-center justify-between gap-2 mb-3"><h3 class="text-sm font-medium text-slate-400">الرأسية</h3><span id="inv-status-badge" class="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium badge-pending">قيد الانتظار</span></div>' +
         '<div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"><div class="relative"><label class="text-slate-500 text-xs">العميل</label><div class="flex gap-1 mt-1"><input type="text" id="inv-customer" list="inv-customer-list" placeholder="معرف أو اسم العميل" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><button type="button" onclick="quickAddCustomer()" class="btn-3d px-3 py-2 rounded-lg bg-white/10 text-slate-300 text-sm shrink-0">إضافة سريعة</button></div><div id="inv-customer-insight" class="insight-card hidden"><p class="text-xs text-slate-500 mb-1">رصيد العميل</p><p id="inv-insight-balance" class="text-emerald-400 font-medium">—</p><p class="text-xs text-slate-500 mt-2">آخر عملية</p><p id="inv-insight-last" class="text-slate-300 text-sm">—</p></div></div>' +
@@ -1752,23 +1818,27 @@
         '<datalist id="inv-customer-list">' + (accounts.length ? accounts.map(function(a){ return '<option value="' + (a.name||a.id) + '">'; }).join('') : '') + '</datalist>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg"><h3 class="text-sm font-medium text-slate-400 mb-3">مسح الباركود</h3><input type="text" id="inv-barcode-scan" placeholder="امسح الباركود أو اكتبه ثم Enter" class="w-full bg-white/5 border border-emerald-500/30 rounded-lg px-3 py-2.5 text-white text-sm placeholder-slate-500 focus:border-emerald-500/60 focus:ring-2 focus:ring-emerald-500/20" autocomplete="off"/>' +
         '<h3 class="text-sm font-medium text-slate-400 mt-4 mb-3">الأصناف</h3>' +
+        '<label id="inv-margin-wrap" class="flex items-center gap-2 mb-2 cursor-pointer text-slate-500 text-xs" data-rbac="admin"><input type="checkbox" id="inv-margin-toggle" class="rounded bg-white/5 border-white/20 text-emerald-500"/> إظهار هامش الربح / تحذير تحت التكلفة</label>' +
         '<div class="flex flex-wrap gap-2 mb-3"><select id="inv-product" class="erp-select min-w-[180px]">' + productOpts + '</select>' +
         '<select id="inv-unit" class="erp-select w-24">' + unitOpts + '</select>' +
-        '<span id="inv-stock" class="self-center text-slate-500 text-xs px-2">متوفر: —</span>' +
+        '<span id="inv-stock" class="self-center text-slate-500 text-xs px-2">متوفر: — · <span id="inv-warehouse" class="text-slate-500">المخزن الرئيسي</span></span>' +
         '<input type="number" id="inv-price" placeholder="سعر الوحدة" min="0" step="0.01" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-28"/>' +
         '<input type="number" id="inv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-20"/>' +
         '<input type="number" id="inv-line-disc" placeholder="خصم سطر" min="0" value="0" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-20"/>' +
         '<button type="button" onclick="addInvoiceLine()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">+ سطر</button></div>' +
         '<div id="invoice-lines" class="overflow-x-auto"></div></div>' +
         '<div class="glass-card rounded-2xl p-4"><label class="text-slate-500 text-xs">ملاحظات</label><textarea id="inv-notes" rows="2" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="ملاحظات الفاتورة..."></textarea></div>' +
-        '<div class="flex gap-2"><button type="button" onclick="submitSalesInvoice()" class="btn-3d flex-1 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ الفاتورة</button><button type="button" onclick="openPrintPreview()" class="btn-3d px-4 py-3 rounded-xl bg-white/10 text-slate-300 font-medium">معاينة الطباعة</button></div>' +
+        '<div class="flex flex-wrap gap-2 items-center"><button type="button" onclick="holdSalesInvoice()" class="btn-3d px-4 py-3 rounded-xl bg-amber-500/20 text-amber-300 font-medium">تعليق</button><button type="button" onclick="submitSalesInvoice()" class="btn-3d flex-1 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ الفاتورة</button><button type="button" onclick="openPrintPreview()" class="btn-3d px-4 py-3 rounded-xl bg-white/10 text-slate-300 font-medium">معاينة الطباعة</button></div>' +
+        '<div id="inv-resumable-wrap" class="glass-card rounded-2xl p-4 hidden"><h3 class="text-sm font-medium text-slate-400 mb-2">فواتير معلقة</h3><ul id="inv-resumable-list" class="text-sm text-slate-300 space-y-1"></ul></div>' +
         '<p id="invoice-message" class="text-sm hidden"></p></div>' +
         '<div class="lg:sticky lg:top-24"><div class="glass-card rounded-2xl p-5 border border-white/10 shadow-lg"><h3 class="text-sm font-medium text-slate-400 mb-3">ملخص مالي</h3>' +
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>المجموع الفرعي</span><span id="inv-subtotal">0</span> ل.س</p>' +
-        '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>إجمالي الخصم</span><span id="inv-total-disc">0</span> ل.س</p>' +
-        '<p class="flex justify-between text-slate-300 text-sm mb-2"><span>الضريبة (اختياري)</span><input type="number" id="inv-tax" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
+        '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم الأسطر</span><span id="inv-total-disc">0</span> ل.س</p>' +
+        '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم عام</span><input type="number" id="inv-global-disc" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
+        '<p id="inv-tax-row" class="flex justify-between text-slate-300 text-sm mb-2"><span>الضريبة (اختياري)</span><input type="number" id="inv-tax" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
         '<p class="flex justify-between items-center mt-3 pt-3 border-t border-white/10"><span class="text-white font-medium">الإجمالي</span><span id="inv-grand-total" class="text-2xl font-bold text-emerald-400">0</span> ل.س</p></div></div></div>' +
-        '<div id="print-preview-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePrintPreview()"><div class="glass-card rounded-2xl p-4 max-w-2xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()"><div id="print-preview-content" class="print-preview-paper a4 p-6 bg-white text-slate-800 rounded"></div><div class="flex gap-2 mt-4"><button type="button" onclick="doPrintInvoice()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">طباعة</button><button type="button" onclick="closePrintPreview()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div></div>';
+        '<div id="print-preview-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePrintPreview()"><div class="glass-card rounded-2xl p-4 max-w-2xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()"><div id="print-preview-content" class="print-preview-paper a4 p-6 bg-white text-slate-800 rounded"></div><div class="flex gap-2 mt-4"><button type="button" onclick="doPrintInvoice()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">طباعة</button><button type="button" onclick="closePrintPreview()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div></div>' +
+        '<div id="split-payment-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closeSplitPaymentModal()"><div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()"><h3 class="text-white font-medium mb-3">تقسيم الدفع</h3><p class="text-slate-500 text-sm mb-3">الإجمالي: <span id="split-grand-total">0</span> ل.س</p><div class="space-y-2 mb-4"><label class="block text-slate-400 text-xs">نقداً</label><input type="number" id="split-cash" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label class="block text-slate-400 text-xs">تحويل بنكي</label><input type="number" id="split-bank" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label class="block text-slate-400 text-xs">متبقي على الذمة</label><input type="number" id="split-debt" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div><p id="split-sum-msg" class="text-slate-500 text-xs mb-3"></p><div class="flex gap-2"><button type="button" onclick="confirmSplitAndSubmit()" class="btn-3d flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">تأكيد وحفظ</button><button type="button" onclick="closeSplitPaymentModal()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إلغاء</button></div></div></div>';
       renderInvoiceLinesTable();
       updateSalesSummary();
       renderInvoiceStatusBadge();
@@ -1776,13 +1846,30 @@
         var sel = document.getElementById('inv-product');
         var opt = sel && sel.options[sel.selectedIndex];
         var dataUnit = opt && opt.getAttribute && opt.getAttribute('data-unit');
-        if (dataUnit) {
-          var unitSel = document.getElementById('inv-unit');
-          if (unitSel && unitSel.querySelector('option[value="' + dataUnit + '"]')) unitSel.value = dataUnit;
+        var unitSel = document.getElementById('inv-unit');
+        if (dataUnit && unitSel && unitSel.querySelector('option[value="' + dataUnit + '"]')) {
+          unitSel.value = dataUnit;
+          unitSel.setAttribute('data-last-unit', dataUnit);
         }
         updateInvStock();
       });
-      document.getElementById('inv-unit').addEventListener('change', function() { updateInvStock(); });
+      document.getElementById('inv-unit').addEventListener('change', function() {
+        var unitSel = document.getElementById('inv-unit');
+        var productId = document.getElementById('inv-product')?.value;
+        var oldUnit = unitSel.getAttribute('data-last-unit') || unitSel.value;
+        var newUnit = unitSel.value;
+        if (productId && oldUnit !== newUnit) {
+          var priceInp = document.getElementById('inv-price');
+          if (priceInp && priceInp.value !== '') {
+            var newPrice = convertUnitPrice(productId, oldUnit, newUnit, parseFloat(priceInp.value, 10) || 0);
+            priceInp.value = newPrice.toFixed(2);
+          }
+        }
+        unitSel.setAttribute('data-last-unit', newUnit);
+        updateInvStock();
+      });
+      document.getElementById('inv-margin-toggle').addEventListener('change', renderInvoiceLinesTable);
+      document.getElementById('inv-global-disc').addEventListener('input', updateSalesSummary);
       document.getElementById('inv-product').addEventListener('input', function() { var sel = document.getElementById('inv-product'); if (sel.value) updateInvStock(); });
       document.getElementById('inv-payment-type').addEventListener('change', renderInvoiceStatusBadge);
       document.getElementById('inv-date').addEventListener('change', renderInvoiceStatusBadge);
@@ -1795,6 +1882,127 @@
       var taxInp = document.getElementById('inv-tax');
       if (taxInp) taxInp.addEventListener('input', updateSalesSummary);
       updateInvStock();
+      var unitSel = document.getElementById('inv-unit');
+      if (unitSel) unitSel.setAttribute('data-last-unit', unitSel.value || 'piece');
+      renderResumableList();
+      ['split-cash', 'split-bank', 'split-debt'].forEach(function(id) {
+        var el = document.getElementById(id);
+        if (el) el.addEventListener('input', updateSplitSumMessage);
+      });
+      var taxRow = document.getElementById('inv-tax-row');
+      if (taxRow && window._appConfig.settings.localization && window._appConfig.settings.localization.isTaxEnabled === false) taxRow.style.display = 'none';
+      var root = document.getElementById('sales-invoice-root');
+      if (root) {
+        root.setAttribute('tabindex', '0');
+        root.addEventListener('keydown', function(e) {
+          if (e.key === 'F2') { e.preventDefault(); submitSalesInvoice(); return; }
+          var table = root.querySelector('.inv-grid-table');
+          if (!table || !table.contains(e.target)) return;
+          var focusables = [].slice.call(table.querySelectorAll('input, select, button')).filter(function(el) { return el.tabIndex !== -1 && !el.disabled; });
+          var idx = focusables.indexOf(e.target);
+          if (idx < 0) return;
+          var cols = 3;
+          var next = null;
+          if (e.key === 'ArrowDown' && idx + cols < focusables.length) next = focusables[idx + cols];
+          else if (e.key === 'ArrowUp' && idx - cols >= 0) next = focusables[idx - cols];
+          else if (e.key === 'ArrowLeft' && idx + 1 < focusables.length) next = focusables[idx + 1];
+          else if (e.key === 'ArrowRight' && idx - 1 >= 0) next = focusables[idx - 1];
+          if (next) { e.preventDefault(); next.focus(); }
+        });
+      }
+    }
+    var INV_HOLDS_KEY = 'sales-invoice-holds';
+    function getResumableHolds() {
+      try {
+        var raw = localStorage.getItem(INV_HOLDS_KEY);
+        return raw ? JSON.parse(raw) : [];
+      } catch (e) { return []; }
+    }
+    function saveResumableHolds(arr) {
+      try { localStorage.setItem(INV_HOLDS_KEY, JSON.stringify(arr)); } catch (e) {}
+    }
+    function holdSalesInvoice() {
+      var lines = window._invoiceLines || [];
+      var customer = document.getElementById('inv-customer')?.value?.trim() || '';
+      var paymentType = document.getElementById('inv-payment-type')?.value || 'cash';
+      var date = document.getElementById('inv-date')?.value || '';
+      var notes = document.getElementById('inv-notes')?.value || '';
+      var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
+      var tax = Number(document.getElementById('inv-tax')?.value) || 0;
+      var holds = getResumableHolds();
+      holds.push({ id: 'hold-' + Date.now(), customer: customer, paymentType: paymentType, date: date, lines: lines, notes: notes, globalDiscount: globalDisc, tax: tax, at: new Date().toISOString() });
+      saveResumableHolds(holds);
+      window._invoiceLines = [];
+      document.getElementById('inv-customer').value = '';
+      document.getElementById('inv-notes').value = '';
+      document.getElementById('inv-global-disc').value = '0';
+      document.getElementById('inv-tax').value = '0';
+      renderInvoiceLinesTable();
+      updateSalesSummary();
+      renderResumableList();
+      showToast('تم', 'تم تعليق الفاتورة. يمكن استئنافها من قائمة الفواتير المعلقة.', 'success');
+    }
+    function renderResumableList() {
+      var holds = getResumableHolds();
+      var wrap = document.getElementById('inv-resumable-wrap');
+      var list = document.getElementById('inv-resumable-list');
+      if (!wrap || !list) return;
+      if (!holds.length) { wrap.classList.add('hidden'); list.innerHTML = ''; return; }
+      wrap.classList.remove('hidden');
+      list.innerHTML = holds.map(function(h, i) {
+        var label = (h.date || '').slice(0, 10) + ' | ' + (h.customer || '—') + ' | ' + (h.lines || []).length + ' صنف';
+        return '<li class="flex justify-between items-center gap-2"><span class="truncate">' + label + '</span><button type="button" onclick="resumeHold(' + i + ')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded shrink-0">استئناف</button></li>';
+      }).join('');
+    }
+    function resumeHold(index) {
+      var holds = getResumableHolds();
+      var h = holds[index];
+      if (!h) return;
+      window._invoiceLines = (h.lines || []).slice();
+      document.getElementById('inv-customer').value = h.customer || '';
+      document.getElementById('inv-payment-type').value = h.paymentType || 'cash';
+      document.getElementById('inv-date').value = (h.date || '').slice(0, 10) || new Date().toISOString().slice(0, 10);
+      document.getElementById('inv-notes').value = h.notes || '';
+      document.getElementById('inv-global-disc').value = h.globalDiscount != null ? h.globalDiscount : 0;
+      document.getElementById('inv-tax').value = h.tax != null ? h.tax : 0;
+      holds.splice(index, 1);
+      saveResumableHolds(holds);
+      renderInvoiceLinesTable();
+      updateSalesSummary();
+      renderResumableList();
+      renderInvoiceStatusBadge();
+    }
+    function openSplitPaymentModal(grandTotal) {
+      document.getElementById('split-grand-total').textContent = (grandTotal || 0).toFixed(0);
+      document.getElementById('split-cash').value = '0';
+      document.getElementById('split-bank').value = '0';
+      document.getElementById('split-debt').value = (grandTotal || 0).toFixed(0);
+      document.getElementById('split-payment-modal').classList.remove('hidden');
+      updateSplitSumMessage();
+    }
+    function updateSplitSumMessage() {
+      var total = parseFloat(document.getElementById('split-grand-total').textContent, 10) || 0;
+      var cash = parseFloat(document.getElementById('split-cash')?.value, 10) || 0;
+      var bank = parseFloat(document.getElementById('split-bank')?.value, 10) || 0;
+      var debt = parseFloat(document.getElementById('split-debt')?.value, 10) || 0;
+      var sum = cash + bank + debt;
+      var el = document.getElementById('split-sum-msg');
+      if (el) el.textContent = Math.abs(sum - total) < 0.01 ? 'المجموع مطابق' : 'المجموع: ' + sum.toFixed(0) + ' (الفرق ' + (total - sum).toFixed(0) + ')';
+    }
+    function closeSplitPaymentModal() {
+      document.getElementById('split-payment-modal').classList.add('hidden');
+    }
+    function confirmSplitAndSubmit() {
+      var total = parseFloat(document.getElementById('split-grand-total').textContent, 10) || 0;
+      var cash = parseFloat(document.getElementById('split-cash')?.value, 10) || 0;
+      var bank = parseFloat(document.getElementById('split-bank')?.value, 10) || 0;
+      var debt = parseFloat(document.getElementById('split-debt')?.value, 10) || 0;
+      if (Math.abs((cash + bank + debt) - total) > 0.02) {
+        showToast('تنبيه', 'مجموع التقسيم يجب أن يساوي الإجمالي', 'error');
+        return;
+      }
+      closeSplitPaymentModal();
+      doSubmitSalesInvoice({ cashReceived: cash, bankTransfer: bank, remainingDebt: debt });
     }
     function quickAddCustomer() {
       var name = prompt('اسم العميل الجديد (يُحفظ محلياً):');
@@ -1863,40 +2071,133 @@
     function updateSalesSummary() {
       var lines = window._invoiceLines || [];
       var subtotal = 0;
-      var totalDisc = 0;
+      var totalLineDisc = 0;
       lines.forEach(function(l) {
-        var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
         subtotal += (l.quantity || 0) * (l.unitPrice || 0);
-        totalDisc += l.lineDiscount || 0;
+        totalLineDisc += l.lineDiscount || 0;
       });
+      var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
       var tax = Number(document.getElementById('inv-tax')?.value) || 0;
-      var grand = subtotal - totalDisc + tax;
+      var grand = subtotal - totalLineDisc - globalDisc + tax;
       var st = document.getElementById('inv-subtotal');
       var td = document.getElementById('inv-total-disc');
       var gt = document.getElementById('inv-grand-total');
       if (st) st.textContent = subtotal.toFixed(0);
-      if (td) td.textContent = totalDisc.toFixed(0);
+      if (td) td.textContent = totalLineDisc.toFixed(0);
       if (gt) gt.textContent = grand.toFixed(0);
+    }
+    function getCostForUnit(productId, unitId) {
+      var map = window._salesProductMap;
+      if (!map || !map.byId[productId]) return 0;
+      var info = map.byId[productId];
+      var costDefault = info.costPerDefaultUnit || 0;
+      var defaultUnit = info.defaultUnitId || 'piece';
+      var fReq = getUnitFactor(productId, unitId);
+      var fDef = getUnitFactor(productId, defaultUnit);
+      if (fDef === 0) return 0;
+      return costDefault * (fReq / fDef);
     }
     function renderInvoiceLinesTable() {
       var el = document.getElementById('invoice-lines');
       if (!el) return;
       var lines = window._invoiceLines || [];
-      var products = window._salesProducts || [];
+      var units = window._salesUnits || [];
+      var unitOpts = (units || []).map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      var isCashier = (window._appConfig.user && window._appConfig.user.role === 'CASHIER');
+      var showMargin = !isCashier && document.getElementById('inv-margin-toggle')?.checked;
       if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm py-4">لا أصناف. أضف سطراً من الأعلى.</p>'; return; }
       var thead = '<thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">منتج/باركود</th><th class="p-2">وحدة</th><th class="p-2">متوفر</th><th class="p-2">سعر الوحدة</th><th class="p-2">كمية</th><th class="p-2">خصم سطر</th><th class="p-2">المجموع</th><th class="p-2 w-16"></th></tr></thead>';
       var rows = lines.map(function(l, i) {
         var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
         var stockDisplay = (l.available != null && l.available !== '') ? l.available : '—';
-        return '<tr class="border-b border-white/5 text-right"><td class="p-2 text-white">' + (l.productName || l.productId) + '</td><td class="p-2 text-slate-300">' + (l.unitId || 'piece') + '</td><td class="p-2 text-slate-500">' + stockDisplay + '</td><td class="p-2">' + (l.unitPrice || 0) + '</td><td class="p-2">' + (l.quantity || 0) + '</td><td class="p-2">' + (l.lineDiscount || 0) + '</td><td class="p-2 text-emerald-400">' + lineTotal.toFixed(0) + '</td><td class="p-2"><button type="button" onclick="removeInvoiceLine(' + i + ')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button></td></tr>';
+        var costPerUnit = isCashier ? 0 : getCostForUnit(l.productId, l.unitId || 'piece');
+        var belowCost = !isCashier && (Number(l.unitPrice) || 0) < costPerUnit;
+        var priceClass = belowCost ? ' inv-price-below-cost bg-rose-500/15 border-rose-500/50' : '';
+        var unitSelect = '<select class="erp-select inv-line-unit w-full min-w-0 text-sm" data-idx="' + i + '">' + (units || []).map(function(u) { return '<option value="' + u.id + '"' + ((l.unitId || 'piece') === u.id ? ' selected' : '') + '>' + (u.name || u.symbol) + '</option>'; }).join('') + '</select>';
+        return '<tr class="border-b border-white/5 text-right inv-line-row" data-idx="' + i + '">' +
+          '<td class="p-2 text-white">' + (l.productName || l.productId) + '</td>' +
+          '<td class="p-2">' + unitSelect + '</td>' +
+          '<td class="p-2 text-slate-500">' + stockDisplay + '</td>' +
+          '<td class="p-2"><input type="number" min="0" step="0.01" data-idx="' + i + '" class="inv-line-price w-20 bg-white/5 border rounded px-2 py-1 text-right text-white text-sm' + priceClass + '" value="' + (l.unitPrice != null ? l.unitPrice : 0) + '"/></td>' +
+          '<td class="p-2">' + (l.quantity || 0) + '</td>' +
+          '<td class="p-2"><input type="number" min="0" data-idx="' + i + '" class="inv-line-disc w-16 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm" value="' + (l.lineDiscount || 0) + '"/></td>' +
+          '<td class="p-2 text-emerald-400 line-total">' + lineTotal.toFixed(0) + '</td>' +
+          '<td class="p-2"><button type="button" onclick="removeInvoiceLine(' + i + ')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button></td></tr>';
       });
-      el.innerHTML = '<table class="w-full text-sm">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
+      var marginRow = '';
+      if (showMargin) {
+        var marginParts = lines.map(function(l, i) {
+          var cost = getCostForUnit(l.productId, l.unitId || 'piece');
+          var below = (Number(l.unitPrice) || 0) < cost;
+          return (l.productName || l.productId) + ': ' + (below ? '<span class="text-rose-400">تحت التكلفة</span>' : 'تكلفة ' + cost.toFixed(0));
+        });
+        marginRow = '<tr class="border-t border-white/10 text-slate-500 text-xs"><td colspan="8" class="p-2 text-right">هامش: ' + marginParts.join(' | ') + '</td></tr>';
+      }
+      el.innerHTML = '<table class="w-full text-sm inv-grid-table">' + thead + '<tbody>' + rows.join('') + marginRow + '</tbody></table>';
+      el.querySelectorAll('.inv-line-unit').forEach(function(sel) {
+        sel.addEventListener('change', function() {
+          var idx = parseInt(this.getAttribute('data-idx'), 10);
+          if (isNaN(idx) || !window._invoiceLines[idx]) return;
+          var line = window._invoiceLines[idx];
+          var oldUnit = line.unitId || 'piece';
+          line.unitId = this.value;
+          line.unitPrice = convertUnitPrice(line.productId, oldUnit, line.unitId, line.unitPrice || 0);
+          renderInvoiceLinesTable();
+          updateSalesSummary();
+        });
+      });
+      el.querySelectorAll('.inv-line-price').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+          var idx = parseInt(this.getAttribute('data-idx'), 10);
+          if (!isNaN(idx) && window._invoiceLines[idx]) {
+            window._invoiceLines[idx].unitPrice = parseFloat(this.value, 10) || 0;
+            updateSalesSummary();
+            var cost = getCostForUnit(window._invoiceLines[idx].productId, window._invoiceLines[idx].unitId || 'piece');
+            if (window._invoiceLines[idx].unitPrice < cost) { this.classList.add('inv-price-below-cost', 'bg-rose-500/15', 'border-rose-500/50'); } else { this.classList.remove('inv-price-below-cost', 'bg-rose-500/15', 'border-rose-500/50'); }
+          }
+        });
+      });
+      el.querySelectorAll('.inv-line-disc').forEach(function(inp) {
+        inp.addEventListener('input', function() {
+          var idx = parseInt(this.getAttribute('data-idx'), 10);
+          if (isNaN(idx) || !window._invoiceLines[idx]) return;
+          window._invoiceLines[idx].lineDiscount = parseFloat(this.value, 10) || 0;
+          var l = window._invoiceLines[idx];
+          var lineTotal = (l.quantity || 0) * (l.unitPrice || 0) - (l.lineDiscount || 0);
+          var row = inp.closest('tr');
+          if (row) {
+            var cell = row.querySelector('.line-total');
+            if (cell) cell.textContent = lineTotal.toFixed(0);
+          }
+          updateSalesSummary();
+        });
+      });
     }
-    async function submitSalesInvoice() {
+    function getInvoiceGrandTotal() {
+      var lines = window._invoiceLines || [];
+      var subtotal = 0, totalLineDisc = 0;
+      lines.forEach(function(l) { subtotal += (l.quantity || 0) * (l.unitPrice || 0); totalLineDisc += l.lineDiscount || 0; });
+      var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
+      var tax = Number(document.getElementById('inv-tax')?.value) || 0;
+      return subtotal - totalLineDisc - globalDisc + tax;
+    }
+    function submitSalesInvoice() {
       var lines = window._invoiceLines || [];
       if (!lines.length) { showToast('تنبيه', 'أضف صنفاً واحداً على الأقل', 'error'); return; }
+      var paymentType = document.getElementById('inv-payment-type')?.value;
+      var grand = getInvoiceGrandTotal();
+      if (paymentType === 'credit') {
+        openSplitPaymentModal(grand);
+        return;
+      }
+      doSubmitSalesInvoice();
+    }
+    async function doSubmitSalesInvoice(paymentSplit) {
+      var lines = window._invoiceLines || [];
+      if (!lines.length) return;
       var msgEl = document.getElementById('invoice-message');
       if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
+      var globalDisc = Number(document.getElementById('inv-global-disc')?.value) || 0;
       var payload = [];
       for (var i = 0; i < lines.length; i++) {
         var l = lines[i];
@@ -1919,13 +2220,16 @@
         }
       } catch (e) {}
       var customerId = document.getElementById('inv-customer')?.value?.trim() || null;
+      var body = { items: payload, customerId: customerId, globalDiscount: globalDisc };
+      if (paymentSplit) body.paymentSplit = paymentSplit;
       try {
-        var j = await postJson('/sales/invoice', { items: payload, customerId: customerId });
+        var j = await postJson('/sales/invoice', body);
         if (!j.success) throw new Error(j.error || 'فشل الحفظ');
         var invoiceId = (j.data && j.data.invoiceId) ? j.data.invoiceId : '';
         window._invoiceLines = [];
         renderInvoiceLinesTable();
         updateSalesSummary();
+        renderResumableList();
         showToast('Success', invoiceId ? ('رقم الفاتورة: ' + invoiceId) : 'تم حفظ الفاتورة', 'success');
         refreshAll();
       } catch (e) {
@@ -2154,6 +2458,192 @@
       if (s == null || s === undefined) return '';
       return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
+    var _systemSettingsTab = 'general';
+    async function renderSystemSettings(container) {
+      var role = (window._appConfig.user && window._appConfig.user.role) || 'ADMIN';
+      if (role === 'CASHIER') {
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية.</p></div>';
+        return;
+      }
+      var s = (window._appConfig.settings) || {};
+      var b = s.branding || {};
+      var loc = s.localization || {};
+      var feat = s.features || {};
+      container.innerHTML =
+        '<div id="system-settings-root" class="font-sans" dir="rtl">' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4"><h3 class="text-lg font-semibold text-white mb-4">إعدادات النظام</h3>' +
+        '<div class="flex flex-wrap gap-2 mb-4">' +
+        '<button type="button" onclick="setSystemSettingsTab(\'general\')" class="sys-tab btn-3d px-4 py-2 rounded-lg text-sm" data-tab="general">عام</button>' +
+        '<button type="button" onclick="setSystemSettingsTab(\'branding\')" class="sys-tab btn-3d px-4 py-2 rounded-lg text-sm" data-tab="branding">الهوية</button>' +
+        '<button type="button" onclick="setSystemSettingsTab(\'financial\')" class="sys-tab btn-3d px-4 py-2 rounded-lg text-sm" data-tab="financial">مالي</button>' +
+        '<button type="button" onclick="setSystemSettingsTab(\'features\')" class="sys-tab btn-3d px-4 py-2 rounded-lg text-sm" data-tab="features">الميزات</button>' +
+        '</div>' +
+        '<div id="sys-tab-general" class="sys-tab-pane space-y-3">' +
+        '<label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="sys-companyName" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyName) + '" placeholder="Vault AI"/>' +
+        '</div>' +
+        '<div id="sys-tab-branding" class="sys-tab-pane hidden space-y-3">' +
+        '<label class="text-slate-400 text-sm">الشعار (Base64 أو اترك فارغاً)</label><textarea id="sys-logoBase64" rows="3" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="data:image/png;base64,...">' + escapeAttr(b.logoBase64 || '') + '</textarea>' +
+        '<label class="text-slate-400 text-sm">اللون الأساسي (Hex)</label><input type="text" id="sys-primaryColor" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.primaryColor) + '" placeholder="#10b981"/>' +
+        '<label class="text-slate-400 text-sm">اللون الثانوي (Hex)</label><input type="text" id="sys-secondaryColor" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.secondaryColor) + '" placeholder="#34d399"/>' +
+        '</div>' +
+        '<div id="sys-tab-financial" class="sys-tab-pane hidden space-y-3">' +
+        '<label class="text-slate-400 text-sm">رمز العملة</label><input type="text" id="sys-currencySymbol" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(loc.currencySymbol) + '" placeholder="ل.س"/>' +
+        '<label class="text-slate-400 text-sm">معدل الضريبة الافتراضي %</label><input type="number" id="sys-defaultTaxRate" min="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + (loc.defaultTaxRate != null ? loc.defaultTaxRate : '') + '"/>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sys-isTaxEnabled" class="rounded bg-white/5 border-white/20"' + (loc.isTaxEnabled ? ' checked' : '') + '/> <span class="text-slate-400 text-sm">تفعيل الضريبة</span></label>' +
+        '<label class="text-slate-400 text-sm">تنسيق التاريخ</label><input type="text" id="sys-dateFormat" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(loc.dateFormat) + '" placeholder="YYYY-MM-DD"/>' +
+        '</div>' +
+        '<div id="sys-tab-features" class="sys-tab-pane hidden space-y-3">' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sys-enableBarcode" class="rounded bg-white/5 border-white/20"' + (feat.enableBarcode !== false ? ' checked' : '') + '/> <span class="text-slate-400 text-sm">الباركود</span></label>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sys-enableMultiUnit" class="rounded bg-white/5 border-white/20"' + (feat.enableMultiUnit !== false ? ' checked' : '') + '/> <span class="text-slate-400 text-sm">وحدات متعددة</span></label>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sys-enableBatchTracking" class="rounded bg-white/5 border-white/20"' + (feat.enableBatchTracking ? ' checked' : '') + '/> <span class="text-slate-400 text-sm">تتبع الدفعات</span></label>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="sys-enableAttachments" class="rounded bg-white/5 border-white/20"' + (feat.enableAttachments ? ' checked' : '') + '/> <span class="text-slate-400 text-sm">المرفقات</span></label>' +
+        '</div>' +
+        '<button type="button" onclick="submitSystemSettings()" class="btn-3d mt-4 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ إعدادات النظام</button>' +
+        '<p id="sys-settings-message" class="mt-2 text-sm hidden"></p></div></div>';
+      setSystemSettingsTab(_systemSettingsTab);
+    }
+    function setSystemSettingsTab(tab) {
+      _systemSettingsTab = tab;
+      document.querySelectorAll('.sys-tab-pane').forEach(function(p) { p.classList.add('hidden'); });
+      document.querySelectorAll('.sys-tab').forEach(function(b) {
+        b.classList.remove('bg-emerald-500/20', 'text-emerald-400');
+        b.classList.add('bg-white/10', 'text-slate-300');
+      });
+      var pane = document.getElementById('sys-tab-' + tab);
+      var btn = document.querySelector('.sys-tab[data-tab="' + tab + '"]');
+      if (pane) pane.classList.remove('hidden');
+      if (btn) { btn.classList.remove('bg-white/10', 'text-slate-300'); btn.classList.add('bg-emerald-500/20', 'text-emerald-400'); }
+    }
+    async function submitSystemSettings() {
+      var msgEl = document.getElementById('sys-settings-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      var payload = {
+        branding: {
+          companyName: document.getElementById('sys-companyName')?.value?.trim() || 'Vault AI',
+          logoBase64: document.getElementById('sys-logoBase64')?.value?.trim() || null,
+          primaryColor: document.getElementById('sys-primaryColor')?.value?.trim() || '#10b981',
+          secondaryColor: document.getElementById('sys-secondaryColor')?.value?.trim() || '#34d399',
+        },
+        localization: {
+          currencySymbol: document.getElementById('sys-currencySymbol')?.value?.trim() || 'ل.س',
+          defaultTaxRate: parseFloat(document.getElementById('sys-defaultTaxRate')?.value, 10) || 0,
+          isTaxEnabled: document.getElementById('sys-isTaxEnabled')?.checked === true,
+          dateFormat: document.getElementById('sys-dateFormat')?.value?.trim() || 'YYYY-MM-DD',
+        },
+        features: {
+          enableBarcode: document.getElementById('sys-enableBarcode')?.checked !== false,
+          enableMultiUnit: document.getElementById('sys-enableMultiUnit')?.checked !== false,
+          enableBatchTracking: document.getElementById('sys-enableBatchTracking')?.checked === true,
+          enableAttachments: document.getElementById('sys-enableAttachments')?.checked === true,
+        },
+      };
+      try {
+        var j = await postJson('/settings', payload);
+        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        window._appConfig.settings = j.data || payload;
+        applyTheme();
+        applyRBAC();
+        showToast('Success', 'تم حفظ إعدادات النظام', 'success');
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    async function renderUserManagement(container) {
+      var user = (window._appConfig && window._appConfig.user) || currentUser || {};
+      var role = user.role || '';
+      if (role === 'CASHIER') {
+        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية. إدارة المستخدمين متاحة للمسؤولين فقط.</p></div>';
+        return;
+      }
+      var res = await fetchJson('/users');
+      var list = (res.data || []);
+      var tableRows = list.map(function(u) {
+        var delBtn = u.id === user.id ? '' : '<button type="button" onclick="userMgmtDelete(\'' + (u.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-rose-400 text-xs px-2 py-1 rounded">حذف</button>';
+        return '<tr class="border-b border-white/10 text-right"><td class="p-2 text-white">' + (u.username || '') + '</td><td class="p-2 text-slate-300">' + (u.fullName || '—') + '</td><td class="p-2 text-slate-400">' + (u.role || '') + '</td><td class="p-2 text-slate-500">' + (u.status || '') + '</td><td class="p-2">' +
+          '<button type="button" onclick="userMgmtChangePassword(\'' + (u.id || '').replace(/'/g, "\\'") + '\', \'' + (u.username || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">كلمة المرور</button> ' + delBtn + '</td></tr>';
+      }).join('');
+      container.innerHTML =
+        '<div class="glass-card rounded-2xl p-6 mb-6"><h3 class="text-lg font-semibold text-white mb-4">إضافة مستخدم</h3>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">' +
+        '<div><label class="text-slate-400 text-xs">اسم المستخدم</label><input type="text" id="um-username" placeholder="username" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-400 text-xs">كلمة المرور</label><input type="password" id="um-password" placeholder="••••••••" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-400 text-xs">الاسم الكامل</label><input type="text" id="um-fullname" placeholder="الاسم الكامل" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
+        '</div><button type="button" onclick="userMgmtAdd()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">إضافة مستخدم</button>' +
+        '<p id="um-add-msg" class="mt-2 text-sm hidden"></p></div>' +
+        '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المستخدمون</h3>' +
+        '<div class="overflow-x-auto"><table class="w-full text-sm"><thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">اسم المستخدم</th><th class="p-2">الاسم الكامل</th><th class="p-2">الدور</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody id="user-mgmt-tbody">' + tableRows + '</tbody></table></div></div>' +
+        '<div id="user-password-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeUserPasswordModal()">' +
+        '<div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()">' +
+        '<h3 class="text-white font-medium mb-3">تغيير كلمة المرور</h3><p id="user-password-username" class="text-slate-500 text-sm mb-3"></p>' +
+        '<input type="password" id="user-password-new" placeholder="كلمة المرور الجديدة" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm mb-3"/>' +
+        '<div class="flex gap-2"><button type="button" onclick="confirmUserPasswordChange()" class="btn-3d flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">حفظ</button><button type="button" onclick="closeUserPasswordModal()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إلغاء</button></div></div></div>';
+    }
+    var _userPasswordUserId = null;
+    function closeUserPasswordModal() {
+      document.getElementById('user-password-modal').classList.add('hidden');
+      _userPasswordUserId = null;
+    }
+    function userMgmtChangePassword(userId, username) {
+      _userPasswordUserId = userId;
+      document.getElementById('user-password-username').textContent = 'المستخدم: ' + (username || userId);
+      document.getElementById('user-password-new').value = '';
+      document.getElementById('user-password-modal').classList.remove('hidden');
+    }
+    async function confirmUserPasswordChange() {
+      var newPw = document.getElementById('user-password-new')?.value?.trim();
+      if (!newPw) { showToast('تنبيه', 'أدخل كلمة المرور الجديدة', 'error'); return; }
+      if (!_userPasswordUserId) return;
+      try {
+        var r = await fetch(API + '/users/' + encodeURIComponent(_userPasswordUserId) + '/password', { method: 'PATCH', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ newPassword: newPw }) });
+        var j = await r.json().catch(function() { return {}; });
+        if (!r.ok) throw new Error(j.error || 'فشل تغيير كلمة المرور');
+        showToast('Success', 'تم تغيير كلمة المرور', 'success');
+        closeUserPasswordModal();
+        var tab = openTabs.find(function(t) { return t.moduleId === 'user-management'; });
+        if (tab) renderModulePanel('user-management');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل تغيير كلمة المرور', 'error');
+      }
+    }
+    async function userMgmtAdd() {
+      var username = document.getElementById('um-username')?.value?.trim();
+      var password = document.getElementById('um-password')?.value;
+      var fullName = document.getElementById('um-fullname')?.value?.trim();
+      var role = document.getElementById('um-role')?.value || 'ADMIN';
+      var msgEl = document.getElementById('um-add-msg');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      if (!username || !password) { if (msgEl) { msgEl.textContent = 'اسم المستخدم وكلمة المرور مطلوبان'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; } return; }
+      try {
+        await postJson('/users', { username, password, fullName: fullName || null, role });
+        showToast('Success', 'تم إضافة المستخدم', 'success');
+        if (msgEl) { msgEl.textContent = ''; msgEl.classList.add('hidden'); }
+        document.getElementById('um-username').value = '';
+        document.getElementById('um-password').value = '';
+        document.getElementById('um-fullname').value = '';
+        var tab = openTabs.find(function(t) { return t.moduleId === 'user-management'; });
+        if (tab) renderModulePanel('user-management');
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'فشل الإضافة'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
+        showToast('خطأ', e.message, 'error');
+      }
+    }
+    async function userMgmtDelete(userId) {
+      if (!confirm('حذف هذا المستخدم؟ لا يمكن التراجع.')) return;
+      try {
+        var res = await fetch(API + '/users/' + encodeURIComponent(userId), { method: 'DELETE', headers: getAuthHeaders() });
+        var j = await res.json().catch(function() { return {}; });
+        if (!res.ok) throw new Error(j.error || 'فشل الحذف');
+        showToast('Success', 'تم حذف المستخدم', 'success');
+        var tab = openTabs.find(function(t) { return t.moduleId === 'user-management'; });
+        if (tab) renderModulePanel('user-management');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل الحذف', 'error');
+      }
+    }
+
     async function renderCompanySettings(container) {
       var r = await fetchJson('/settings/company-profile');
       var data = r.data || {};
@@ -2281,6 +2771,259 @@
         if (msgEl) { msgEl.textContent = e.message; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
         showToast('خطأ', e.message, 'error');
       }
+    }
+
+    var _returnInvoice = null;
+    var _returnLines = [];
+
+    async function renderSalesReturn(container) {
+      const [productsR, unitsR] = await Promise.all([fetchJson('/products'), fetchJson('/units')]);
+      const products = productsR.data || [];
+      const units = unitsR.data || [];
+      window._salesProductMap = buildProductMap(products, units);
+      window._salesProducts = products;
+      _returnInvoice = null;
+      _returnLines = [];
+      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var companyName = branding.companyName || 'Vault AI';
+      var logoBase64 = branding.logoBase64 || '';
+      container.innerHTML =
+        '<div id="sales-return-root" class="font-sans" dir="rtl">' +
+        '<div class="glass-card rounded-2xl p-3 shadow-lg mb-2 flex items-center gap-3">' +
+        (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded"/>' : '') +
+        '<span class="text-white font-semibold">' + (companyName.replace(/</g, '&lt;')) + '</span></div>' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4">' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">بحث عن فاتورة</h3>' +
+        '<div class="flex gap-2 flex-wrap">' +
+        '<input type="text" id="return-inv-id" placeholder="معرّف الفاتورة (مثال: inv-...)" class="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/>' +
+        '<button type="button" onclick="loadInvoiceForReturn()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">تحميل</button>' +
+        '</div>' +
+        '<p id="return-inv-meta" class="text-slate-500 text-sm mt-2 hidden"></p></div>' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4" id="return-table-wrap">' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">أصناف المرتجع</h3>' +
+        '<p id="return-table-empty" class="text-slate-500 text-sm py-4">قم بتحميل فاتورة أولاً.</p>' +
+        '<div id="return-lines-table" class="overflow-x-auto hidden"></div>' +
+        '<div class="mt-3 flex flex-wrap items-center gap-3"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="return-refund-cash" checked class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300 text-sm">استرداد نقدي</span></label></div>' +
+        '<button type="button" onclick="submitSalesReturn()" class="btn-3d mt-4 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ المرتجع</button>' +
+        '<p id="return-message" class="text-sm mt-2 hidden"></p></div></div>';
+    }
+
+    async function loadInvoiceForReturn() {
+      var id = document.getElementById('return-inv-id')?.value?.trim();
+      if (!id) { showToast('تنبيه', 'أدخل معرّف الفاتورة', 'error'); return; }
+      try {
+        var r = await fetchJson('/sales/invoices/' + encodeURIComponent(id));
+        if (!r.success || !r.data) throw new Error(r.error || 'الفاتورة غير موجودة');
+        _returnInvoice = r.data;
+        _returnLines = (r.data.items || []).map(function(line) {
+          var info = window._salesProductMap && window._salesProductMap.byId[line.productId];
+          return {
+            productId: line.productId,
+            productName: (info && info.name) ? info.name : line.productId,
+            unitId: line.unitId || 'piece',
+            originalQty: line.quantity || 0,
+            returnQty: 0,
+            unitPrice: line.unitPrice || 0,
+          };
+        });
+        document.getElementById('return-inv-meta').textContent = 'التاريخ: ' + (r.data.date || '—') + ' | العميل: ' + (r.data.customerId || '—');
+        document.getElementById('return-inv-meta').classList.remove('hidden');
+        renderReturnLinesTable();
+      } catch (e) {
+        showToast('خطأ', e.message || 'لم يتم العثور على الفاتورة', 'error');
+        document.getElementById('return-inv-meta').classList.add('hidden');
+        _returnInvoice = null;
+        _returnLines = [];
+      }
+    }
+
+    function renderReturnLinesTable() {
+      var wrap = document.getElementById('return-table-wrap');
+      var empty = document.getElementById('return-table-empty');
+      var table = document.getElementById('return-lines-table');
+      if (!wrap) return;
+      if (!_returnLines.length) {
+        if (empty) empty.classList.remove('hidden');
+        if (table) { table.classList.add('hidden'); table.innerHTML = ''; }
+        return;
+      }
+      if (empty) empty.classList.add('hidden');
+      if (table) {
+        table.classList.remove('hidden');
+        var thead = '<thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">المنتج</th><th class="p-2">وحدة</th><th class="p-2">الكمية الأصلية</th><th class="p-2">كمية المرتجع</th><th class="p-2">سعر الوحدة</th><th class="p-2">المجموع</th></tr></thead>';
+        var rows = _returnLines.map(function(l, i) {
+          var lineTotal = (l.returnQty || 0) * (l.unitPrice || 0);
+          return '<tr class="border-b border-white/5 text-right">' +
+            '<td class="p-2 text-white">' + (l.productName || l.productId) + '</td>' +
+            '<td class="p-2 text-slate-300">' + (l.unitId || 'piece') + '</td>' +
+            '<td class="p-2">' + (l.originalQty || 0) + '</td>' +
+            '<td class="p-2"><input type="number" min="0" max="' + (l.originalQty || 0) + '" value="' + (l.returnQty || 0) + '" data-idx="' + i + '" class="return-qty-input w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-white text-sm text-right"/></td>' +
+            '<td class="p-2">' + (l.unitPrice || 0) + '</td>' +
+            '<td class="p-2 text-emerald-400">' + lineTotal.toFixed(0) + '</td></tr>';
+        });
+        table.innerHTML = '<table class="w-full text-sm">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
+        table.querySelectorAll('.return-qty-input').forEach(function(inp) {
+          inp.addEventListener('input', function() {
+            var idx = parseInt(this.getAttribute('data-idx'), 10);
+            if (!isNaN(idx) && _returnLines[idx]) {
+              _returnLines[idx].returnQty = Math.min(Math.max(0, parseInt(this.value, 10) || 0), _returnLines[idx].originalQty);
+              renderReturnLinesTable();
+            }
+          });
+        });
+      }
+    }
+
+    async function submitSalesReturn() {
+      if (!_returnInvoice || !_returnInvoice.id) { showToast('تنبيه', 'قم بتحميل الفاتورة أولاً', 'error'); return; }
+      var items = _returnLines.filter(function(l) { return (l.returnQty || 0) > 0; }).map(function(l) {
+        return { productId: l.productId, unitId: l.unitId, returnQuantity: l.returnQty, unitPrice: l.unitPrice };
+      });
+      if (!items.length) { showToast('تنبيه', 'أدخل كميات مرتجع لصنف واحد على الأقل', 'error'); return; }
+      var refundToCash = document.getElementById('return-refund-cash')?.checked !== false;
+      var msgEl = document.getElementById('return-message');
+      if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
+      try {
+        var j = await postJson('/sales/return', { invoiceId: _returnInvoice.id, items: items, refundToCash: refundToCash });
+        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        showToast('Success', 'تم حفظ المرتجع بنجاح', 'success');
+        refreshAll();
+        _returnInvoice = null;
+        _returnLines = [];
+        document.getElementById('return-inv-id').value = '';
+        document.getElementById('return-inv-meta').classList.add('hidden');
+        renderReturnLinesTable();
+        document.getElementById('return-table-empty').classList.remove('hidden');
+        document.getElementById('return-lines-table').classList.add('hidden');
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-2 text-sm text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    async function renderSalesReports(container) {
+      var productsR = await fetchJson('/products');
+      var unitsR = await fetchJson('/units');
+      var products = productsR.data || [];
+      var units = unitsR.data || [];
+      window._salesProductMap = buildProductMap(products, units);
+      window._salesProducts = products;
+      var today = new Date().toISOString().slice(0, 10);
+      var firstDay = today.slice(0, 8) + '01';
+      container.innerHTML =
+        '<div id="sales-reports-root" class="font-sans" dir="rtl">' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4">' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">الفترة والعميل</h3>' +
+        '<div class="flex flex-wrap gap-3 items-end">' +
+        '<div><label class="text-slate-500 text-xs">من</label><input type="date" id="reports-from" value="' + firstDay + '" class="block mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-500 text-xs">إلى</label><input type="date" id="reports-to" value="' + today + '" class="block mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-500 text-xs">العميل (اختياري)</label><input type="text" id="reports-customer" placeholder="معرّف العميل" class="block mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-40"/></div>' +
+        '<button type="button" onclick="loadSalesReports()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">تحديث</button>' +
+        '</div></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">' +
+        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي الإيرادات</p><p id="reports-revenue" class="text-2xl font-bold text-emerald-400">0</p> ل.س</div>' +
+        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي الربح</p><p id="reports-profit" class="text-2xl font-bold text-emerald-400">0</p> ل.س</div>' +
+        '<div class="glass-card rounded-2xl p-4"><p class="text-slate-500 text-sm">إجمالي المرتجعات</p><p id="reports-returns" class="text-2xl font-bold text-rose-400">0</p> ل.س</div>' +
+        '</div>' +
+        '<div class="glass-card rounded-2xl p-4 shadow-lg">' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">الفواتير</h3>' +
+        '<div id="reports-invoices-table" class="overflow-x-auto"><p class="text-slate-500 py-4">جاري التحميل…</p></div></div>' +
+        '<div id="invoice-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeInvoiceDetailModal()">' +
+        '<div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">' +
+        '<h3 class="text-white font-medium mb-3">تفاصيل الفاتورة</h3>' +
+        '<div id="invoice-detail-content"></div>' +
+        '<button type="button" onclick="closeInvoiceDetailModal()" class="btn-3d mt-4 px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div>';
+      await loadSalesReports();
+    }
+
+    async function loadSalesReports() {
+      var fromDate = document.getElementById('reports-from')?.value || '';
+      var toDate = document.getElementById('reports-to')?.value || '';
+      var customerId = document.getElementById('reports-customer')?.value?.trim() || '';
+      var url = '/sales/invoices?fromDate=' + encodeURIComponent(fromDate) + '&toDate=' + encodeURIComponent(toDate);
+      if (customerId) url += '&customerId=' + encodeURIComponent(customerId);
+      var returnsUrl = '/sales/returns?fromDate=' + encodeURIComponent(fromDate) + '&toDate=' + encodeURIComponent(toDate);
+      try {
+        var invR = await fetchJson(url);
+        var retR = await fetchJson(returnsUrl);
+        var list = (invR.data || []);
+        var returnsList = (retR.data || []);
+        var totalRevenue = list.reduce(function(s, i) { return s + (Number(i.totalRevenue) || 0); }, 0);
+        var totalProfit = list.reduce(function(s, i) { return s + (Number(i.totalRevenue) || 0) - (Number(i.totalCogsSYP) || 0); }, 0);
+        var totalReturns = returnsList.reduce(function(s, r) { return s + (Number(r.totalAmount) || 0); }, 0);
+        document.getElementById('reports-revenue').textContent = totalRevenue.toFixed(0);
+        document.getElementById('reports-profit').textContent = totalProfit.toFixed(0);
+        document.getElementById('reports-returns').textContent = totalReturns.toFixed(0);
+        var map = window._salesProductMap || {};
+        var tableHtml = list.length === 0
+          ? '<p class="text-slate-500 py-4">لا توجد فواتير في هذه الفترة.</p>'
+          : '<table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">رقم الفاتورة</th><th class="p-2">العميل</th><th class="p-2">المبلغ</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody>' +
+            list.map(function(inv) {
+              var dateStr = inv.date ? inv.date.slice(0, 10) : '—';
+              var cust = inv.customerId || '—';
+              var amt = (Number(inv.totalRevenue) || 0).toFixed(0);
+              return '<tr class="border-b border-white/5">' +
+                '<td class="p-2 text-slate-300">' + dateStr + '</td>' +
+                '<td class="p-2 text-white">' + (inv.id || '—') + '</td>' +
+                '<td class="p-2">' + cust + '</td>' +
+                '<td class="p-2 text-emerald-400">' + amt + '</td>' +
+                '<td class="p-2 text-slate-500">—</td>' +
+                '<td class="p-2"><button type="button" onclick="openInvoiceDetail(\'' + (inv.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-emerald-400 text-xs px-2 py-1 rounded">عرض</button> <button type="button" onclick="printInvoiceFromReport(\'' + (inv.id || '').replace(/'/g, "\\'") + '\')" class="btn-3d text-slate-400 text-xs px-2 py-1 rounded">طباعة</button></td></tr>';
+            }).join('') + '</tbody></table>';
+        document.getElementById('reports-invoices-table').innerHTML = tableHtml;
+        window._salesReportsInvoices = list;
+      } catch (e) {
+        document.getElementById('reports-invoices-table').innerHTML = '<p class="text-rose-400 py-4">' + (e.message || 'خطأ في التحميل') + '</p>';
+      }
+    }
+
+    function openInvoiceDetail(invoiceId) {
+      var list = window._salesReportsInvoices || [];
+      var inv = list.find(function(i) { return i.id === invoiceId; });
+      if (!inv) return;
+      var map = window._salesProductMap || {};
+      var rows = (inv.items || []).map(function(l) {
+        var info = map.byId && map.byId[l.productId];
+        var name = (info && info.name) ? info.name : l.productId;
+        var total = (l.quantity || 0) * (l.unitPrice || 0);
+        return '<tr class="border-b border-white/5 text-right"><td class="p-2">' + name + '</td><td class="p-2">' + (l.unitId || 'piece') + '</td><td class="p-2">' + (l.quantity || 0) + '</td><td class="p-2">' + (l.unitPrice || 0) + '</td><td class="p-2 text-emerald-400">' + total.toFixed(0) + '</td></tr>';
+      });
+      document.getElementById('invoice-detail-content').innerHTML =
+        '<p class="text-slate-500 text-sm mb-2">' + (inv.id || '') + ' | ' + (inv.date ? inv.date.slice(0, 10) : '') + ' | ' + (inv.customerId || '—') + (inv.createdBy ? ' | أنشأها: ' + inv.createdBy : '') + '</p>' +
+        '<table class="w-full text-sm"><thead><tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2">الصنف</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">سعر</th><th class="p-2">المجموع</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      document.getElementById('invoice-detail-modal').classList.remove('hidden');
+    }
+
+    function closeInvoiceDetailModal() {
+      document.getElementById('invoice-detail-modal').classList.add('hidden');
+    }
+
+    function printInvoiceFromReport(invoiceId) {
+      var list = window._salesReportsInvoices || [];
+      var inv = list.find(function(i) { return i.id === invoiceId; });
+      if (!inv) return;
+      var map = window._salesProductMap || {};
+      var rows = (inv.items || []).map(function(l) {
+        var info = map.byId && map.byId[l.productId];
+        var name = (info && info.name) ? info.name : l.productId;
+        var total = (l.quantity || 0) * (l.unitPrice || 0);
+        return '<tr class="border-b border-slate-200"><td class="py-1 text-right">' + name + '</td><td class="py-1 text-center">' + (l.quantity || 0) + '</td><td class="py-1 text-left">' + total.toFixed(0) + '</td></tr>';
+      }).join('');
+      var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
+      var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var logoBase64 = branding.logoBase64 || '';
+      var headerHtml = (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" style="height:40px;width:40px;object-fit:contain;border-radius:4px;vertical-align:middle;margin-left:8px"/>' : '') + '<span style="font-size:1.125rem;font-weight:700">' + companyName + '</span>';
+      var html = '<div dir="rtl" style="font-family: Cairo, sans-serif; color: #111;">' +
+        '<div style="margin-bottom:1rem">' + headerHtml + '</div>' +
+        '<h2 class="text-lg font-bold mb-2">فاتورة بيع ' + (inv.id || '') + '</h2>' +
+        '<p>التاريخ: ' + (inv.date ? inv.date.slice(0, 10) : '') + ' | العميل: ' + (inv.customerId || '—') + '</p>' +
+        '<table class="w-full text-sm my-4"><thead><tr class="border-b-2 border-slate-300"><th class="py-2 text-right">الصنف</th><th class="py-2 text-center">الكمية</th><th class="py-2 text-left">المجموع</th></tr></thead><tbody>' + rows + '</tbody></table>' +
+        '<p class="text-right font-bold">الإجمالي: ' + (Number(inv.totalRevenue) || 0).toFixed(0) + ' ل.س</p></div>';
+      var win = window.open('', '_blank');
+      win.document.write('<html dir="rtl"><head><title>فاتورة ' + (inv.id || '') + '</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/><style>body{font-family:Cairo,sans-serif;padding:16px;color:#111;} table{width:100%;border-collapse:collapse;} th,td{border:1px solid #ddd;padding:6px;text-align:right;}</style></head><body>' + html + '</body></html>');
+      win.document.close();
+      win.focus();
+      setTimeout(function() { win.print(); win.close(); }, 300);
     }
 
     function renderSalesPlaceholder(container, moduleId) {
@@ -2431,6 +3174,7 @@
     (async function init() {
       await authCheck();
       if (document.getElementById('lock-screen').classList.contains('hidden') === false) return;
+      await loadAppConfig();
       await loadProducts();
       await Promise.all([
         refresh('fractioning'), refresh('barter'), refresh('multi-currency'), refresh('vision'), refresh('drafts'),

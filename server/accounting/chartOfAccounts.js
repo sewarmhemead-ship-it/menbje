@@ -30,6 +30,7 @@ export const DEFAULT_CHART = [
   { id: '3900', code: '3900', name: 'Retained earnings', type: ACCOUNT_TYPE.EQUITY },
   // Revenue (4xxx)
   { id: '4000', code: '4000', name: 'Sales revenue', type: ACCOUNT_TYPE.REVENUE },
+  { id: '4010', code: '4010', name: 'Sales returns', type: ACCOUNT_TYPE.REVENUE },
   { id: '4100', code: '4100', name: 'Barter revenue (fair value)', type: ACCOUNT_TYPE.REVENUE },
   // Expenses (5xxx)
   { id: '5000', code: '5000', name: 'Cost of goods sold (COGS)', type: ACCOUNT_TYPE.EXPENSE },
