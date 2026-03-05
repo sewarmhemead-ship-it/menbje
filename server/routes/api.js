@@ -683,10 +683,12 @@ router.post('/sales/return', (req, res) => {
 
     const returnId = 'sret-' + Date.now();
     let totalAmount = 0;
+    let totalDamagedAmount = 0;
     const movements = [];
+    const itemsToSave = [];
 
     for (const line of items) {
-      const { productId, unitId, returnQuantity, unitPrice } = line;
+      const { productId, unitId, returnQuantity, unitPrice, restock } = line;
       const u = unitId || 'piece';
       const returnQty = Number(returnQuantity) || 0;
       if (!productId || returnQty <= 0) continue;
@@ -708,19 +710,31 @@ router.post('/sales/return', (req, res) => {
       }
 
       const price = Number(unitPrice) != null ? Number(unitPrice) : Number(origLine.unitPrice) || 0;
-      totalAmount += returnQty * price;
+      const lineAmount = returnQty * price;
+      totalAmount += lineAmount;
 
-      const rule = fractioning.getFractioningRule(productId, u);
-      if (rule) {
-        const bulkQty = Math.ceil(returnQty / rule.factor);
-        fractioning.addBulkInventory(productId, rule.bulkUnitId, bulkQty);
-        fifo.receiveLot(productId, rule.bulkUnitId, bulkQty, 0);
-      } else {
-        fractioning.addBulkInventory(productId, u, returnQty);
-        fifo.receiveLot(productId, u, returnQty, 0);
+      const doRestock = restock !== false;
+      if (!doRestock) totalDamagedAmount += lineAmount;
+      itemsToSave.push({
+        productId,
+        unitId: u,
+        returnQuantity: returnQty,
+        unitPrice: price,
+        restock: doRestock,
+      });
+      if (doRestock) {
+        const rule = fractioning.getFractioningRule(productId, u);
+        if (rule) {
+          const bulkQty = Math.ceil(returnQty / rule.factor);
+          fractioning.addBulkInventory(productId, rule.bulkUnitId, bulkQty);
+          fifo.receiveLot(productId, rule.bulkUnitId, bulkQty, 0);
+        } else {
+          fractioning.addBulkInventory(productId, u, returnQty);
+          fifo.receiveLot(productId, u, returnQty, 0);
+        }
+        const mov = recordStockMovement(productId, u, returnQty, 'in', 'sales_return', returnId);
+        movements.push(mov);
       }
-      const mov = recordStockMovement(productId, u, returnQty, 'in', 'sales_return', returnId);
-      movements.push(mov);
     }
 
     if (totalAmount <= 0) {
@@ -748,8 +762,9 @@ router.post('/sales/return', (req, res) => {
       tenantId,
       invoiceId,
       date: new Date().toISOString(),
-      items: items.filter((l) => (Number(l.returnQuantity) || 0) > 0),
+      items: itemsToSave,
       totalAmount,
+      totalDamagedAmount: totalDamagedAmount || 0,
       refundToCash,
       entryIds: [r.entry.id],
       movements: movements.map((m) => m.id),
