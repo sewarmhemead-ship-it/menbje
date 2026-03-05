@@ -13,6 +13,7 @@ import importRoutes from './routes/import.js';
 import { seedDemoData, seedUsers, ensureDevAdmin } from './config/seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const dashboardPath = path.join(__dirname, '../dashboard');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -37,12 +38,18 @@ app.use('/api', apiRoutes);
 app.use('/api/fractioning', fractioningRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
-// Dashboard (static) — enabled when not on Vercel (Render / local); Vercel serves static via rewrites
+// Dashboard (static) — enabled when not on Vercel (Render / local)
 if (!process.env.VERCEL) {
-  app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
+  app.use('/dashboard', express.static(dashboardPath));
 }
-// Root redirect (local/Render; on Vercel this path is not hit)
-app.get('/', (req, res) => res.redirect('/dashboard/'));
+// Root and /login, /super-admin — only reached when not Vercel (Vercel 404s non-API first)
+app.get('/', (req, res) => res.redirect('/login'));
+app.get('/login', (req, res) => {
+  res.sendFile(path.join(dashboardPath, 'login.html'));
+});
+app.get('/super-admin', (req, res) => {
+  res.sendFile(path.join(dashboardPath, 'super-admin.html'));
+});
 
 // WhatsApp webhook (Meta expects this path often)
 app.use('/webhook/whatsapp', whatsappRoutes);
