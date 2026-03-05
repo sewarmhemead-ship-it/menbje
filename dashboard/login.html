@@ -21,70 +21,22 @@
       <h1 class="text-2xl font-bold text-white">Vault AI</h1>
       <p class="text-slate-500 text-sm mt-1">محاسبة ومؤسسات عالمية</p>
     </div>
-    <div class="flex gap-2 mb-6 rounded-xl bg-white/5 p-1">
-      <button type="button" id="btn-mode-customer" class="login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-500/20 text-emerald-400 border border-emerald-500/30">دخول كزبون</button>
-      <button type="button" id="btn-mode-admin" class="login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent">دخول كأدمن</button>
-    </div>
-
-    <div id="customer-panel">
-      <div id="login-form">
-        <input type="text" id="login-email" placeholder="البريد الإلكتروني أو اسم المستخدم" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="username" />
-        <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-        <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
-        <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
-        <button type="button" id="btn-show-register" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">إنشاء حساب جديد</button>
-        <div class="mt-5 pt-4 border-t border-white/10">
-          <p class="text-slate-500 text-xs mb-2">بيانات تجريبية للتسجيل:</p>
-          <div class="bg-white/5 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 space-y-1">
-            <p><span class="text-slate-500">أدمن:</span> basic@demo.local أو basic &nbsp; <span class="text-slate-500">كلمة المرور:</span> demo</p>
-            <p><span class="text-slate-500">كاشير:</span> cashier@demo.local أو cashier &nbsp; <span class="text-slate-500">كلمة المرور:</span> demo</p>
-            <p class="text-slate-500 text-[11px] mt-1">أو: pro@demo.local / enterprise@demo.local — نفس كلمة المرور: demo</p>
-          </div>
+    <div id="login-form">
+      <input type="text" id="login-email" placeholder="البريد الإلكتروني أو اسم المستخدم" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="username" />
+      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="current-password" />
+      <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
+      <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
+      <div class="mt-5 pt-4 border-t border-white/10">
+        <p class="text-slate-500 text-xs mb-2">حساب تطوير (Admin):</p>
+        <div class="bg-white/5 rounded-lg px-3 py-2 text-xs font-mono text-slate-300 space-y-1">
+          <p><span class="text-slate-500">Email:</span> admin@vault.local &nbsp; <span class="text-slate-500">Pass:</span> admin123</p>
         </div>
       </div>
-      <div id="register-form" class="hidden">
-        <input type="email" id="reg-email" placeholder="البريد الإلكتروني" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-        <input type="password" id="reg-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" />
-        <p id="reg-error" class="text-rose-400 text-sm mb-3 hidden"></p>
-        <p id="reg-success" class="text-emerald-400 text-sm mb-3 hidden"></p>
-        <button type="button" id="btn-register" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">إنشاء الحساب</button>
-        <button type="button" id="btn-show-login" class="w-full py-2 mt-3 text-slate-400 hover:text-white text-sm">لديك حساب؟ تسجيل الدخول</button>
-      </div>
-    </div>
-
-    <div id="admin-panel" class="hidden">
-      <p class="text-slate-400 text-sm mb-4 text-center">لوحة إدارة النظام. أدخل المفتاح السري في الصفحة التالية.</p>
-      <a href="super-admin.html" class="block w-full py-3 rounded-xl bg-amber-500/20 text-amber-400 font-medium text-center border border-amber-500/30 hover:bg-amber-500/30 transition-colors">دخول بالمفتاح السري</a>
     </div>
   </div>
   <script>
     const API = window.location.origin + '/api';
 
-    document.getElementById('btn-mode-customer').onclick = () => {
-      document.getElementById('customer-panel').classList.remove('hidden');
-      document.getElementById('admin-panel').classList.add('hidden');
-      const c = document.getElementById('btn-mode-customer');
-      const a = document.getElementById('btn-mode-admin');
-      c.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-emerald-500/20 text-emerald-400 border border-emerald-500/30';
-      a.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent';
-    };
-    document.getElementById('btn-mode-admin').onclick = () => {
-      document.getElementById('customer-panel').classList.add('hidden');
-      document.getElementById('admin-panel').classList.remove('hidden');
-      const c = document.getElementById('btn-mode-customer');
-      const a = document.getElementById('btn-mode-admin');
-      c.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors text-slate-400 hover:text-white border border-transparent';
-      a.className = 'login-mode flex-1 py-2.5 rounded-lg text-sm font-medium transition-colors bg-amber-500/20 text-amber-400 border border-amber-500/30';
-    };
-
-    document.getElementById('btn-show-register').onclick = () => {
-      document.getElementById('login-form').classList.add('hidden');
-      document.getElementById('register-form').classList.remove('hidden');
-    };
-    document.getElementById('btn-show-login').onclick = () => {
-      document.getElementById('register-form').classList.add('hidden');
-      document.getElementById('login-form').classList.remove('hidden');
-    };
     document.getElementById('btn-login').onclick = async () => {
       const email = document.getElementById('login-email').value.trim();
       const password = document.getElementById('login-password').value;
@@ -98,24 +50,6 @@
         localStorage.setItem('vault_token', j.data.token);
         localStorage.setItem('vault_user', JSON.stringify(j.data.user));
         window.location.href = 'index.html';
-      } catch (e) {
-        err.textContent = 'خطأ في الاتصال';
-        err.classList.remove('hidden');
-      }
-    };
-    document.getElementById('btn-register').onclick = async () => {
-      const email = document.getElementById('reg-email').value.trim();
-      const password = document.getElementById('reg-password').value;
-      const err = document.getElementById('reg-error');
-      const ok = document.getElementById('reg-success');
-      err.classList.add('hidden'); ok.classList.add('hidden');
-      if (!email || !password) { err.textContent = 'أدخل البريد وكلمة المرور'; err.classList.remove('hidden'); return; }
-      try {
-        const r = await fetch(API + '/auth/register', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email, password }) });
-        const j = await r.json();
-        if (!j.success) { err.textContent = j.error || 'فشل إنشاء الحساب'; err.classList.remove('hidden'); return; }
-        ok.textContent = j.data.message || 'تم إنشاء الحساب. بانتظار التفعيل من الإدارة.';
-        ok.classList.remove('hidden');
       } catch (e) {
         err.textContent = 'خطأ في الاتصال';
         err.classList.remove('hidden');

@@ -75,3 +75,23 @@ export function seedUsers() {
   users.set('u-demo-enterprise', { id: 'u-demo-enterprise', username: 'enterprise', email: 'enterprise@demo.local', password: 'demo', fullName: 'مدير مؤسسة', tier: 'enterprise', status: 'active', tenantId: 'default', role: 'ADMIN', expiresAt: exp, createdAt: now.toISOString() });
   users.set('u-demo-cashier', { id: 'u-demo-cashier', username: 'cashier', email: 'cashier@demo.local', password: 'demo', fullName: 'كاشير تجريبي', tier: 'basic', status: 'active', tenantId: 'default', role: 'CASHIER', expiresAt: exp, createdAt: now.toISOString() });
 }
+
+/** Dev/admin master key: always present so login works and session is valid (used with JWT on serverless). */
+export function ensureDevAdmin() {
+  const now = new Date();
+  const exp = new Date(now.getTime() + 365 * 24 * 60 * 60 * 1000).toISOString();
+  const id = 'u-admin-vault';
+  users.set(id, {
+    id,
+    username: 'admin',
+    email: 'admin@vault.local',
+    password: 'admin123',
+    fullName: 'Admin',
+    tier: 'enterprise',
+    status: 'active',
+    tenantId: 'default',
+    role: 'ADMIN',
+    expiresAt: exp,
+    createdAt: now.toISOString(),
+  });
+}

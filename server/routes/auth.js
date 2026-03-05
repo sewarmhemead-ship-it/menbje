@@ -1,17 +1,15 @@
 /**
  * Auth routes: login, register, me.
  * Passwords stored in plain for demo; use bcrypt in production.
+ * Login returns a JWT so the token works on serverless (Vercel) where in-memory sessions are not shared.
  */
 
 import { Router } from 'express';
 import { store } from '../config/store.js';
 import { requireAuth } from '../auth/middleware.js';
+import { createJWT } from '../auth/jwt.js';
 
 const router = Router();
-
-function makeToken() {
-  return 'tk_' + Date.now() + '_' + Math.random().toString(36).slice(2, 12);
-}
 
 router.post('/login', (req, res) => {
   const { email, username, password } = req.body || {};
@@ -31,8 +29,7 @@ router.post('/login', (req, res) => {
   if (user.status === 'expired' || (user.expiresAt && new Date(user.expiresAt) < new Date())) {
     return res.status(403).json({ success: false, error: 'انتهت صلاحية الحساب', code: 'EXPIRED' });
   }
-  const token = makeToken();
-  store.sessions.set(token, { userId: user.id, createdAt: new Date().toISOString() });
+  const token = createJWT(user);
   const expiresAt = user.expiresAt ? new Date(user.expiresAt) : null;
   const daysLeft = expiresAt ? Math.ceil((expiresAt - new Date()) / (24 * 60 * 60 * 1000)) : null;
   res.json({

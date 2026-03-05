@@ -10,7 +10,7 @@ import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import superAdminRoutes from './routes/superAdmin.js';
 import importRoutes from './routes/import.js';
-import { seedDemoData, seedUsers } from './config/seed.js';
+import { seedDemoData, seedUsers, ensureDevAdmin } from './config/seed.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -37,6 +37,7 @@ app.use('/webhook/whatsapp', whatsappRoutes);
 
 seedDemoData();
 seedUsers();
+ensureDevAdmin();
 
 // Only listen when not on Vercel (serverless handles requests there)
 if (!process.env.VERCEL) {

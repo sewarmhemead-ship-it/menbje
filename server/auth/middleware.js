@@ -1,9 +1,11 @@
 /**
  * Auth middleware: resolve token from header/cookie/body and attach user to req.
+ * Supports JWT (jwt_...) so tokens work on serverless (Vercel) without session store.
  * Super-admin routes use Master-Key header separately.
  */
 
 import { store } from '../config/store.js';
+import { verifyJWT } from './jwt.js';
 
 const TIER_FEATURES = {
   basic: ['accounting', 'inventory', 'dashboard', 'settings'],
@@ -11,19 +13,26 @@ const TIER_FEATURES = {
   enterprise: ['accounting', 'inventory', 'dashboard', 'settings', 'barter', 'currency', 'vision', 'whatsapp'],
 };
 
+function resolveUser(token) {
+  if (!token) return null;
+  if (token.startsWith('jwt_')) {
+    const payload = verifyJWT(token);
+    if (!payload || !payload.userId) return null;
+    return store.users.get(payload.userId) || null;
+  }
+  const session = store.sessions.get(token);
+  if (!session) return null;
+  return store.users.get(session.userId) || null;
+}
+
 export function requireAuth(req, res, next) {
   const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query?.token || req.body?.token;
   if (!token) {
     return res.status(401).json({ success: false, error: 'غير مصرح', code: 'UNAUTHORIZED' });
   }
-  const session = store.sessions.get(token);
-  if (!session) {
-    return res.status(401).json({ success: false, error: 'انتهت الجلسة', code: 'UNAUTHORIZED' });
-  }
-  const user = store.users.get(session.userId);
+  const user = resolveUser(token);
   if (!user) {
-    store.sessions.delete(token);
-    return res.status(401).json({ success: false, error: 'المستخدم غير موجود', code: 'UNAUTHORIZED' });
+    return res.status(401).json({ success: false, error: 'انتهت الجلسة', code: 'UNAUTHORIZED' });
   }
   if (user.status === 'suspended') {
     return res.status(403).json({ success: false, error: 'تم إيقاف الحساب، يرجى مراجعة الإدارة', code: 'SUSPENDED' });
@@ -44,8 +53,7 @@ export function optionalAuth(req, res, next) {
     req.tierFeatures = TIER_FEATURES.basic;
     return next();
   }
-  const session = store.sessions.get(token);
-  const user = session ? store.users.get(session.userId) : null;
+  const user = resolveUser(token);
   req.user = user || null;
   req.token = user ? token : null;
   req.tierFeatures = user ? (TIER_FEATURES[user.tier] || TIER_FEATURES.basic) : TIER_FEATURES.basic;
