@@ -1115,12 +1115,8 @@
 
     setTimeout(function() {
       var s = document.getElementById('splash');
-      if (s) { s.classList.add('splash-out'); setTimeout(function() { s.remove(); }, 600); }
-    }, 1500);
-    setTimeout(function() {
-      var s = document.getElementById('splash');
-      if (s) { s.classList.add('splash-out'); s.remove(); }
-    }, 3000);
+      if (s) { s.classList.add('splash-out'); setTimeout(function() { s.remove(); }, 400); }
+    }, 1000);
 
     function updateOfflineIndicator() {
       var el = document.getElementById('offline-indicator');

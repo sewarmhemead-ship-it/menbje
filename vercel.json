@@ -1,14 +1,9 @@
 {
   "version": 2,
+  "cleanUrls": false,
+  "trailingSlash": false,
   "rewrites": [
-    { "source": "/api", "destination": "/api" },
     { "source": "/api/(.*)", "destination": "/api" },
-    { "source": "/", "destination": "/dashboard/index.html" }
-  ],
-  "functions": {
-    "api/index.js": {
-      "memory": 1024,
-      "maxDuration": 10
-    }
-  }
+    { "source": "/(.*)", "destination": "/dashboard/index.html" }
+  ]
 }
