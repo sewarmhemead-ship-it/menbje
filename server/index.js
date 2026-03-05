@@ -20,6 +20,15 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// On Vercel: only handle /api and /webhook — avoid handling / or static paths (prevents 307 loop)
+if (process.env.VERCEL) {
+  app.use((req, res, next) => {
+    const p = (req.path || req.url || '').split('?')[0];
+    if (p.startsWith('/api') || p.startsWith('/webhook')) return next();
+    res.status(404).end();
+  });
+}
+
 // API
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
@@ -28,8 +37,9 @@ app.use('/api', apiRoutes);
 app.use('/api/fractioning', fractioningRoutes);
 app.use('/api/whatsapp', whatsappRoutes);
 
-// Dashboard (static)
-app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
+// Dashboard (static) — DISABLED on Vercel: Vercel serves static via rewrites; Express serving here causes 307 loop
+// app.use('/dashboard', express.static(path.join(__dirname, '../dashboard')));
+// Catch-all redirect — DISABLED to prevent 307 loop
 // app.get('/', (req, res) => res.redirect('/dashboard/'));
 
 // WhatsApp webhook (Meta expects this path often)
