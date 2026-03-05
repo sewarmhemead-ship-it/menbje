@@ -23,6 +23,21 @@
       background: rgba(16, 185, 129, 0.15);
       box-shadow: 0 0 0 1px rgba(16, 185, 129, 0.4), 0 0 20px rgba(16, 185, 129, 0.08);
     }
+    .login-credentials-box {
+      background: rgba(16, 185, 129, 0.06);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(16, 185, 129, 0.25);
+      border-radius: 0.75rem;
+      padding: 0.75rem 1rem;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 0.8125rem;
+      text-align: right;
+      width: 100%;
+      max-width: 260px;
+    }
+    .login-credentials-box .label { color: rgba(255, 255, 255, 0.5); font-size: 0.75rem; margin-bottom: 0.35rem; }
+    .login-credentials-box .line { margin-top: 0.25rem; }
   </style>
 </head>
 <body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen flex items-center justify-center p-4">
@@ -40,6 +55,11 @@
         <button type="button" id="btn-admin-demo" onclick="adminQuickLogin(); return false;" class="admin-demo-badge w-full max-w-[260px] py-2.5 px-4 rounded-xl text-sm font-medium text-emerald-300/95 border border-emerald-500/30 bg-emerald-500/10 hover:bg-emerald-500/20 hover:border-emerald-500/50 transition-all duration-200 backdrop-blur-sm">
           دخول تجريبي للمدير (Super Admin)
         </button>
+        <div class="login-credentials-box">
+          <div class="label">بيانات الدخول التجريبي:</div>
+          <div class="line">Email: admin@vault.local</div>
+          <div class="line">Password: admin123</div>
+        </div>
       </div>
     </div>
   </div>
