@@ -514,9 +514,15 @@
 
       <!-- Dashboard (mobile default / overview) -->
       <section id="section-dashboard" data-section>
-        <div class="flex items-center gap-2 mb-4">
-          <h2 class="page-title-h2">لوحة التحكم</h2>
-          <span class="page-desc font-medium">Vault AI</span>
+        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+          <div class="flex items-center gap-2">
+            <h2 class="page-title-h2">لوحة التحكم</h2>
+            <span class="page-desc font-medium">Vault AI</span>
+          </div>
+          <button type="button" onclick="openDailySummary()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-medium text-sm hover:bg-emerald-500/30 transition-colors" title="جردة المساء">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+            ملخص اليوم
+          </button>
         </div>
         <p class="page-desc mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -832,6 +838,46 @@
         <button type="button" onclick="shareContactViaWhatsApp()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium inline-flex items-center gap-2"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>مشاركة عبر واتساب</button>
         <button type="button" onclick="printContactStatement()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button>
         <button type="button" onclick="closeContactProfile()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Daily Summary (جردة المساء) modal -->
+  <div id="daily-summary-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closeDailySummary()">
+    <div class="glass-card rounded-2xl p-5 max-w-3xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-semibold text-white mb-1">تقرير الجرد اليومي</h3>
+      <p id="daily-summary-date" class="text-slate-400 text-sm mb-4">—</p>
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+          <p class="text-slate-400 text-xs mb-1">مبيعات اليوم</p>
+          <p id="daily-summary-sales" class="text-xl font-bold text-emerald-400">—</p>
+        </div>
+        <div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 p-4">
+          <p class="text-slate-400 text-xs mb-1">وارد الصندوق (سندات قبض)</p>
+          <p id="daily-summary-cash-in" class="text-xl font-bold text-emerald-400">—</p>
+        </div>
+        <div class="rounded-xl border border-amber-500/20 bg-amber-500/10 p-4">
+          <p class="text-slate-400 text-xs mb-1">صادر الصندوق (سندات دفع)</p>
+          <p id="daily-summary-expenses" class="text-xl font-bold text-amber-400">—</p>
+        </div>
+      </div>
+      <div class="rounded-xl border border-white/10 bg-white/5 p-4 mb-4">
+        <p class="text-slate-400 text-sm mb-1">صافي حركة الصندوق اليوم</p>
+        <p id="daily-summary-net-cash" class="text-2xl font-extrabold text-white">— ل.س</p>
+      </div>
+      <div class="mb-4">
+        <h4 class="text-sm font-medium text-slate-400 mb-2">تنبيهات المخزون المنخفض</h4>
+        <div class="detail-table-wrap overflow-x-auto max-h-48">
+          <table class="table-glass w-full text-sm text-right">
+            <thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الصنف</th><th class="p-2">المتوفر</th><th class="p-2">الحد الأدنى</th></tr></thead>
+            <tbody id="daily-summary-low-stock"></tbody>
+          </table>
+        </div>
+        <p id="daily-summary-low-stock-empty" class="text-slate-500 text-sm py-2 hidden">كل الأصناف متوفرة.</p>
+      </div>
+      <div class="flex flex-wrap gap-2">
+        <button type="button" onclick="printDailySummary()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة التقرير</button>
+        <button type="button" onclick="closeDailySummary()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button>
       </div>
     </div>
   </div>
@@ -1692,6 +1738,101 @@
     function closeSupplierContactModal() {
       var m = document.getElementById('supplier-contact-modal');
       if (m) m.classList.add('hidden');
+    }
+
+    window._dailySummaryData = null;
+    async function openDailySummary() {
+      var modal = document.getElementById('daily-summary-modal');
+      var dateEl = document.getElementById('daily-summary-date');
+      var salesEl = document.getElementById('daily-summary-sales');
+      var cashInEl = document.getElementById('daily-summary-cash-in');
+      var expensesEl = document.getElementById('daily-summary-expenses');
+      var netEl = document.getElementById('daily-summary-net-cash');
+      var lowStockTbody = document.getElementById('daily-summary-low-stock');
+      var lowStockEmpty = document.getElementById('daily-summary-low-stock-empty');
+      if (!modal) return;
+      var today = new Date().toISOString().slice(0, 10);
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow = tomorrow.toISOString().slice(0, 10);
+      dateEl.textContent = 'تاريخ: ' + today;
+      salesEl.textContent = '—';
+      cashInEl.textContent = '—';
+      expensesEl.textContent = '—';
+      netEl.textContent = '— ل.س';
+      lowStockTbody.innerHTML = '<tr><td colspan="3" class="p-2 text-slate-500 text-center">جاري التحميل…</td></tr>';
+      if (lowStockEmpty) lowStockEmpty.classList.add('hidden');
+      modal.classList.remove('hidden');
+      try {
+        var invRes = await fetch(API + '/sales/invoices?fromDate=' + today + '&toDate=' + tomorrow, { headers: getAuthHeaders() });
+        var invJson = await invRes.json();
+        var journalRes = await fetch(API + '/journal?fromDate=' + today + '&toDate=' + tomorrow + '&limit=500', { headers: getAuthHeaders() });
+        var journalJson = await journalRes.json();
+        var lowRes = await fetch(API + '/dashboard/low-stock', { headers: getAuthHeaders() });
+        var lowJson = await lowRes.json();
+        var invoices = (invJson.data || []).filter(function(inv) { return (inv.date || '').slice(0, 10) === today; });
+        var totalSales = invoices.reduce(function(s, inv) { return s + (Number(inv.totalRevenue) || 0); }, 0);
+        var entries = journalJson.data || [];
+        var CASH_IDS = ['1010', '1020'];
+        var cashInflow = entries.reduce(function(s, e) {
+          if (CASH_IDS.indexOf(e.debitAccountId) >= 0) return s + (Number(e.amountSYP) || 0);
+          return s;
+        }, 0);
+        var cashOutflow = entries.reduce(function(s, e) {
+          if (CASH_IDS.indexOf(e.creditAccountId) >= 0) return s + (Number(e.amountSYP) || 0);
+          return s;
+        }, 0);
+        var netCash = cashInflow - cashOutflow;
+        salesEl.textContent = formatNum(totalSales) + ' ل.س';
+        cashInEl.textContent = formatNum(cashInflow) + ' ل.س';
+        expensesEl.textContent = formatNum(cashOutflow) + ' ل.س';
+        netEl.textContent = formatNum(netCash) + ' ل.س';
+        if (netCash >= 0) netEl.classList.remove('text-rose-400'); netEl.classList.add('text-white');
+        if (netCash < 0) netEl.classList.add('text-rose-400');
+        var lowList = (lowJson.success && lowJson.data) ? lowJson.data : [];
+        if (!lowList.length) {
+          lowStockTbody.innerHTML = '';
+          if (lowStockEmpty) { lowStockEmpty.textContent = 'كل الأصناف متوفرة.'; lowStockEmpty.classList.remove('hidden'); }
+        } else {
+          lowStockTbody.innerHTML = lowList.map(function(item) {
+            var name = (item.name || item.id || '—').toString().replace(/</g, '&lt;');
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + name + '</td><td class="p-2 text-amber-400">' + formatNum(item.current_stock) + '</td><td class="p-2">' + formatNum(item.min_stock_level) + '</td></tr>';
+          }).join('');
+          if (lowStockEmpty) lowStockEmpty.classList.add('hidden');
+        }
+        window._dailySummaryData = { date: today, totalSales: totalSales, cashInflow: cashInflow, cashOutflow: cashOutflow, netCash: netCash, lowStock: lowList };
+      } catch (e) {
+        salesEl.textContent = 'خطأ';
+        if (lowStockTbody) lowStockTbody.innerHTML = '<tr><td colspan="3" class="p-2 text-rose-400">تعذر التحميل: ' + (e.message || '') + '</td></tr>';
+      }
+    }
+    function closeDailySummary() {
+      var m = document.getElementById('daily-summary-modal');
+      if (m) m.classList.add('hidden');
+      window._dailySummaryData = null;
+    }
+    function printDailySummary() {
+      var d = window._dailySummaryData;
+      if (!d) { alert('لا يوجد بيانات للطباعة. افتح ملخص اليوم أولاً.'); return; }
+      var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+      var t = getPrintHeaderTemplate('تقرير الجرد اليومي', printDate, { showPageNumber: false });
+      var lowRows = (d.lowStock || []).map(function(item) {
+        var name = (item.name || item.id || '—').toString().replace(/</g, '&lt;');
+        return '<tr class="print-td-row"><td class="print-td">' + name + '</td><td class="print-td">' + formatNum(item.current_stock) + '</td><td class="print-td">' + formatNum(item.min_stock_level) + '</td></tr>';
+      }).join('');
+      var lowTable = lowRows ? '<table class="print-table"><thead><tr class="print-th"><th class="print-th">الصنف</th><th class="print-th">المتوفر</th><th class="print-th">الحد الأدنى</th></tr></thead><tbody>' + lowRows + '</tbody></table>' : '<p class="print-period">كل الأصناف متوفرة.</p>';
+      var bodyHtml = '<div class="print-body" dir="rtl" style="font-family:Cairo,Tajawal,sans-serif">' +
+        '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:12px;">تقرير الجرد اليومي — ' + (d.date || '').replace(/</g, '&lt;') + '</h2>' +
+        '<p style="margin-bottom:12px;"><strong>مبيعات اليوم:</strong> ' + formatNum(d.totalSales) + ' ل.س</p>' +
+        '<p style="margin-bottom:12px;"><strong>وارد الصندوق:</strong> ' + formatNum(d.cashInflow) + ' ل.س · <strong>صادر الصندوق:</strong> ' + formatNum(d.cashOutflow) + ' ل.س</p>' +
+        '<p style="margin-bottom:16px;"><strong>صافي حركة الصندوق:</strong> ' + formatNum(d.netCash) + ' ل.س</p>' +
+        '<h4 style="font-size:1rem;margin:12px 0 8px;">تنبيهات المخزون المنخفض</h4>' + lowTable +
+        '</div>';
+      var win = window.open('', '_blank');
+      win.document.write('<html dir="rtl"><head><title>تقرير الجرد اليومي</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body style="background:#fff;color:#111">' + t.headerHTML + bodyHtml + '</body></html>');
+      win.document.close();
+      win.focus();
+      setTimeout(function() { win.print(); win.close(); }, 300);
     }
 
     function loadProfitReport() {
