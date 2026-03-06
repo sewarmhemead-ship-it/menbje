@@ -45,6 +45,9 @@ const companyProfile = { logoUrl: null, taxId: null, defaultCurrency: 'SYP', nam
 const users = new Map();       // id -> { id, username, email, password, fullName, role, tier, status, tenantId, expiresAt, createdAt }
 const sessions = new Map();    // token -> { userId, createdAt }
 
+// Suppliers (الموردين): for procurement and purchase returns
+const suppliers = new Map();   // id -> { id, name, phone, address, tenantId, createdAt }
+
 export const store = {
   products,
   units,
@@ -74,6 +77,7 @@ export const store = {
   companyProfile,
   users,
   sessions,
+  suppliers,
 };
 
 export function getNextId(collection) {

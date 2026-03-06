@@ -6,7 +6,8 @@
   "type": "module",
   "scripts": {
     "start": "node server/index.js",
-    "dev": "node --watch server/index.js"
+    "dev": "node --watch server/index.js",
+    "simulate": "node scripts/simulate-live-test.js"
   },
   "keywords": ["pos", "inventory", "barter", "multi-currency", "fractioning", "whatsapp"],
   "author": "",

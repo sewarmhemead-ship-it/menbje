@@ -42,7 +42,26 @@
     :root {
       --primary-color: #10b981;
       --secondary-color: #34d399;
+      /* Typography scale */
+      --text-h1: 1.5rem;
+      --text-h2: 1.25rem;
+      --text-h3: 1rem;
+      --text-desc: 0.875rem;
+      --text-muted: 0.8125rem;
+      /* Spacing scale: 4 8 12 16 24 (Tailwind 1=4px) */
+      --space-1: 0.25rem;
+      --space-2: 0.5rem;
+      --space-3: 0.75rem;
+      --space-4: 1rem;
+      --space-6: 1.5rem;
     }
+    .page-title-h1 { font-size: var(--text-h1); font-weight: 700; color: #fff; }
+    .page-title-h2 { font-size: var(--text-h2); font-weight: 600; color: #fff; }
+    .page-title-h3 { font-size: var(--text-h3); font-weight: 500; color: #e2e8f0; }
+    .page-desc { font-size: var(--text-desc); color: #94a3b8; }
+    .state-empty, .state-loading { font-size: var(--text-desc); color: #94a3b8; text-align: center; padding: var(--space-6); }
+    .state-error { font-size: var(--text-desc); color: #f87171; padding: var(--space-4); }
+    .card-standard { background: rgb(15 23 42 / 0.5); border: 1px solid rgb(30 41 59); border-radius: 0.75rem; padding: 1.5rem; }
     .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
     .glass-card { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255,255,255,0.06); transition: transform 0.2s ease-out, box-shadow 0.25s ease; }
     .glass-card:hover { transform: translateY(-1px); box-shadow: 0 12px 28px -8px rgba(0,0,0,0.35), 0 0 0 1px rgba(255,255,255,0.04); }
@@ -115,7 +134,10 @@
     .chart-card { transform-style: preserve-3d; perspective: 800px; transition: transform 0.2s ease-out, box-shadow 0.3s ease; border: 1px solid rgba(255,255,255,0.06); }
     .chart-card:hover { transform: translateY(-2px); box-shadow: 0 24px 48px -12px rgba(0,0,0,0.5), 0 0 0 1px rgba(255,255,255,0.04), 0 12px 32px -8px rgba(16, 185, 129, 0.12); }
     .chart-card .chart-inner { border-radius: 1rem; overflow: hidden; position: relative; box-shadow: inset 0 2px 12px rgba(0,0,0,0.2); }
-    .chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 10rem; color: #64748b; font-size: 0.875rem; text-align: center; padding: 1rem; }
+    .chart-empty { display: flex; align-items: center; justify-content: center; height: 100%; min-height: 10rem; color: #94a3b8; font-size: var(--text-desc); text-align: center; padding: var(--space-4); }
+    .dashboard-hero-card { border: 1px solid rgba(16, 185, 129, 0.35); box-shadow: 0 0 24px rgba(16, 185, 129, 0.12); padding: var(--space-6); }
+    .table-sticky-header thead th { position: sticky; top: 0; z-index: 10; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.12); }
+    .table-zebra tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
     @media (max-width: 1023px) {
       #section-dashboard .grid { display: flex; flex-direction: column; gap: 1rem; }
       #section-dashboard .chart-card { min-width: 0; }
@@ -283,14 +305,27 @@
     </div>
   </div>
 
+  <!-- Supplier contact modal (تنبيهات المخزون) -->
+  <div id="supplier-contact-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeSupplierContactModal()">
+    <div class="card-standard max-w-sm w-full" onclick="event.stopPropagation()">
+      <h3 class="page-title-h3 mb-3">معلومات المورد</h3>
+      <div id="supplier-contact-content" class="text-slate-300 text-sm"></div>
+      <button type="button" onclick="closeSupplierContactModal()" class="mt-4 w-full py-2 rounded-lg bg-white/10 text-slate-300 text-sm font-medium tap-haptic">إغلاق</button>
+    </div>
+  </div>
+
   <!-- Professional Menu Bar (ملف، تحرير، المبيعات، …) -->
   <header class="top-nav fixed top-0 left-0 right-0 z-40 hidden md:block">
-    <div class="flex items-center h-12 px-3 gap-1">
-      <div class="flex items-center gap-2 shrink-0 mr-4">
+    <div class="flex items-center h-12 px-3 gap-2">
+      <div class="flex items-center gap-2 shrink-0 mr-2">
         <div class="w-8 h-8 rounded-lg bg-emerald-500/20 flex items-center justify-center">
           <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
         </div>
         <span class="font-semibold text-white">Vault AI</span>
+      </div>
+      <div class="flex-1 max-w-xs min-w-[160px] hidden sm:block relative">
+        <input type="text" id="header-search-input" placeholder="بحث: صنف، فاتورة، عميل" class="header-search w-full h-8 bg-white/5 border border-white/10 rounded-lg px-3 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-emerald-500/50 outline-none" autocomplete="off"/>
+        <div id="header-search-dropdown" class="hidden absolute top-full left-0 right-0 mt-1 max-h-64 overflow-auto glass rounded-lg shadow-xl border border-white/10 py-1 z-50"></div>
       </div>
       <nav class="flex items-center gap-0.5 flex-wrap" id="menu-bar">
         <div class="menu-item-wrap relative group">
@@ -305,8 +340,15 @@
         </div>
         <div class="menu-item-wrap relative group">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">تحرير</button>
-          <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[160px] glass rounded-lg shadow-xl py-1 border border-white/10">
-            <button type="button" class="w-full text-right px-4 py-2 text-sm text-slate-500 cursor-not-allowed">بحث</button>
+          <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
+            <div class="px-3 py-2 border-b border-white/10">
+              <input type="text" id="global-search-input" placeholder="بحث: صنف، فاتورة، عميل" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-1.5 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-emerald-500/50 outline-none" autocomplete="off"/>
+            </div>
+            <div id="global-search-dropdown" class="max-h-64 overflow-auto py-1 hidden">
+              <div id="search-results-products" class="text-xs text-slate-500 px-3 py-1">أصناف</div>
+              <div id="search-results-invoices" class="text-xs text-slate-500 px-3 py-1">فواتير</div>
+              <div id="search-results-customers" class="text-xs text-slate-500 px-3 py-1">عملاء</div>
+            </div>
           </div>
         </div>
         <div class="menu-item-wrap relative group">
@@ -321,6 +363,8 @@
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">المشتريات</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[200px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" onclick="openModule('purchase-invoice','فاتورة مشتريات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">فاتورة مشتريات</button>
+            <button type="button" onclick="openModule('purchase-return','مرتجع مشتريات')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">مرتجع مشتريات</button>
+            <button type="button" onclick="openModule('suppliers','الموردين')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">الموردين</button>
           </div>
         </div>
         <div class="menu-item-wrap relative group" data-rbac="admin">
@@ -449,14 +493,19 @@
       <!-- Dashboard (mobile default / overview) -->
       <section id="section-dashboard" data-section>
         <div class="flex items-center gap-2 mb-4">
-          <h2 class="text-lg md:text-xl font-semibold text-white">لوحة التحكم</h2>
-          <span class="text-xs text-slate-500 font-medium">Vault AI</span>
+          <h2 class="page-title-h2">لوحة التحكم</h2>
+          <span class="page-desc font-medium">Vault AI</span>
         </div>
-        <p class="text-slate-500 text-sm mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
-        <div class="flex flex-col gap-4">
+        <p class="page-desc mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div class="glass-card bento-tilt rounded-2xl p-8 border border-emerald-500/20 dashboard-hero-card md:col-span-2" id="dashboard-cash-card">
+            <h3 class="text-sm font-medium text-slate-400 mb-1">رصيد الصندوق</h3>
+            <p class="text-4xl font-extrabold text-emerald-400" id="dashboard-cash-total">— ل.س</p>
+            <p class="text-xs text-slate-500 mt-1" id="dashboard-cash-detail">صندوق ل.س + صندوق دولار (بالل.س)</p>
+          </div>
           <div class="glass-card bento-tilt rounded-2xl p-4">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
-            <div id="dashboard-tb" class="text-white text-sm">جاري التحميل…</div>
+            <div id="dashboard-tb" class="text-white text-sm state-loading">جاري التحميل…</div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-4 flex flex-col items-center" data-rbac="admin">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ربح القوة الشرائية</h3>
@@ -465,20 +514,31 @@
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-4">
             <h3 class="text-sm font-medium text-slate-400 mb-2">آخر النشاط</h3>
-            <div id="dashboard-journal" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <div id="dashboard-journal" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
+          </div>
+          <div id="dashboard-low-stock-alerts" class="card-standard md:col-span-2">
+            <h3 class="page-title-h3 text-slate-400 mb-2">تنبيهات المخزون المنخفض</h3>
+            <p class="page-desc mb-3">أصناف تحت الحد الأدنى للمخزون.</p>
+            <div id="low-stock-alerts-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
+          </div>
+          <div id="dashboard-profit-report" class="card-standard md:col-span-2">
+            <h3 class="page-title-h3 text-slate-400 mb-2">تحليل أرباحك وسيولتك</h3>
+            <p class="page-desc mb-3">توزيع الأصول: نقدية، ذمم مدينة، مخزون.</p>
+            <div id="profit-report-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
+            <div id="profit-report-insight" class="mt-3 text-sm hidden"></div>
           </div>
           <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
             <div class="glass-card chart-card rounded-2xl p-4">
               <h3 class="text-sm font-medium text-slate-400 mb-2">الإيرادات vs المصروفات (آخر 30 يوم)</h3>
               <div class="chart-inner h-48 relative">
-                <div id="chart-revenue-expenses-empty" class="chart-empty hidden">لا بيانات</div>
+                <div id="chart-revenue-expenses-empty" class="chart-empty state-empty hidden">لا بيانات</div>
                 <canvas id="chart-revenue-expenses" class="w-full max-w-full"></canvas>
               </div>
             </div>
             <div class="glass-card chart-card rounded-2xl p-4">
               <h3 class="text-sm font-medium text-slate-400 mb-2">توزيع المصروفات</h3>
               <div class="chart-inner h-48 relative">
-                <div id="chart-expense-pie-empty" class="chart-empty hidden">لا مصروفات</div>
+                <div id="chart-expense-pie-empty" class="chart-empty state-empty hidden">لا مصروفات</div>
                 <canvas id="chart-expense-pie" class="w-full max-w-full"></canvas>
               </div>
             </div>
@@ -487,7 +547,7 @@
             <div class="glass-card chart-card rounded-2xl p-4">
               <h3 class="text-sm font-medium text-slate-400 mb-2">أكثر 5 منتجات مبيعاً</h3>
               <div class="chart-inner h-48 relative">
-                <div id="chart-top-products-empty" class="chart-empty hidden">لا مبيعات بعد</div>
+                <div id="chart-top-products-empty" class="chart-empty state-empty hidden">لا مبيعات بعد</div>
                 <canvas id="chart-top-products" class="w-full max-w-full"></canvas>
               </div>
             </div>
@@ -497,7 +557,7 @@
                 <div class="flex-1 progress-track h-4 rounded-full min-w-0"><div id="gauge-cash-debt" class="progress-fill h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
                 <span id="gauge-cash-debt-label" class="text-white text-sm font-medium shrink-0">—</span>
               </div>
-              <p id="gauge-cash-debt-detail" class="text-slate-500 text-xs mt-1 text-right">جاري التحميل…</p>
+              <p id="gauge-cash-debt-detail" class="text-slate-500 text-xs mt-1 text-right state-loading">جاري التحميل…</p>
             </div>
           </div>
         </div>
@@ -505,12 +565,12 @@
 
       <!-- Accounting -->
       <section id="section-accounting" data-section class="active">
-        <h2 class="text-xl font-semibold text-white mb-1">المحاسبة</h2>
-        <p class="text-slate-500 text-sm mb-6">دفتر قيود مزدوج. كل بيع أو مقايضة يُسجّل مدين ودائن. ميزان مراجعة، أرباح وخسائر، تدفق نقدي.</p>
+        <h2 class="page-title-h2 mb-1">المحاسبة</h2>
+        <p class="page-desc mb-6">دفتر قيود مزدوج. كل بيع أو مقايضة يُسجّل مدين ودائن. ميزان مراجعة، أرباح وخسائر، تدفق نقدي.</p>
         <div class="bento grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-md:flex max-md:flex-col">
           <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
-            <div id="trial-balance-content" class="text-white">جاري التحميل…</div>
+            <div id="trial-balance-content" class="text-white state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('tb-detail')" class="mt-3 text-xs text-emerald-400 hover:underline transition-opacity hover:opacity-80">عرض التفاصيل</button>
             <div id="tb-detail" class="detail-panel mt-2"><pre id="tb-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden font-mono"></pre></div>
           </div>
@@ -534,14 +594,14 @@
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5">
             <h3 class="text-sm font-medium text-slate-400 mb-2">التدفق النقدي</h3>
-            <div id="cashflow-content" class="text-white">جاري التحميل…</div>
+            <div id="cashflow-content" class="text-white state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('cf-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
             <div id="cf-detail" class="detail-panel"><pre id="cf-raw" class="text-xs text-slate-500 hidden"></pre></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">دفتر القيود</h3>
             <p class="text-xs text-slate-500 mb-1">كل بيع أو مقايضة → مدين ودائن</p>
-            <div id="journal-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <div id="journal-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('j-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
             <div id="j-detail" class="detail-panel"><pre id="j-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden"></pre></div>
           </div>
@@ -554,7 +614,7 @@
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5">
             <h3 class="text-sm font-medium text-slate-400 mb-2">سجل التدقيق</h3>
-            <div id="audit-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <div id="audit-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('audit-detail')" class="mt-2 text-xs text-emerald-400 hover:underline" title="للمراجعين">عرض التفاصيل</button>
             <div id="audit-detail" class="detail-panel"><pre id="audit-raw" class="text-xs text-slate-500 hidden"></pre></div>
           </div>
@@ -563,10 +623,10 @@
 
       <!-- Barter: Match Center -->
       <section id="section-barter" data-section data-feature="barter">
-        <h2 class="text-xl font-semibold text-white mb-1">مركز المقايضة الذكي</h2>
-        <p class="text-slate-500 text-sm mb-6">بطاقات مطابقة. أضف فائضاً → تنبيهات مطابقة لما تحتاجه. القيمة العادلة (ل.س) لموازنة الصفقة. اضغط لتأكيد مطابقة الصفقة → يُسجّل في الدفتر.</p>
+        <h2 class="page-title-h2 mb-1">مركز المقايضة الذكي</h2>
+        <p class="page-desc mb-6">بطاقات مطابقة. أضف فائضاً → تنبيهات مطابقة لما تحتاجه. القيمة العادلة (ل.س) لموازنة الصفقة. اضغط لتأكيد مطابقة الصفقة → يُسجّل في الدفتر.</p>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="glass-card bento-tilt rounded-2xl p-5">
+          <div class="card-standard">
             <h3 class="text-sm font-medium text-slate-400 mb-3">إضافة فائض</h3>
             <select id="barter-surplus-product" class="tap-haptic w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none"><option value="">جاري التحميل…</option></select>
             <input type="number" id="barter-surplus-qty" value="1" min="1" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" />
@@ -582,18 +642,18 @@
 
       <!-- Vision -->
       <section id="section-vision" data-section data-feature="vision">
-        <h2 class="text-xl font-semibold text-white mb-1">المسح · فاتورة OCR</h2>
-        <p class="text-slate-500 text-sm mb-6">ارفع صورة فاتورة. استخراج المنتجات والكميات → يُضاف للمخزون (أول صادر أول وارد) ويُسجّل في دفتر المشتريات.</p>
+        <h2 class="page-title-h2 mb-1">المسح · فاتورة OCR</h2>
+        <p class="page-desc mb-6">ارفع صورة فاتورة. استخراج المنتجات والكميات → يُضاف للمخزون (أول صادر أول وارد) ويُسجّل في دفتر المشتريات.</p>
         <div class="bento grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="glass-card bento-tilt rounded-2xl p-6">
+          <div class="card-standard">
             <label class="block text-sm font-medium text-slate-400 mb-2">مسح الفاتورة (الكاميرا على الجوال)</label>
             <input type="file" id="vision-file" accept="image/*" capture="environment" class="block w-full text-sm text-slate-400 file:ml-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:bg-emerald-500/20 file:text-emerald-400" />
             <button type="button" onclick="document.getElementById('vision-file').click()" class="tap-haptic mt-3 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors md:hidden">فتح الكاميرا</button>
             <button type="button" onclick="uploadVision()" class="tap-haptic mt-3 w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">رفع واستخراج</button>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-6">
+          <div class="card-standard">
             <h3 class="text-sm font-medium text-slate-400 mb-2">آخر مسح</h3>
-            <div id="vision-content" class="text-slate-300 text-sm">لا توجد عناصر بعد.</div>
+            <div id="vision-content" class="text-slate-300 text-sm state-empty">لا توجد عناصر بعد.</div>
             <button type="button" onclick="toggleDetail('vision-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
             <div id="vision-detail" class="detail-panel"><pre id="vision-raw" class="text-xs text-slate-500 hidden"></pre></div>
           </div>
@@ -602,9 +662,9 @@
 
       <!-- Inventory -->
       <section id="section-inventory" data-section>
-        <h2 class="text-xl font-semibold text-white mb-1">المخزون · نظام التجزئة الذكي</h2>
-        <p class="text-slate-500 text-sm mb-6">خرائط حرارة: أخضر = مخزون مرتفع، أحمر باهت = مخزون منخفض. قواعد الوحدات وتكلفة أول صادر أول وارد.</p>
-        <div class="glass-card bento-tilt rounded-2xl p-6">
+        <h2 class="page-title-h2 mb-1">المخزون · نظام التجزئة الذكي</h2>
+        <p class="page-desc mb-6">خرائط حرارة: أخضر = مخزون مرتفع، أحمر باهت = مخزون منخفض. قواعد الوحدات وتكلفة أول صادر أول وارد.</p>
+        <div class="card-standard">
           <h3 class="text-sm font-medium text-slate-400 mb-3">خريطة حرارة المخزون</h3>
           <div id="fractioning-heatmap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 min-h-[120px]"></div>
           <p id="fractioning-summary" class="text-slate-500 text-sm mt-3"></p>
@@ -615,17 +675,18 @@
 
       <!-- Currency -->
       <section id="section-currency" data-section data-feature="currency">
-        <h2 class="text-xl font-semibold text-white mb-1">محرك العملة الشبحية</h2>
-        <p class="text-slate-500 text-sm mb-6">تسعير مرجعي دولار/ذهب؛ المعاملات بالل.س. اتجاه ل.س/دولار 7 أيام. مكاسب/خسائر الصرف = ربح القوة الشرائية مقابل التضخم.</p>
+        <h2 class="page-title-h2 mb-1">محرك العملة الشبحية</h2>
+        <p class="page-desc mb-6">تسعير مرجعي دولار/ذهب؛ المعاملات بالل.س. اتجاه ل.س/دولار 7 أيام. مكاسب/خسائر الصرف = ربح القوة الشرائية مقابل التضخم.</p>
         <div class="bento grid grid-cols-1 lg:grid-cols-3 gap-4">
-          <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
+          <div class="card-standard lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ل.س/دولار · اتجاه 7 أيام</h3>
             <div class="h-48 sm:h-64 min-h-[200px]"><canvas id="currency-chart"></canvas></div>
             <button type="button" onclick="syncSYP()" class="mt-3 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">مزامنة سعر الل.س</button>
+            <button type="button" onclick="bulkUpdatePricesByRate()" class="mt-3 mr-2 py-2 px-4 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition-colors">تحديث أسعار البيع بالجملة</button>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-5">
+          <div class="card-standard">
             <h3 class="text-sm font-medium text-slate-400 mb-2">الأسعار الآن (دولار · مرجع ذهب)</h3>
-            <div id="multi-currency-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+            <div id="multi-currency-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
             <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">مكاسب/خسائر الصرف</h3>
             <div id="fx-content" class="text-slate-300 text-sm">—</div>
             <button type="button" onclick="toggleDetail('fx-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
@@ -636,13 +697,13 @@
 
       <!-- WhatsApp -->
       <section id="section-whatsapp" data-section data-feature="whatsapp">
-        <h2 class="text-xl font-semibold text-white mb-1">واتساب · محاكاة محادثة</h2>
-        <p class="text-slate-500 text-sm mb-6">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
-        <div class="glass-card bento-tilt rounded-2xl p-6 max-w-xl">
+        <h2 class="page-title-h2 mb-1">واتساب · محاكاة محادثة</h2>
+        <p class="page-desc mb-6">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
+        <div class="card-standard max-w-xl">
           <input type="text" id="whatsapp-message" value="هل عندكم حليب؟" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="الرسالة" />
           <button type="button" onclick="simulateWhatsApp()" class="w-full py-3 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إرسال رسالة محاكاة</button>
           <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">طلبات مسودة</h3>
-          <div id="drafts-content" class="text-slate-300 text-sm">جاري التحميل…</div>
+          <div id="drafts-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
           <button type="button" onclick="toggleDetail('wa-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
           <div id="wa-detail" class="detail-panel"><pre id="wa-raw" class="text-xs text-slate-500 hidden"></pre></div>
         </div>
@@ -650,22 +711,22 @@
 
       <!-- Settings (mobile nav) -->
       <section id="section-settings" data-section>
-        <h2 class="text-xl font-semibold text-white mb-1">الإعدادات</h2>
-        <p class="text-slate-500 text-sm mb-6">المخزون، واتساب، التدقيق. عمل دون اتصال أولاً.</p>
+        <h2 class="page-title-h2 mb-1">الإعدادات</h2>
+        <p class="page-desc mb-6">المخزون، واتساب، التدقيق. عمل دون اتصال أولاً.</p>
         <div class="flex flex-col gap-4">
-          <button type="button" onclick="showSection('inventory')" class="tap-haptic glass-card rounded-2xl p-4 text-right flex items-center gap-3">
+          <button type="button" onclick="showSection('inventory')" class="tap-haptic card-standard text-right flex items-center gap-3">
             <span class="text-2xl">📦</span>
             <span class="text-white font-medium">المخزون ونظام التجزئة</span>
           </button>
-          <button type="button" onclick="showSection('whatsapp')" class="tap-haptic glass-card rounded-2xl p-4 text-right flex items-center gap-3">
+          <button type="button" onclick="showSection('whatsapp')" class="tap-haptic card-standard text-right flex items-center gap-3">
             <span class="text-2xl">💬</span>
             <span class="text-white font-medium">مسودات واتساب</span>
           </button>
-          <div class="glass-card bento-tilt rounded-2xl p-4">
+          <div class="card-standard">
             <h3 class="text-sm font-medium text-slate-400 mb-2">سجل التدقيق</h3>
             <div id="settings-audit" class="text-slate-300 text-sm">—</div>
           </div>
-          <button type="button" onclick="showSection('import')" class="tap-haptic glass-card rounded-2xl p-4 text-right flex items-center gap-3">
+          <button type="button" onclick="showSection('import')" class="tap-haptic card-standard text-right flex items-center gap-3">
             <span class="text-2xl">📥</span>
             <span class="text-white font-medium">استيراد البيانات</span>
           </button>
@@ -674,9 +735,9 @@
 
       <!-- Import (Smart Data Importer) -->
       <section id="section-import" data-section>
-        <h2 class="text-xl font-semibold text-white mb-1">استيراد البيانات</h2>
-        <p class="text-slate-500 text-sm mb-6">الصق ملف CSV. المطابقة التلقائية للأعمدة (اسم المادة، الكمية، شجرة الحسابات).</p>
-        <div class="glass-card bento-tilt rounded-2xl p-6 max-w-2xl">
+        <h2 class="page-title-h2 mb-1">استيراد البيانات</h2>
+        <p class="page-desc mb-6">الصق ملف CSV. المطابقة التلقائية للأعمدة (اسم المادة، الكمية، شجرة الحسابات).</p>
+        <div class="card-standard max-w-2xl">
           <label class="block text-sm font-medium text-slate-400 mb-2">محتوى CSV</label>
           <textarea id="import-content" rows="6" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm font-mono placeholder-slate-500 focus:ring-2 focus:ring-emerald-500/50 outline-none" placeholder="اسم المادة,الكمية,الوحدة&#10;حليب,100,قطعة"></textarea>
           <button type="button" onclick="parseImport()" class="tap-haptic mt-3 py-2 px-4 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-medium">تحليل وعرض المعاينة</button>
@@ -782,7 +843,73 @@
         applyTheme();
         applyRBAC();
         setTimeout(function() { applyBrandingToDOM(); }, 0);
+        initGlobalSearch();
       } catch (e) {}
+    }
+    var globalSearchTimeout = null;
+    function runGlobalSearch(q, drop, clearInput) {
+      if (!drop) return;
+      clearTimeout(globalSearchTimeout);
+      if (q.length < 1) { drop.classList.add('hidden'); drop.innerHTML = ''; return; }
+      globalSearchTimeout = setTimeout(function() {
+        fetch(API + '/search?q=' + encodeURIComponent(q) + '&limit=10', { headers: getAuthHeaders() })
+          .then(function(r) { return r.json(); })
+          .then(function(j) {
+            if (!j.success || !j.data) return;
+            var d = j.data;
+            var pHtml = (d.products || []).slice(0, 8).map(function(p) { return '<button type="button" class="w-full text-right px-3 py-2 text-sm text-slate-300 hover:bg-white/10 rounded block" data-type="product" data-id="' + (p.id || '') + '">' + (p.name || p.id) + (p.barcode ? ' · ' + p.barcode : '') + '</button>'; }).join('');
+            var sHtml = (d.suppliers || []).slice(0, 8).map(function(s) { return '<button type="button" class="w-full text-right px-3 py-2 text-sm text-slate-300 hover:bg-white/10 rounded block" data-type="supplier" data-id="' + (s.id || '').replace(/"/g, '&quot;') + '">' + (s.name || s.id || '—') + '</button>'; }).join('');
+            var iHtml = (d.invoices || []).slice(0, 8).map(function(i) { return '<button type="button" class="w-full text-right px-3 py-2 text-sm text-slate-300 hover:bg-white/10 rounded block" data-type="invoice" data-id="' + (i.id || '') + '">' + (i.id || '') + ' · ' + (i.customerId || '—') + ' · ' + (i.totalRevenue != null ? i.totalRevenue : 0) + ' ل.س</button>'; }).join('');
+            var cHtml = (d.customers || []).slice(0, 8).map(function(c) { return '<button type="button" class="w-full text-right px-3 py-2 text-sm text-slate-300 hover:bg-white/10 rounded block" data-type="customer" data-id="' + (c.customerId || '').replace(/"/g, '&quot;') + '">' + (c.customerId || '—') + '</button>'; }).join('');
+            drop.innerHTML = (pHtml ? '<div class="text-xs text-slate-500 px-3 py-1 border-b border-white/5">أصناف</div>' + pHtml : '') + (sHtml ? '<div class="text-xs text-slate-500 px-3 py-1 border-b border-white/5 mt-1">موردين</div>' + sHtml : '') + (iHtml ? '<div class="text-xs text-slate-500 px-3 py-1 border-b border-white/5 mt-1">فواتير</div>' + iHtml : '') + (cHtml ? '<div class="text-xs text-slate-500 px-3 py-1 border-b border-white/5 mt-1">عملاء</div>' + cHtml : '');
+            if (!pHtml && !sHtml && !iHtml && !cHtml) drop.innerHTML = '<p class="px-3 py-2 text-slate-500 text-sm state-empty">لا نتائج</p>';
+            drop.classList.remove('hidden');
+            drop.querySelectorAll('button[data-type]').forEach(function(btn) {
+              btn.addEventListener('click', function() {
+                var type = this.getAttribute('data-type');
+                var id = this.getAttribute('data-id');
+                drop.classList.add('hidden');
+                if (clearInput && typeof clearInput === 'function') clearInput();
+                if (type === 'product') { window._searchPreselectProductId = id; openModule('item-card', 'بطاقة مادة'); }
+                else if (type === 'supplier') { openModule('suppliers', 'الموردين'); }
+                else if (type === 'invoice') { window._searchPreselectInvoiceId = id; openModule('sales-reports', 'تقارير المبيعات'); }
+                else if (type === 'customer') { window._searchPreselectCustomerId = id; openModule('sales-reports', 'تقارير المبيعات'); }
+              });
+            });
+          })
+          .catch(function() { drop.classList.add('hidden'); });
+      }, 300);
+    }
+    function initGlobalSearch() {
+      var inp = document.getElementById('global-search-input');
+      var drop = document.getElementById('global-search-dropdown');
+      var headerInp = document.getElementById('header-search-input');
+      var headerDrop = document.getElementById('header-search-dropdown');
+      function clearBoth() { if (inp) inp.value = ''; if (headerInp) headerInp.value = ''; }
+      if (inp && drop) {
+        inp.addEventListener('input', function() {
+          var q = this.value.trim();
+          if (headerInp) headerInp.value = this.value;
+          runGlobalSearch(q, drop, function() { inp.value = ''; if (headerInp) headerInp.value = ''; });
+        });
+      }
+      if (headerInp && headerDrop) {
+        headerInp.addEventListener('input', function() {
+          var q = this.value.trim();
+          if (inp) inp.value = this.value;
+          runGlobalSearch(q, headerDrop, clearBoth);
+        });
+        headerInp.addEventListener('focus', function() { if (this.value.trim()) runGlobalSearch(this.value.trim(), headerDrop, clearBoth); });
+        document.addEventListener('click', function(e) { if (!headerInp.contains(e.target) && !headerDrop.contains(e.target)) headerDrop.classList.add('hidden'); });
+      }
+      document.addEventListener('keydown', function(e) {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+          e.preventDefault();
+          window.scrollTo(0, 0);
+          var h = document.getElementById('header-search-input');
+          if (h) { h.focus(); h.select && h.select(); }
+        }
+      });
     }
     function applyTheme() {
       var b = (window._appConfig.settings && window._appConfig.settings.branding) || {};
@@ -988,7 +1115,7 @@
     async function renderModulePanel(moduleId) {
       const mc = document.getElementById('module-content');
       if (!mc) return;
-      mc.innerHTML = '<p class="text-slate-500 p-4">جاري التحميل…</p>';
+      mc.innerHTML = '<p class="state-loading p-4">جاري التحميل…</p>';
       try {
         if (moduleId === 'dashboard') { showSection('dashboard'); mc.classList.add('hidden'); return; }
         if (moduleId === 'chart-of-accounts') { await renderChartOfAccounts(mc); return; }
@@ -1006,6 +1133,8 @@
         if (moduleId === 'sales-return') { await renderSalesReturn(mc); return; }
         if (moduleId === 'sales-reports') { await renderSalesReports(mc); return; }
         if (moduleId === 'purchase-invoice') { await renderPurchaseInvoice(mc); return; }
+        if (moduleId === 'purchase-return') { await renderPurchaseReturn(mc); return; }
+        if (moduleId === 'suppliers') { await renderSuppliers(mc); return; }
         if (moduleId === 'manufacturing-bom') { await renderManufacturingBOM(mc); return; }
         if (moduleId === 'manufacturing-build') { await renderManufacturingBuild(mc); return; }
         if (moduleId === 'expenses') { await renderExpenses(mc); return; }
@@ -1179,7 +1308,7 @@
     function renderTrialBalance(data) {
       const el = document.getElementById('trial-balance-content');
       const dashTb = document.getElementById('dashboard-tb');
-      if (!data?.data) { if (el) el.innerHTML = '<span class="text-rose-400">لا توجد بيانات</span>'; if (dashTb) dashTb.textContent = '—'; return; }
+      if (!data?.data) { if (el) el.innerHTML = '<span class="state-error">لا توجد بيانات</span>'; if (dashTb) dashTb.textContent = '—'; return; }
       const d = data.data;
       const html = '<p class="text-white font-medium">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p><p class="text-slate-500 text-sm">إجمالي مدين ' + (d.totalDebit || 0) + ' · دائن ' + (d.totalCredit || 0) + ' ل.س</p>';
       if (el) el.innerHTML = html;
@@ -1236,7 +1365,7 @@
       if (!data?.data) return;
       const list = data.data;
       if (!list.length) {
-        if (el) el.innerHTML = '<p class="text-slate-500">لا توجد قيود بعد. المبيعات وتأكيد المقايضة والذمم تنشئها.</p>';
+        if (el) el.innerHTML = '<p class="state-empty">لا توجد قيود بعد. المبيعات وتأكيد المقايضة والذمم تنشئها.</p>';
         if (dashJ) dashJ.textContent = 'لا توجد قيود بعد.';
         return;
       }
@@ -1357,7 +1486,101 @@
       });
     }
 
+    function loadCashBalance() {
+      fetchJson('/dashboard/cash-balance').then(function(r) {
+        if (!r.success || !r.data) return;
+        var el = document.getElementById('dashboard-cash-total');
+        var det = document.getElementById('dashboard-cash-detail');
+        if (el) el.textContent = (r.data.totalSYP != null ? Number(r.data.totalSYP).toLocaleString('ar-SY') : '—') + ' ل.س';
+        if (det && r.data.byAccount && r.data.byAccount.length) {
+          det.textContent = r.data.byAccount.map(function(a) { return (a.name || a.accountId) + ': ' + (a.balance != null ? Number(a.balance).toLocaleString('ar-SY') : '0'); }).join(' · ');
+        }
+      }).catch(function() {});
+    }
+
+    function loadLowStockAlerts() {
+      var el = document.getElementById('low-stock-alerts-content');
+      if (!el) return;
+      fetchJson('/dashboard/low-stock').then(function(r) {
+        if (!r.success || !r.data) { el.innerHTML = '<p class="state-empty">كل الأصناف متوفرة بكثرة، عمل رائع!</p>'; return; }
+        var list = r.data;
+        if (!list.length) { el.innerHTML = '<p class="state-empty">كل الأصناف متوفرة بكثرة، عمل رائع!</p>'; return; }
+        el.innerHTML = list.map(function(item) {
+          var badgeClass = (item.current_stock || 0) === 0 ? 'bg-rose-500/30 text-rose-300' : 'bg-amber-500/30 text-amber-300';
+          var supplierBtn = item.supplier_name
+            ? '<button type="button" class="supplier-contact-btn tap-haptic mt-1 text-xs px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" data-name="' + escapeAttr(item.supplier_name || '') + '" data-phone="' + escapeAttr(item.supplier_phone || '') + '" data-address="' + escapeAttr(item.supplier_address || '') + '">تواصل مع المورد: ' + escapeHtml(item.supplier_name || '—') + '</button>'
+            : '<span class="text-slate-500 text-xs">— لا مورد</span>';
+          return '<div class="flex flex-wrap items-center gap-2 py-2 border-b border-white/5 last:border-0">' +
+            '<span class="font-medium text-white">' + escapeHtml(item.name || item.id) + '</span>' +
+            '<span class="px-2 py-0.5 rounded text-xs font-medium ' + badgeClass + '">' + (item.current_stock ?? 0) + ' / ' + (item.min_stock_level ?? 0) + '</span>' +
+            supplierBtn + '</div>';
+        }).join('');
+        el.querySelectorAll('.supplier-contact-btn').forEach(function(btn) {
+          btn.addEventListener('click', function() { showSupplierContact(this.getAttribute('data-name') || '', this.getAttribute('data-phone') || '', this.getAttribute('data-address') || ''); });
+        });
+      }).catch(function() { el.innerHTML = '<p class="state-error">تعذر تحميل التنبيهات.</p>'; });
+    }
+
+    function showSupplierContact(name, phone, address) {
+      var m = document.getElementById('supplier-contact-modal');
+      var t = document.getElementById('supplier-contact-content');
+      if (!m || !t) return;
+      t.innerHTML = '<p class="page-title-h3 mb-2">' + escapeHtml(name || '—') + '</p>' +
+        '<p class="page-desc"><strong>الهاتف:</strong> ' + escapeHtml(phone || '—') + '</p>' +
+        '<p class="page-desc mt-1"><strong>العنوان:</strong> ' + escapeHtml(address || '—') + '</p>';
+      m.classList.remove('hidden');
+    }
+    function closeSupplierContactModal() {
+      var m = document.getElementById('supplier-contact-modal');
+      if (m) m.classList.add('hidden');
+    }
+
+    function loadProfitReport() {
+      var content = document.getElementById('profit-report-content');
+      var insightEl = document.getElementById('profit-report-insight');
+      if (!content) return;
+      fetchJson('/dashboard/summary').then(function(r) {
+        if (!r.success || !r.data) { content.innerHTML = '<p class="state-empty">لا بيانات</p>'; if (insightEl) insightEl.classList.add('hidden'); return; }
+        var cash = Number(r.data.cash) || 0;
+        var receivables = Number(r.data.totalReceivables) || 0;
+        var inventory = Number(r.data.inventoryValue) || 0;
+        var total = cash + receivables + inventory;
+        function pct(n) { return total > 0 ? Math.round((n / total) * 100) : 0; }
+        function fmt(n) { return (n || 0).toLocaleString('ar-SY'); }
+        var cashPct = pct(cash);
+        var recPct = pct(receivables);
+        var invPct = pct(inventory);
+        if (total <= 0) {
+          content.innerHTML = '<p class="state-empty">لا أصول مسجلة بعد. النقدية والذمم والمخزون ستظهر هنا.</p>';
+          if (insightEl) insightEl.classList.add('hidden');
+          return;
+        }
+        content.innerHTML = '<div class="space-y-2 mb-3">' +
+          '<div class="flex items-center justify-between gap-2"><span class="text-slate-400">سيولة نقدية (Cash)</span><span class="text-emerald-400 font-medium">' + fmt(cash) + ' ل.س</span><span class="text-slate-500 text-xs">' + cashPct + '%</span></div>' +
+          '<div class="flex items-center justify-between gap-2"><span class="text-slate-400">ديون عند الزبائن (Receivables)</span><span class="text-amber-400 font-medium">' + fmt(receivables) + ' ل.س</span><span class="text-slate-500 text-xs">' + recPct + '%</span></div>' +
+          '<div class="flex items-center justify-between gap-2"><span class="text-slate-400">بضاعة في المستودع (Inventory)</span><span class="text-blue-400 font-medium">' + fmt(inventory) + ' ل.س</span><span class="text-slate-500 text-xs">' + invPct + '%</span></div>' +
+          '</div>' +
+          '<div class="flex h-4 rounded-lg overflow-hidden border border-white/10">' +
+          '<div class="bg-emerald-500/80 transition-all duration-500" style="width:' + (cashPct || 0) + '%" title="نقدية"></div>' +
+          '<div class="bg-amber-500/80 transition-all duration-500" style="width:' + (recPct || 0) + '%" title="ذمم مدينة"></div>' +
+          '<div class="bg-blue-500/80 transition-all duration-500" style="width:' + (invPct || 0) + '%" title="مخزون"></div>' +
+          '</div>';
+        if (insightEl) {
+          if (receivables > cash && total > 0) {
+            var recPctVal = pct(receivables);
+            insightEl.innerHTML = '<p class="text-amber-300/90 border border-amber-500/30 rounded-lg px-3 py-2">نصيحة Vault AI: ' + recPctVal + '% من أصولك عالقة في الديون، ننصحك بالتركيز على التحصيل!</p>';
+            insightEl.classList.remove('hidden');
+          } else {
+            insightEl.classList.add('hidden');
+          }
+        }
+      }).catch(function() { content.innerHTML = '<p class="state-error">تعذر تحميل التحليل.</p>'; if (insightEl) insightEl.classList.add('hidden'); });
+    }
+
     function refreshDashboardCharts() {
+      loadCashBalance();
+      loadLowStockAlerts();
+      loadProfitReport();
       var now = new Date();
       var toDate = now.toISOString().slice(0, 10);
       var from = new Date(now);
@@ -1594,7 +1817,7 @@
       const heatEl = document.getElementById('fractioning-heatmap');
       const summaryEl = document.getElementById('fractioning-summary');
       if (!data?.data) {
-        if (heatEl) heatEl.innerHTML = '<p class="text-slate-500 col-span-full">جاري التحميل…</p>';
+        if (heatEl) heatEl.innerHTML = '<p class="state-loading col-span-full">جاري التحميل…</p>';
         return;
       }
       const { rules, inventory, sypRate } = data.data;
@@ -1652,7 +1875,7 @@
       accounts.forEach(a => { if (!byType[a.type]) byType[a.type] = []; byType[a.type].push(a); });
       const types = ['asset','liability','equity','revenue','expense'];
       const typeNames = { asset: 'أصول', liability: 'خصوم', equity: 'حقوق ملكية', revenue: 'إيرادات', expense: 'مصروفات' };
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">شجرة الحسابات</h3><div class="space-y-4">' +
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">شجرة الحسابات</h3><div class="space-y-4">' +
         types.map(t => '<div><h4 class="text-sm font-medium text-emerald-400 mb-2">' + (typeNames[t] || t) + '</h4><ul class="space-y-1">' +
           (byType[t] || []).map(a => '<li class="flex justify-between items-center py-1 px-3 rounded bg-white/5"><span class="text-slate-300">' + (a.code || '') + ' · ' + (a.name || '') + '</span></li>').join('') + '</ul></div>').join('') +
         '</div></div>';
@@ -1671,7 +1894,7 @@
         amount: e.amountSYP,
         memo: e.memo || ''
       }));
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">قيود اليومية</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">المبلغ ل.س</th><th class="p-2">البيان</th></tr></thead><tbody>' +
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">قيود اليومية</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">المبلغ ل.س</th><th class="p-2">البيان</th></tr></thead><tbody>' +
         rows.map(r => '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + r.date + '</td><td class="p-2">' + r.debit + '</td><td class="p-2">' + r.credit + '</td><td class="p-2 text-emerald-400">' + (r.amount || 0) + '</td><td class="p-2 text-slate-400">' + (r.memo || '') + '</td></tr>').join('') +
         '</tbody></table></div></div>';
     }
@@ -1680,8 +1903,8 @@
       const asOf = document.getElementById('tb-filter-date')?.value || new Date().toISOString().slice(0,10);
       const r = await fetchJson('/statements/trial-balance?asOfDate=' + asOf);
       const d = r.data;
-      if (!d || !d.rows) { container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-slate-500">لا بيانات</p></div>'; return; }
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d.asOfDate || '').slice(0,10) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="overflow-x-auto mt-4"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">كود</th><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>' +
+      if (!d || !d.rows) { container.innerHTML = '<div class="card-standard"><p class="state-empty">لا بيانات</p></div>'; return; }
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d.asOfDate || '').slice(0,10) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="overflow-x-auto mt-4"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">كود</th><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>' +
         d.rows.map(r => '<tr class="border-b border-white/5"><td class="p-2">' + (r.code||'') + '</td><td class="p-2">' + (r.name||'') + '</td><td class="p-2 text-emerald-400">' + (r.debit||0) + '</td><td class="p-2 text-amber-400">' + (r.credit||0) + '</td></tr>').join('') +
         '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2">' + (d.totalDebit||0) + '</td><td class="p-2">' + (d.totalCredit||0) + '</td></tr></tfoot></table></div><p class="text-slate-500 text-sm mt-2">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
     }
@@ -1689,7 +1912,7 @@
     async function renderStatementOfAccount(container) {
       const accR = await fetchJson('/accounts');
       const accounts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>').join('');
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6" style="background:rgba(30,41,59,0.4);backdrop-filter:blur(16px);border:1px solid rgba(255,255,255,0.08);"><h3 class="text-lg font-semibold text-white mb-4">كشف الحساب</h3><div class="flex flex-wrap gap-4 mb-4"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">كشف الحساب</h3><div class="flex flex-wrap gap-4 mb-4"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>';
       document.getElementById('stmt-result').innerHTML = '<p class="text-slate-500">اختر الحساب واضغط عرض.</p>';
     }
 
@@ -1712,7 +1935,7 @@
     function renderVoucherReceipt(container) {
       fetchJson('/accounts').then(accR => {
         const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6 max-w-md"><h3 class="text-lg font-semibold text-white mb-4">سند قبض</h3><label class="block text-slate-400 text-sm mb-1">صندوق (مدين)</label><select id="v-r-cash" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">الحساب الدائن</label><select id="v-r-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-r-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-r-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherReceipt()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
+        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند قبض</h3><label class="block text-slate-400 text-sm mb-1">صندوق (مدين)</label><select id="v-r-cash" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">الحساب الدائن</label><select id="v-r-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-r-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-r-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherReceipt()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
       });
     }
     async function submitVoucherReceipt() {
@@ -1729,7 +1952,7 @@
     function renderVoucherPayment(container) {
       fetchJson('/accounts').then(accR => {
         const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6 max-w-md"><h3 class="text-lg font-semibold text-white mb-4">سند دفع</h3><label class="block text-slate-400 text-sm mb-1">صندوق (دائن)</label><select id="v-p-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">الحساب المدين</label><select id="v-p-debit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-p-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-p-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherPayment()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
+        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند دفع</h3><label class="block text-slate-400 text-sm mb-1">صندوق (دائن)</label><select id="v-p-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">الحساب المدين</label><select id="v-p-debit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-p-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-p-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherPayment()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
       });
     }
     async function submitVoucherPayment() {
@@ -1744,7 +1967,7 @@
     }
 
     function renderVoucherJournal(container) {
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">سند قيد (مدين/دائن متوازن)</h3><p class="text-slate-500 text-sm mb-4">أضف أسطراً: حساب، إما مدين أو دائن. الإجمالي مدين = الإجمالي دائن.</p><div id="v-j-lines"></div><button type="button" onclick="addVoucherJournalLine()" class="py-2 px-3 rounded-lg bg-white/10 text-slate-300 text-sm mb-4">+ سطر</button><button type="button" onclick="submitVoucherJournal()" class="block w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">سند قيد (مدين/دائن متوازن)</h3><p class="page-desc mb-4">أضف أسطراً: حساب، إما مدين أو دائن. الإجمالي مدين = الإجمالي دائن.</p><div id="v-j-lines"></div><button type="button" onclick="addVoucherJournalLine()" class="py-2 px-3 rounded-lg bg-white/10 text-slate-300 text-sm mb-4">+ سطر</button><button type="button" onclick="submitVoucherJournal()" class="block w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
       window._vjLines = [];
       addVoucherJournalLine();
       addVoucherJournalLine();
@@ -1778,7 +2001,7 @@
     function renderVoucherTransfer(container) {
       fetchJson('/accounts').then(accR => {
         const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6 max-w-md"><h3 class="text-lg font-semibold text-white mb-4">سند تحويل عملات</h3><label class="block text-slate-400 text-sm mb-1">من حساب</label><select id="v-t-from" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">إلى حساب</label><select id="v-t-to" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ (بالعملة المصدر)</label><input type="number" id="v-t-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">سعر الوحدة بالل.س (مثلاً 1 دولار = 15000 ل.س)</label><input type="number" id="v-t-rate" placeholder="15000" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherTransfer()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
+        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند تحويل عملات</h3><label class="block text-slate-400 text-sm mb-1">من حساب</label><select id="v-t-from" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">إلى حساب</label><select id="v-t-to" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label class="block text-slate-400 text-sm mb-1">المبلغ (بالعملة المصدر)</label><input type="number" id="v-t-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label class="block text-slate-400 text-sm mb-1">سعر الوحدة بالل.س (مثلاً 1 دولار = 15000 ل.س)</label><input type="number" id="v-t-rate" placeholder="15000" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><button type="button" onclick="submitVoucherTransfer()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
       });
     }
     async function submitVoucherTransfer() {
@@ -1797,13 +2020,13 @@
       const products = productsR.data || [];
       const units = unitsR.data || [];
       const unitOpts = units.map(u => '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>').join('');
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">بطاقة مادة</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-slate-400 text-sm mb-1">الاسم</label><input type="text" id="item-name" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">الباركود</label><input type="text" id="item-barcode" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">الوحدة</label><select id="item-unit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select></div><div><label class="block text-slate-400 text-sm mb-1">سعر التكلفة ل.س</label><input type="number" id="item-cost" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">سعر البيع ل.س</label><input type="number" id="item-price" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div></div><button type="button" onclick="submitItemCard()" class="mt-4 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ</button><h4 class="text-slate-400 font-medium mt-6 mb-2">المواد الحالية</h4><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">باركود</th><th class="p-2">تكلفة</th><th class="p-2">سعر بيع</th></tr></thead><tbody>' +
-        products.map(p => '<tr class="border-b border-white/5"><td class="p-2">' + (p.name||'') + '</td><td class="p-2">' + (p.barcode||'—') + '</td><td class="p-2">' + (p.costPerDefaultUnit||0) + '</td><td class="p-2">' + (p.salesPricePerUnit||'—') + '</td></tr>').join('') + '</tbody></table></div></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">بطاقة مادة</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><label class="block text-slate-400 text-sm mb-1">الاسم</label><input type="text" id="item-name" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">الباركود</label><input type="text" id="item-barcode" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">الوحدة</label><select id="item-unit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select></div><div><label class="block text-slate-400 text-sm mb-1">سعر التكلفة ل.س</label><input type="number" id="item-cost" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">سعر البيع ل.س</label><input type="number" id="item-price" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><label class="block text-slate-400 text-sm mb-1 mt-2">العملة الأساسية</label><select id="item-base-currency" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"><option value="SYP">ل.س</option><option value="USD">دولار</option></select><label class="block text-slate-400 text-sm mb-1 mt-2">سعر الأساس (للتحديث بالجملة)</label><input type="number" id="item-base-price" step="any" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="اختياري"/></div></div><button type="button" onclick="submitItemCard()" class="mt-4 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ</button><h4 class="text-slate-400 font-medium mt-6 mb-2">المواد الحالية</h4><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">باركود</th><th class="p-2">تكلفة</th><th class="p-2">سعر بيع</th><th class="p-2">أساس</th></tr></thead><tbody>' +
+        products.map(p => '<tr class="border-b border-white/5"><td class="p-2">' + (p.name||'') + '</td><td class="p-2">' + (p.barcode||'—') + '</td><td class="p-2">' + (p.costPerDefaultUnit||0) + '</td><td class="p-2">' + (p.salesPricePerUnit||'—') + '</td><td class="p-2">' + ((p.base_currency || 'SYP') === 'USD' ? 'دولار ' + (p.base_price != null ? p.base_price : '') : 'ل.س') + '</td></tr>').join('') + '</tbody></table></div></div>';
     }
     async function submitItemCard() {
       const name = document.getElementById('item-name')?.value?.trim();
       if (!name) { alert('أدخل اسم المادة'); return; }
-      await postJson('/products', { name, barcode: document.getElementById('item-barcode')?.value || null, defaultUnitId: document.getElementById('item-unit')?.value || 'piece', costPerDefaultUnit: Number(document.getElementById('item-cost')?.value) || 0, salesPricePerUnit: document.getElementById('item-price')?.value ? Number(document.getElementById('item-price').value) : null });
+      await postJson('/products', { name, barcode: document.getElementById('item-barcode')?.value || null, defaultUnitId: document.getElementById('item-unit')?.value || 'piece', costPerDefaultUnit: Number(document.getElementById('item-cost')?.value) || 0, salesPricePerUnit: document.getElementById('item-price')?.value ? Number(document.getElementById('item-price').value) : null, base_currency: document.getElementById('item-base-currency')?.value || 'SYP', base_price: document.getElementById('item-base-price')?.value ? Number(document.getElementById('item-base-price').value) : null });
       alert('تم الحفظ');
       openModule('item-card', 'بطاقة مادة');
     }
@@ -1814,7 +2037,7 @@
       const products = productsR.data || [];
       const pMap = {};
       products.forEach(p => pMap[p.id] = p.name);
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">حركات مخزون</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">المادة</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th><th class="p-2">نوع</th></tr></thead><tbody>' +
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">حركات مخزون</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">المادة</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th><th class="p-2">نوع</th></tr></thead><tbody>' +
         list.map(m => '<tr class="border-b border-white/5"><td class="p-2">' + (m.date||'').slice(0,16) + '</td><td class="p-2">' + (pMap[m.productId] || m.productId) + '</td><td class="p-2">' + (m.unitId||'') + '</td><td class="p-2">' + (m.quantity||0) + '</td><td class="p-2">' + (m.type === 'out' ? 'خروج' : 'دخول') + '</td></tr>').join('') +
         '</tbody></table></div></div>';
     }
@@ -1824,7 +2047,7 @@
       const rates = ratesR.data || {};
       const fx = fxR.data || {};
       const sypPerUsd = rates.SYP != null && rates.SYP !== 0 ? (1 / rates.SYP).toFixed(0) : '—';
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">العملات والذهب</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><p class="text-slate-400">1 USD = <span class="text-emerald-400 text-xl font-semibold">' + sypPerUsd + '</span> ل.س</p><p class="text-slate-500 text-sm mt-1">مرجع الذهب: ' + (rates.GOLD != null ? rates.GOLD : '—') + '</p><button type="button" onclick="syncSYP(); (function(){ const t=openTabs.find(x=>x.moduleId===\'currency-manager\'); if(t) openModule(\'currency-manager\',\'العملات والذهب\'); })()" class="mt-3 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">مزامنة سعر الل.س</button></div><div><p class="text-slate-400">مكاسب/خسائر الصرف (القوة الشرائية)</p><p class="' + (fx.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + ' font-semibold">' + (fx.totalGainLossSYP ?? '—') + ' ل.س</p></div></div></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">العملات والذهب</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-4"><div><p class="text-slate-400">1 USD = <span class="text-emerald-400 text-xl font-semibold">' + sypPerUsd + '</span> ل.س</p><p class="text-slate-500 text-sm mt-1">مرجع الذهب: ' + (rates.GOLD != null ? rates.GOLD : '—') + '</p><button type="button" onclick="syncSYP(); (function(){ const t=openTabs.find(x=>x.moduleId===\'currency-manager\'); if(t) openModule(\'currency-manager\',\'العملات والذهب\'); })()" class="mt-3 py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">مزامنة سعر الل.س</button> <button type="button" onclick="bulkUpdatePricesByRate()" class="mt-3 py-2 px-4 rounded-lg bg-amber-500/20 text-amber-400 text-sm">تحديث أسعار البيع بالجملة</button></div><div><p class="text-slate-400">مكاسب/خسائر الصرف (القوة الشرائية)</p><p class="' + (fx.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + ' font-semibold">' + (fx.totalGainLossSYP ?? '—') + ' ل.س</p></div></div></div>';
     }
 
     function playBeep() {
@@ -1972,11 +2195,10 @@
       if (document.getElementById('inv-unit').value !== unitId) document.getElementById('inv-unit').value = unitId;
       await updateInvStock();
       var stockEl = document.getElementById('inv-stock');
-      var stockText = stockEl ? stockEl.textContent.replace('متوفر: ', '') : '';
-      var available = parseInt(stockText, 10);
+      var stockText = stockEl ? stockEl.textContent.replace('متوفر: ', '').replace('—', '').trim() : '';
+      var available = (stockText === '' || stockText === '—') ? NaN : parseInt(stockText, 10);
       if (!isNaN(available) && available < qty) {
-        showToast('تنبيه', 'الكمية أكبر من المتوفر (' + available + ').', 'error');
-        return;
+        showToast('تنبيه', 'الكمية أكبر من المتوفر (' + available + '). تمت الإضافة مع تحذير.', 'error');
       }
       var productName = (info && info.name) ? info.name : productId;
       window._invoiceLines = window._invoiceLines || [];
@@ -2297,11 +2519,10 @@
       }
       if (qty <= 0) { showToast('تنبيه', 'أدخل كمية صحيحة', 'error'); return; }
       var stockEl = document.getElementById('inv-stock');
-      var stockText = stockEl ? stockEl.textContent.replace('متوفر: ', '') : '';
-      var available = parseInt(stockText, 10);
+      var stockText = stockEl ? stockEl.textContent.replace('متوفر: ', '').replace('—', '').trim() : '';
+      var available = (stockText === '' || stockText === '—') ? NaN : parseInt(stockText, 10);
       if (!isNaN(available) && available < qty) {
-        showToast('تنبيه', 'الكمية المطلوبة (' + qty + ') أكبر من المتوفر (' + available + '). لا يمكن الإضافة.', 'error');
-        return;
+        showToast('تنبيه', 'الكمية (' + qty + ') أكبر من المتوفر (' + available + '). تمت الإضافة مع تحذير.', 'error');
       }
       var info = map.byId[productId];
       var productName = (info && info.name) ? info.name : productId;
@@ -2541,7 +2762,11 @@
       if (paymentSplit) body.paymentSplit = paymentSplit;
       try {
         var j = await postJson('/sales/invoice', body);
-        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        if (!j.success) {
+          var errMsg = j.error || 'فشل الحفظ';
+          if (j.productId != null && j.available != null && j.required != null) errMsg = 'نقص في المخزون: المطلوب ' + j.required + '، المتوفر ' + j.available + (j.productId ? ' (صنف: ' + j.productId + ')' : '');
+          throw new Error(errMsg);
+        }
         var invoiceId = (j.data && j.data.invoiceId) ? j.data.invoiceId : '';
         window._invoiceLines = [];
         renderInvoiceLinesTable();
@@ -2586,7 +2811,7 @@
       var productOpts = products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
       var unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
       window._purchaseLines = [];
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">فاتورة مشتريات</h3><p class="text-slate-500 text-sm mb-4">المورد (اختياري)، شبكة أصناف، ودفع نقدي أو آجل.</p><div class="mb-4"><label class="text-slate-400 text-sm">المورد (معرّف أو اسم)</label><input type="text" id="pinv-supplier" placeholder="معرّف المورد" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div id="purchase-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="pinv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="pinv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="pinv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="pinv-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addPurchaseLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pinv-pay-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">دفع نقدي</span></label></div><button type="button" onclick="submitPurchaseInvoice()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ فاتورة المشتريات</button><p id="purchase-message" class="mt-3 text-sm hidden"></p></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">فاتورة مشتريات</h3><p class="page-desc mb-4">المورد (اختياري)، شبكة أصناف، ودفع نقدي أو آجل.</p><div class="mb-4"><label class="text-slate-400 text-sm">المورد (معرّف أو اسم)</label><input type="text" id="pinv-supplier" placeholder="معرّف المورد" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div id="purchase-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="pinv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="pinv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="pinv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="pinv-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addPurchaseLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pinv-pay-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">دفع نقدي</span></label></div><button type="button" onclick="submitPurchaseInvoice()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ فاتورة المشتريات</button><p id="purchase-message" class="mt-3 text-sm hidden"></p></div>';
       renderPurchaseLinesTable();
     }
     function addPurchaseLine() {
@@ -2632,6 +2857,110 @@
       }
     }
 
+    async function renderPurchaseReturn(container) {
+      var productsR = await fetchJson('/products');
+      var unitsR = await fetchJson('/units');
+      var suppliersR = await fetchJson('/suppliers').catch(function() { return { data: [] }; });
+      var products = productsR.data || [];
+      var units = unitsR.data || [];
+      var suppliers = suppliersR.data || [];
+      var productOpts = products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
+      var unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      var supplierOpts = '<option value="">— اختر المورد —</option>' + suppliers.map(function(s) { return '<option value="' + s.id + '">' + (s.name || s.id) + '</option>'; }).join('');
+      window._purchaseReturnLines = [];
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">مرتجع مشتريات</h3><p class="page-desc mb-4">اختر المورد والأصناف المرتجعة. استلام نقدي أو خصم من ذمم المورد.</p><div class="mb-4"><label class="text-slate-400 text-sm">المورد</label><select id="pret-supplier" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + supplierOpts + '</select></div><div id="pret-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="pret-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="pret-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="pret-qty" placeholder="كمية مرتجع" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="pret-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addPurchaseReturnLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pret-receive-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">استلام نقدي</span></label></div><button type="button" onclick="submitPurchaseReturn()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ مرتجع المشتريات</button><p id="pret-message" class="mt-3 text-sm hidden"></p></div>';
+      renderPurchaseReturnLinesTable();
+    }
+    function addPurchaseReturnLine() {
+      var productId = document.getElementById('pret-product')?.value;
+      var unitId = document.getElementById('pret-unit')?.value || 'piece';
+      var qty = Number(document.getElementById('pret-qty')?.value) || 0;
+      var cost = Number(document.getElementById('pret-cost')?.value) || 0;
+      if (!productId || qty <= 0) { showToast('تنبيه', 'اختر منتجاً وأدخل كمية', 'error'); return; }
+      window._purchaseReturnLines = window._purchaseReturnLines || [];
+      window._purchaseReturnLines.push({ productId, unitId, quantity: qty, unitCostSYP: cost });
+      renderPurchaseReturnLinesTable();
+    }
+    function removePurchaseReturnLine(i) {
+      window._purchaseReturnLines = window._purchaseReturnLines || [];
+      window._purchaseReturnLines.splice(i, 1);
+      renderPurchaseReturnLinesTable();
+    }
+    function renderPurchaseReturnLinesTable() {
+      var el = document.getElementById('pret-lines');
+      if (!el) return;
+      var lines = window._purchaseReturnLines || [];
+      if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm mb-2">لا أصناف بعد. أضف سطراً أعلاه.</p>'; return; }
+      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">منتج</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">تكلفة وحدة ل.س</th><th></th></tr></thead><tbody>' + lines.map(function(l, i) { return '<tr class="border-b border-white/5"><td class="p-2">' + l.productId + '</td><td class="p-2">' + (l.unitId || 'piece') + '</td><td class="p-2">' + l.quantity + '</td><td class="p-2">' + (l.unitCostSYP || 0) + '</td><td class="p-2"><button type="button" onclick="removePurchaseReturnLine(' + i + ')" class="text-rose-400 text-xs">حذف</button></td></tr>'; }).join('') + '</tbody></table>';
+    }
+    async function submitPurchaseReturn() {
+      var lines = window._purchaseReturnLines || [];
+      if (!lines.length) { showToast('تنبيه', 'أضف صنفاً واحداً على الأقل', 'error'); return; }
+      var supplierId = document.getElementById('pret-supplier')?.value?.trim() || null;
+      var receiveCash = document.getElementById('pret-receive-cash')?.checked || false;
+      var msgEl = document.getElementById('pret-message');
+      if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
+      try {
+        var j = await postJson('/procurement/purchase-return', { items: lines, supplierId: supplierId || null, receiveCash: receiveCash });
+        if (!j.success) throw new Error(j.error || 'فشل الحفظ');
+        window._purchaseReturnLines = [];
+        renderPurchaseReturnLinesTable();
+        showToast('Success', (j.data && j.data.returnId) ? ('مرتجع: ' + j.data.returnId) : 'تم حفظ مرتجع المشتريات', 'success');
+        refreshAll();
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    async function renderSuppliers(container) {
+      var list = [];
+      try {
+        var r = await fetchJson('/suppliers');
+        if (r.success && r.data) list = r.data;
+      } catch (e) {}
+      var rows = list.length ? list.map(function(s) {
+        return '<tr class="border-b border-white/10"><td class="p-3 text-white">' + (s.name || s.id) + '</td><td class="p-3 text-slate-400">' + (s.phone || '—') + '</td><td class="p-3 text-slate-400">' + (s.address || '—') + '</td><td class="p-3"><button type="button" onclick="editSupplier(\'' + s.id + '\')" class="text-emerald-400 text-xs ml-2">تعديل</button><button type="button" onclick="deleteSupplier(\'' + s.id + '\')" class="text-rose-400 text-xs">حذف</button></td></tr>';
+      }).join('') : '<tr><td colspan="4" class="p-4 text-slate-500 text-center">لا موردين. أضف مورداً أدناه.</td></tr>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">الموردين</h3><p class="page-desc mb-4">قائمة الموردين لربطها بفواتير ومرتجعات المشتريات.</p><div class="overflow-x-auto mb-6"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-3">الاسم</th><th class="p-3">الهاتف</th><th class="p-3">العنوان</th><th class="p-3">إجراء</th></tr></thead><tbody>' + rows + '</tbody></table></div><h4 class="text-white font-medium mb-2">إضافة مورد</h4><div class="grid grid-cols-1 md:grid-cols-3 gap-3 mb-3"><input type="text" id="sup-name" placeholder="اسم المورد" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="text" id="sup-phone" placeholder="هاتف" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="text" id="sup-address" placeholder="عنوان" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><button type="button" onclick="addSupplier()" class="py-2 px-4 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium">إضافة مورد</button><p id="suppliers-message" class="mt-3 text-sm hidden"></p></div>';
+    }
+    async function addSupplier() {
+      var name = document.getElementById('sup-name')?.value?.trim();
+      var phone = document.getElementById('sup-phone')?.value?.trim() || null;
+      var address = document.getElementById('sup-address')?.value?.trim() || null;
+      if (!name) { showToast('تنبيه', 'اسم المورد مطلوب', 'error'); return; }
+      var msgEl = document.getElementById('suppliers-message');
+      if (msgEl) { msgEl.classList.add('hidden'); }
+      try {
+        await postJson('/suppliers', { name: name, phone: phone, address: address });
+        document.getElementById('sup-name').value = '';
+        if (document.getElementById('sup-phone')) document.getElementById('sup-phone').value = '';
+        if (document.getElementById('sup-address')) document.getElementById('sup-address').value = '';
+        showToast('Success', 'تم إضافة المورد', 'success');
+        var tab = openTabs.find(function(t) { return t.moduleId === 'suppliers'; });
+        if (tab) renderModulePanel('suppliers');
+      } catch (e) {
+        if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'text-rose-400'; }
+        showToast('خطأ', e.message || 'فشل', 'error');
+      }
+    }
+    function editSupplier(id) {
+      showToast('تنبيه', 'استخدم واجهة التعديل لاحقاً أو عدّل من قائمة الفواتير.', 'error');
+    }
+    async function deleteSupplier(id) {
+      if (!confirm('حذف هذا المورد؟')) return;
+      try {
+        var r = await fetch(API + '/suppliers/' + encodeURIComponent(id), { method: 'DELETE', headers: getAuthHeaders() });
+        var j = await r.json().catch(function() { return {}; });
+        if (!j.success) throw new Error(j.error || 'فشل الحذف');
+        showToast('Success', 'تم حذف المورد', 'success');
+        var tab = openTabs.find(function(t) { return t.moduleId === 'suppliers'; });
+        if (tab) renderModulePanel('suppliers');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل الحذف', 'error');
+      }
+    }
+
     async function renderManufacturingBOM(container) {
       var productsR = await fetchJson('/products');
       var unitsR = await fetchJson('/units');
@@ -2646,7 +2975,7 @@
         var comps = (b.components || []).map(function(c) { return c.productId + ' × ' + c.quantityPerUnit + ' ' + (c.unitId || ''); }).join('؛ ');
         return '<tr class="border-b border-white/5"><td class="p-2">' + (b.finishedProductId || '') + '</td><td class="p-2">' + (b.finishedUnitId || 'piece') + '</td><td class="p-2 text-slate-400">' + comps + '</td></tr>';
       }).join('') + '</tbody></table></div>' : '<p class="text-slate-500 text-sm mb-4">لا توجد وصفات بعد.</p>';
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">وصفات (BOM)</h3><p class="text-slate-500 text-sm mb-4">عرّف كيف يُصنع المنتج النهائي من المواد الخام.</p>' + listHtml + '<h4 class="text-white font-medium mb-2">إضافة وصفة</h4><div class="mb-3"><label class="text-slate-400 text-sm">المنتج النهائي</label><select id="bom-finished-product" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + productOpts + '</select></div><div class="mb-3"><label class="text-slate-400 text-sm">وحدة المنتج النهائي</label><select id="bom-finished-unit" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select></div><div id="bom-components"></div><div class="flex flex-wrap gap-2 mb-4"><select id="bom-comp-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="bom-comp-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="bom-comp-qty" placeholder="كمية لكل 1 وحدة نهائية" min="0.001" step="any" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-36"/><button type="button" onclick="addBOMComponent()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ مكوّن</button></div><button type="button" onclick="submitBOM()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الوصفة</button><p id="bom-message" class="mt-3 text-sm hidden"></p></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">وصفات (BOM)</h3><p class="page-desc mb-4">عرّف كيف يُصنع المنتج النهائي من المواد الخام.</p>' + listHtml + '<h4 class="text-white font-medium mb-2">إضافة وصفة</h4><div class="mb-3"><label class="text-slate-400 text-sm">المنتج النهائي</label><select id="bom-finished-product" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + productOpts + '</select></div><div class="mb-3"><label class="text-slate-400 text-sm">وحدة المنتج النهائي</label><select id="bom-finished-unit" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select></div><div id="bom-components"></div><div class="flex flex-wrap gap-2 mb-4"><select id="bom-comp-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="bom-comp-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="bom-comp-qty" placeholder="كمية لكل 1 وحدة نهائية" min="0.001" step="any" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-36"/><button type="button" onclick="addBOMComponent()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ مكوّن</button></div><button type="button" onclick="submitBOM()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الوصفة</button><p id="bom-message" class="mt-3 text-sm hidden"></p></div>';
       renderBOMComponentsTable();
     }
     function addBOMComponent() {
@@ -2694,7 +3023,7 @@
       var boms = bomsR.data || [];
       var bomOpts = boms.map(function(b) { return '<option value="' + b.id + '">' + (b.finishedProductId || b.id) + ' (' + (b.finishedUnitId || 'piece') + ')</option>'; }).join('');
       if (!bomOpts) bomOpts = '<option value="">لا توجد وصفات</option>';
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">أمر تصنيع</h3><p class="text-slate-500 text-sm mb-4">اختر وصفة وكمية للإنتاج. سيتم خصم المواد الخام وإضافة المنتج النهائي.</p><div class="mb-4"><label class="text-slate-400 text-sm">الوصفة (BOM)</label><select id="build-bom" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + bomOpts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">الكمية</label><input type="number" id="build-qty" min="1" value="1" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div class="mb-4"><label class="text-slate-400 text-sm">بيان (اختياري)</label><input type="text" id="build-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="ملاحظات"/></div><button type="button" onclick="submitBuild()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تنفيذ التصنيع</button><p id="build-message" class="mt-3 text-sm hidden"></p></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">أمر تصنيع</h3><p class="page-desc mb-4">اختر وصفة وكمية للإنتاج. سيتم خصم المواد الخام وإضافة المنتج النهائي.</p><div class="mb-4"><label class="text-slate-400 text-sm">الوصفة (BOM)</label><select id="build-bom" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + bomOpts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">الكمية</label><input type="number" id="build-qty" min="1" value="1" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div class="mb-4"><label class="text-slate-400 text-sm">بيان (اختياري)</label><input type="text" id="build-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="ملاحظات"/></div><button type="button" onclick="submitBuild()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تنفيذ التصنيع</button><p id="build-message" class="mt-3 text-sm hidden"></p></div>';
     }
     async function submitBuild() {
       var bomId = document.getElementById('build-bom')?.value;
@@ -2720,7 +3049,7 @@
       var expenseAccounts = accounts.filter(function(a) { return a.type === 'expense'; });
       var opts = expenseAccounts.map(function(a) { return '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>'; }).join('');
       if (!opts) opts = '<option value="">لا حسابات مصروفات</option>';
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المصاريف</h3><p class="text-slate-500 text-sm mb-4">تسجيل راتب، إيجار، كهرباء، إلخ. من شجرة الحسابات (مدين مصروف، دائن صندوق).</p><div class="mb-4"><label class="text-slate-400 text-sm">الحساب (مصروف)</label><select id="exp-account" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + opts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">المبلغ ل.س</label><input type="number" id="exp-amount" min="0.01" step="any" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="المبلغ"/></div><div class="mb-4"><label class="text-slate-400 text-sm">البيان (اختياري)</label><input type="text" id="exp-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="مثال: راتب آذار"/></div><button type="button" onclick="submitExpense()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تسجيل المصروف</button><p id="exp-message" class="mt-3 text-sm hidden"></p></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">المصاريف</h3><p class="page-desc mb-4">تسجيل راتب، إيجار، كهرباء، إلخ. من شجرة الحسابات (مدين مصروف، دائن صندوق).</p><div class="mb-4"><label class="text-slate-400 text-sm">الحساب (مصروف)</label><select id="exp-account" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + opts + '</select></div><div class="mb-4"><label class="text-slate-400 text-sm">المبلغ ل.س</label><input type="number" id="exp-amount" min="0.01" step="any" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="المبلغ"/></div><div class="mb-4"><label class="text-slate-400 text-sm">البيان (اختياري)</label><input type="text" id="exp-memo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="مثال: راتب آذار"/></div><button type="button" onclick="submitExpense()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">تسجيل المصروف</button><p id="exp-message" class="mt-3 text-sm hidden"></p></div>';
     }
     async function submitExpense() {
       var accountId = document.getElementById('exp-account')?.value;
@@ -2742,7 +3071,7 @@
     }
 
     async function renderReportsHub(container) {
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">مركز التقارير</h3><p class="text-slate-500 text-sm mb-6">اختر تقريراً لعرضه.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"><button type="button" onclick="showReport(\'balance-sheet\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">الميزانية العمومية</span><span class="text-slate-400 text-sm">الأصول والخصوم وحقوق الملكية</span></button><button type="button" onclick="showReport(\'profit-loss\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">قائمة الدخل</span><span class="text-slate-400 text-sm">صافي الربح/الخسارة</span></button><button type="button" onclick="showReport(\'warehouse\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">جرد المستودع</span><span class="text-slate-400 text-sm">قيمة المخزون (FIFO)</span></button></div><div id="report-result" class="mt-4"></div></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">مركز التقارير</h3><p class="page-desc mb-6">اختر تقريراً لعرضه.</p><div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6"><button type="button" onclick="showReport(\'balance-sheet\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">الميزانية العمومية</span><span class="text-slate-400 text-sm">الأصول والخصوم وحقوق الملكية</span></button><button type="button" onclick="showReport(\'profit-loss\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">قائمة الدخل</span><span class="text-slate-400 text-sm">صافي الربح/الخسارة</span></button><button type="button" onclick="showReport(\'warehouse\')" class="tap-haptic py-4 px-4 rounded-xl glass-card border border-white/10 text-right hover:border-emerald-500/30 hover:bg-white/5 transition"><span class="block text-white font-medium mb-1">جرد المستودع</span><span class="text-slate-400 text-sm">قيمة المخزون (FIFO)</span></button></div><div id="report-result" class="mt-4"></div></div>';
     }
     async function showReport(reportId) {
       var el = document.getElementById('report-result');
@@ -2775,11 +3104,15 @@
       if (s == null || s === undefined) return '';
       return String(s).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;');
     }
+    function escapeHtml(s) {
+      if (s == null || s === undefined) return '';
+      return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
     var _systemSettingsTab = 'general';
     async function renderSystemSettings(container) {
       var role = (window._appConfig.user && window._appConfig.user.role) || 'ADMIN';
       if (role === 'CASHIER') {
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية.</p></div>';
+        container.innerHTML = '<div class="card-standard"><p class="state-error">صلاحيات غير كافية.</p></div>';
         return;
       }
       var s = (window._appConfig.settings) || {};
@@ -2879,14 +3212,14 @@
       var role = String(user.role || '').toUpperCase();
       var isSuperAdmin = !!(window._appConfig && window._appConfig.user && String(window._appConfig.user.role).toUpperCase() === 'SUPER_ADMIN');
       if (role === 'CASHIER') {
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">صلاحيات غير كافية. إدارة المستخدمين متاحة للمسؤولين فقط.</p></div>';
+        container.innerHTML = '<div class="card-standard"><p class="state-error">صلاحيات غير كافية. إدارة المستخدمين متاحة للمسؤولين فقط.</p></div>';
         return;
       }
       var res;
       try {
         res = await fetch(API + '/users', { headers: getAuthHeaders() });
       } catch (e) {
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">لا يمكن الاتصال بالخادم. تأكد أن الخادم يعمل على ' + (API.replace(/\/api$/, '')) + ' وأن الشبكة متاحة.</p><p class="text-slate-500 text-sm mt-2">' + (e.message || '') + '</p></div>';
+        container.innerHTML = '<div class="card-standard"><p class="state-error">لا يمكن الاتصال بالخادم. تأكد أن الخادم يعمل على ' + (API.replace(/\/api$/, '')) + ' وأن الشبكة متاحة.</p><p class="page-desc mt-2">' + (e.message || '') + '</p></div>';
         return;
       }
       var j = await res.json().catch(function() { return {}; });
@@ -2894,11 +3227,11 @@
         var errMsg = j.error || j.message;
         if (res.status === 401) errMsg = errMsg || 'انتهت الجلسة أو غير مصرح. يرجى تسجيل الدخول مرة أخرى.';
         if (res.status === 403) errMsg = errMsg || 'صلاحيات غير كافية للوصول إلى إدارة المستخدمين.';
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">' + (errMsg || 'خطأ من الخادم (' + res.status + ')') + '</p><p class="text-slate-500 text-sm mt-2">الرابط: ' + API + '/users</p></div>';
+        container.innerHTML = '<div class="card-standard"><p class="state-error">' + (errMsg || 'خطأ من الخادم (' + res.status + ')') + '</p><p class="page-desc mt-2">الرابط: ' + API + '/users</p></div>';
         return;
       }
       if (!j.success || !Array.isArray(j.data)) {
-        container.innerHTML = '<div class="glass-card rounded-2xl p-6"><p class="text-rose-400">استجابة غير متوقعة من الخادم.</p></div>';
+        container.innerHTML = '<div class="card-standard"><p class="state-error">استجابة غير متوقعة من الخادم.</p></div>';
         return;
       }
       var list = j.data || [];
@@ -2915,7 +3248,7 @@
       }).join('');
       var theadRow = '<tr class="text-slate-400 border-b border-white/10 text-right"><th class="p-2 um-col-username">اسم المستخدم</th><th class="p-2 um-col-fullname">الاسم الكامل</th><th class="p-2 um-col-role">الدور</th>' + (isSuperAdmin ? '<th class="p-2">النشاط</th><th class="p-2">تغيير النشاط</th>' : '') + '<th class="p-2 um-col-status">الحالة</th><th class="p-2 um-col-actions">إجراءات</th></tr>';
       container.innerHTML =
-        '<div class="glass-card rounded-2xl p-6 mb-6"><h3 class="text-lg font-semibold text-white mb-4">إضافة مستخدم</h3>' +
+        '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">إضافة مستخدم</h3>' +
         '<div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-3">' +
         '<div><label class="text-slate-400 text-xs">اسم المستخدم</label><input type="text" id="um-username" placeholder="username" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
         '<div><label class="text-slate-400 text-xs">كلمة المرور</label><input type="password" id="um-password" placeholder="••••••••" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
@@ -2923,8 +3256,8 @@
         '<div><label class="text-slate-400 text-xs">الدور</label><select id="um-role" class="vault-select erp-select um-role-select w-full mt-1 max-w-full"><option value="ADMIN">مسؤول (Admin)</option><option value="CASHIER">كاشير (Cashier)</option></select></div>' +
         '</div><button type="button" onclick="userMgmtAdd()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">إضافة مستخدم</button>' +
         '<p id="um-add-msg" class="mt-2 text-sm hidden"></p></div>' +
-        '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">المستخدمون</h3>' +
-        '<div class="overflow-x-auto"><table class="w-full text-sm um-table"><thead>' + theadRow + '</thead><tbody id="user-mgmt-tbody">' + tableRows + '</tbody></table></div></div>' +
+        '<div class="card-standard"><h3 class="page-title-h3 mb-4">المستخدمون</h3>' +
+        '<div class="overflow-x-auto max-h-[70vh] overflow-y-auto"><table class="w-full text-sm um-table table-sticky-header table-zebra"><thead>' + theadRow + '</thead><tbody id="user-mgmt-tbody">' + tableRows + '</tbody></table></div></div>' +
         '<div id="user-password-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeUserPasswordModal()">' +
         '<div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()">' +
         '<h3 class="text-white font-medium mb-3">تغيير كلمة المرور</h3><p id="user-password-username" class="text-slate-500 text-sm mb-3"></p>' +
@@ -3018,8 +3351,8 @@
     async function renderCompanySettings(container) {
       var r = await fetchJson('/settings/company-profile');
       var data = r.data || {};
-      var backupCard = '<div class="glass-card rounded-2xl p-6 mt-6"><h3 class="text-lg font-semibold text-white mb-4">النسخ الاحتياطي واستعادة البيانات</h3><p class="text-slate-500 text-sm mb-4">تصدير كل البيانات (دفتر اليومية، المخزون، الحركات، الوصفات، المصاريف، الملف) أو استعادتها من ملف.</p><div class="flex flex-wrap gap-3 mb-4"><button type="button" onclick="downloadBackup()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">تصدير نسخة احتياطية</button><button type="button" onclick="downloadExcelAudit()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">تصدير إلى Excel</button></div><div class="border-t border-white/10 pt-4 mt-4"><label class="text-slate-400 text-sm block mb-2">استعادة من نسخة احتياطية</label><input type="file" id="restore-file" accept=".json" class="hidden"/><button type="button" onclick="document.getElementById(\'restore-file\').click()" class="tap-haptic px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 font-medium text-sm">اختيار ملف JSON</button><span id="restore-filename" class="text-slate-500 text-sm mr-2"></span><button type="button" id="restore-do-btn" onclick="doRestoreFromFile()" class="tap-haptic px-4 py-2 rounded-lg bg-rose-500/20 text-rose-300 font-medium text-sm hidden">تنفيذ الاستعادة</button><p class="text-slate-500 text-xs mt-2">آخر نسخ تلقائي محلي: <span id="autosave-time">—</span></p><button type="button" onclick="restoreFromLocalAutosave()" class="tap-haptic mt-2 px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">استعادة من النسخ التلقائي المحلي</button><p id="backup-message" class="mt-2 text-sm hidden"></p></div></div>';
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">إعدادات الشركة</h3><p class="text-slate-500 text-sm mb-6">الشعار، الاسم، الرقم الضريبي، والعملة الافتراضية.</p><div class="mb-4"><label class="text-slate-400 text-sm">رابط الشعار (URL)</label><input type="text" id="cp-logo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="https://..." value="' + escapeAttr(data.logoUrl) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="cp-name" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Vault AI" value="' + escapeAttr(data.name) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">الرقم الضريبي</label><input type="text" id="cp-taxid" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="الرقم الضريبي" value="' + escapeAttr(data.taxId) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">العملة الافتراضية</label><input type="text" id="cp-currency" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="SYP" value="' + escapeAttr(data.defaultCurrency || 'SYP') + '"/></div><button type="button" onclick="submitCompanyProfile()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الإعدادات</button><p id="cp-message" class="mt-3 text-sm hidden"></p></div>' + backupCard;
+      var backupCard = '<div class="card-standard mt-6"><h3 class="page-title-h3 mb-4">النسخ الاحتياطي واستعادة البيانات</h3><p class="page-desc mb-4">تصدير كل البيانات (دفتر اليومية، المخزون، الحركات، الوصفات، المصاريف، الملف) أو استعادتها من ملف.</p><div class="flex flex-wrap gap-3 mb-4"><button type="button" onclick="downloadBackup()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">تصدير نسخة احتياطية</button><button type="button" onclick="downloadExcelAudit()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">تصدير إلى Excel</button></div><div class="border-t border-white/10 pt-4 mt-4"><label class="text-slate-400 text-sm block mb-2">استعادة من نسخة احتياطية</label><input type="file" id="restore-file" accept=".json" class="hidden"/><button type="button" onclick="document.getElementById(\'restore-file\').click()" class="tap-haptic px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 font-medium text-sm">اختيار ملف JSON</button><span id="restore-filename" class="text-slate-500 text-sm mr-2"></span><button type="button" id="restore-do-btn" onclick="doRestoreFromFile()" class="tap-haptic px-4 py-2 rounded-lg bg-rose-500/20 text-rose-300 font-medium text-sm hidden">تنفيذ الاستعادة</button><p class="text-slate-500 text-xs mt-2">آخر نسخ تلقائي محلي: <span id="autosave-time">—</span></p><button type="button" onclick="restoreFromLocalAutosave()" class="tap-haptic mt-2 px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">استعادة من النسخ التلقائي المحلي</button><p id="backup-message" class="mt-2 text-sm hidden"></p></div></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">إعدادات الشركة</h3><p class="page-desc mb-6">الشعار، الاسم، الرقم الضريبي، والعملة الافتراضية.</p><div class="mb-4"><label class="text-slate-400 text-sm">رابط الشعار (URL)</label><input type="text" id="cp-logo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="https://..." value="' + escapeAttr(data.logoUrl) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="cp-name" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Vault AI" value="' + escapeAttr(data.name) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">الرقم الضريبي</label><input type="text" id="cp-taxid" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="الرقم الضريبي" value="' + escapeAttr(data.taxId) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">العملة الافتراضية</label><input type="text" id="cp-currency" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="SYP" value="' + escapeAttr(data.defaultCurrency || 'SYP') + '"/></div><button type="button" onclick="submitCompanyProfile()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الإعدادات</button><p id="cp-message" class="mt-3 text-sm hidden"></p></div>' + backupCard;
       var restoreInput = document.getElementById('restore-file');
       if (restoreInput) {
         restoreInput.addEventListener('change', function() {
@@ -3256,7 +3589,7 @@
             '<td class="p-3 text-emerald-400 font-medium">' + lineTotal.toFixed(0) + '</td>' +
             '<td class="p-3"><label class="cursor-pointer flex items-center justify-end gap-1"><input type="checkbox" data-idx="' + i + '" class="return-restock-check rounded border-white/20 text-emerald-500" ' + (l.restock !== false ? 'checked' : '') + '/> <span class="text-xs text-slate-400">إعادة للمخزن</span></label></td></tr>';
         });
-        table.innerHTML = '<table class="w-full text-sm return-excel-table">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
+        table.innerHTML = '<table class="w-full text-sm return-excel-table table-sticky-header">' + thead + '<tbody>' + rows.join('') + '</tbody></table>';
         table.querySelectorAll('.return-qty-input').forEach(function(inp) {
           inp.addEventListener('input', function() {
             var idx = parseInt(this.getAttribute('data-idx'), 10);
@@ -3376,13 +3709,13 @@
         '</div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4">' +
         '<h3 class="text-sm font-medium text-slate-400 mb-3">الفواتير</h3>' +
-        '<div id="reports-invoices-table" class="overflow-x-auto"><p class="text-slate-500 py-4">جاري التحميل…</p></div></div>' +
+        '<div id="reports-invoices-table" class="overflow-x-auto max-h-[70vh] overflow-y-auto"><p class="state-loading py-4">جاري التحميل…</p></div></div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg border border-white/10">' +
         '<h3 class="text-sm font-medium text-slate-400 mb-3">كشف المرتجعات</h3>' +
         '<input type="text" id="reports-returns-search" placeholder="بحث سريع (رقم مرتجع، زبون، كاش، دين…)" class="w-full mb-3 bg-white/5 border border-emerald-500/30 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500"/>' +
         '<div class="flex flex-wrap gap-2 mb-3"><button type="button" onclick="exportReturnsExcel()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium">تصدير Excel</button>' +
         '<button type="button" onclick="printReturnsReport()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm font-medium">طباعة كشف جرد</button></div>' +
-        '<div id="reports-returns-table-wrap" class="overflow-x-auto"><table class="w-full text-sm text-right reports-returns-table"><thead><tr class="text-slate-400 border-b border-white/20"><th class="p-3">رقم المرتجع</th><th class="p-3">اسم الزبون</th><th class="p-3">نوع العملية</th><th class="p-3">حالة البضاعة</th><th class="p-3">القيمة</th><th class="p-3">الإجراء</th></tr></thead><tbody id="reports-returns-tbody"></tbody></table></div>' +
+        '<div id="reports-returns-table-wrap" class="overflow-x-auto max-h-[70vh] overflow-y-auto"><table class="w-full text-sm text-right reports-returns-table table-sticky-header table-zebra"><thead><tr class="text-slate-400 border-b border-white/20"><th class="p-3">رقم المرتجع</th><th class="p-3">اسم الزبون</th><th class="p-3">نوع العملية</th><th class="p-3">حالة البضاعة</th><th class="p-3">القيمة</th><th class="p-3">الإجراء</th></tr></thead><tbody id="reports-returns-tbody"></tbody></table></div>' +
         '<p id="reports-returns-empty" class="text-slate-500 py-4 text-center hidden">لا مرتجعات في هذه الفترة.</p></div>' +
         '<div id="invoice-detail-modal" class="hidden fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) closeInvoiceDetailModal()">' +
         '<div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">' +
@@ -3442,8 +3775,8 @@
         window._salesReportsInvoices = list;
         window._salesReportsReturns = returnsList;
         var tableHtml = list.length === 0
-          ? '<p class="text-slate-500 py-4">لا توجد فواتير في هذه الفترة.</p>'
-          : '<table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">رقم الفاتورة</th><th class="p-2">العميل</th><th class="p-2">المبلغ</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody>' +
+          ? '<p class="state-empty py-4">لا توجد فواتير في هذه الفترة.</p>'
+          : '<table class="w-full text-sm text-right table-sticky-header table-zebra"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">رقم الفاتورة</th><th class="p-2">العميل</th><th class="p-2">المبلغ</th><th class="p-2">الحالة</th><th class="p-2">إجراءات</th></tr></thead><tbody>' +
             list.map(function(inv) {
               var dateStr = inv.date ? inv.date.slice(0, 10) : '—';
               var cust = inv.customerId || '—';
@@ -3463,7 +3796,7 @@
           searchEl.addEventListener('input', function() { filterReportsReturnsTable(this.value.trim()); });
         }
       } catch (e) {
-        document.getElementById('reports-invoices-table').innerHTML = '<p class="text-rose-400 py-4">' + (e.message || 'خطأ في التحميل') + '</p>';
+        document.getElementById('reports-invoices-table').innerHTML = '<p class="state-error py-4">' + (e.message || 'خطأ في التحميل') + '</p>';
       }
     }
 
@@ -3698,7 +4031,7 @@
     }
 
     function renderSalesPlaceholder(container, moduleId) {
-      container.innerHTML = '<div class="glass-card rounded-2xl p-6"><h3 class="text-lg font-semibold text-white mb-4">مرتجع بيع</h3><p class="text-slate-500">ربط مع نقطة البيع والمسودات. استخدم قسم المحاسبة للمعاملات الحالية.</p></div>';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">مرتجع بيع</h3><p class="page-desc">ربط مع نقطة البيع والمسودات. استخدم قسم المحاسبة للمعاملات الحالية.</p></div>';
     }
 
     function refreshActiveModule() {
@@ -3764,6 +4097,18 @@
         await refresh('journal');
         await refresh('fx');
       } catch (e) { alert(e.message); }
+    }
+
+    async function bulkUpdatePricesByRate() {
+      try {
+        var r = await postJson('/prices/update-by-rate', {});
+        if (r && r.data && r.data.updated != null) {
+          if (typeof showToast === 'function') showToast('تم تحديث أسعار البيع لـ ' + r.data.updated + ' صنف مرتبط بالدولار.');
+          else alert('تم تحديث أسعار البيع لـ ' + r.data.updated + ' صنف.');
+        }
+        var t = openTabs.find(function(x) { return x.moduleId === 'item-card'; });
+        if (t) openModule('item-card', 'بطاقة مادة');
+      } catch (e) { alert(e.message || 'تعذر تحديث الأسعار'); }
     }
 
     async function recordDebt() {

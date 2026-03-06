@@ -20,6 +20,18 @@
       "destination": "/dashboard/$1"
     },
     {
+      "source": "/dashboard/login.html",
+      "destination": "/dashboard/login.html"
+    },
+    {
+      "source": "/dashboard/super-admin.html",
+      "destination": "/dashboard/super-admin.html"
+    },
+    {
+      "source": "/dashboard/index.html",
+      "destination": "/dashboard/index.html"
+    },
+    {
       "source": "/:path*",
       "destination": "/dashboard/index.html"
     }

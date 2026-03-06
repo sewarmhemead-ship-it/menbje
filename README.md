@@ -55,3 +55,9 @@ Use "Refresh" on each card to reload. All modules use the same API base and are 
 
 1. `POST /api/drafts/:id/convert` → returns order payload.
 2. `POST /api/pos/orders` with that payload (or with `lines`, `customerPhone`, etc.) to create the order in the POS.
+
+## Adding new ideas & project structure
+
+- **Ideas / roadmap:** See [`IDEAS.md`](IDEAS.md) to log new features and [`docs/IDEAS_AND_ROADMAP.md`](docs/IDEAS_AND_ROADMAP.md) for how to add them and suggested project organization.
+- **Global accounting, Syria-oriented (محاسبة شاملة وعالمية موجّهة لسوريا، بدون ضريبة):** See [`docs/GLOBAL_ACCOUNTING_ROADMAP.md`](docs/GLOBAL_ACCOUNTING_ROADMAP.md) for a phased plan (base currency, multi-currency invoicing, fiscal periods, fixed assets, bank reconciliation, cost centers, projects, KPIs, export). No VAT — Syria has no sales tax.
+- **Product for shops (منتج للمحلات — تدقيق الأقسام):** See [`docs/MERCHANT_SECTIONS_SPEC.md`](docs/MERCHANT_SECTIONS_SPEC.md) for a full audit of every section (sales, purchases, warehouse, accounting, vouchers, etc.) with merchant needs and global ideas so the product is ready as a game-changer in Syria. Includes P0/P1/P2 priorities.

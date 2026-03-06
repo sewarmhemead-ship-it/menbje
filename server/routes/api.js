@@ -28,7 +28,7 @@ import { optionalAuth, requireAuth, requireSuperAdmin } from '../auth/middleware
 
 const router = Router();
 router.use(optionalAuth);
-const { products, units, draftOrders, accounts, stockMovements, salesInvoices, salesReturns, users } = store;
+const { products, units, draftOrders, accounts, stockMovements, salesInvoices, salesReturns, users, suppliers } = store;
 
 function getTenantId(req) {
   return (req.user && req.user.tenantId) || 'default';
@@ -41,6 +41,175 @@ function requireAdmin(req, res, next) {
   }
   next();
 }
+
+// —— Global Search (البحث الموحد): أصناف، فواتير، عملاء ——
+router.get('/search', (req, res) => {
+  try {
+    const q = (req.query.q || '').toString().trim().toLowerCase();
+    const tenantId = getTenantId(req);
+    const limit = Math.min(parseInt(req.query.limit, 10) || 20, 50);
+
+    const productsList = [];
+    const invoicesList = [];
+    const customersList = [];
+    const suppliersList = [];
+
+    if (q.length >= 1) {
+      for (const [id, p] of products) {
+        if ((p.tenantId || 'default') !== tenantId) continue;
+        const name = (p.name || '').toLowerCase();
+        const barcode = (p.barcode || '').toString().toLowerCase();
+        const sku = (p.sku || '').toString().toLowerCase();
+        if (name.includes(q) || barcode.includes(q) || sku.includes(q)) {
+          productsList.push({ id: p.id, name: p.name, barcode: p.barcode, sku: p.sku });
+          if (productsList.length >= limit) break;
+        }
+      }
+
+      for (const [id, s] of suppliers) {
+        if ((s.tenantId || 'default') !== tenantId) continue;
+        const name = (s.name || '').toLowerCase();
+        const phone = (s.phone || '').toString().toLowerCase();
+        if (name.includes(q) || phone.includes(q)) {
+          suppliersList.push({ id: s.id, name: s.name, phone: s.phone });
+          if (suppliersList.length >= limit) break;
+        }
+      }
+
+      const invList = [...salesInvoices].filter((inv) => (inv.tenantId || 'default') === tenantId);
+      for (const inv of invList) {
+        const id = (inv.id || '').toLowerCase();
+        const cust = (inv.customerId || '').toString().toLowerCase();
+        if (id.includes(q) || cust.includes(q)) {
+          invoicesList.push({ id: inv.id, date: inv.date, customerId: inv.customerId, totalRevenue: inv.totalRevenue });
+          if (invoicesList.length >= limit) break;
+        }
+      }
+
+      const seen = new Set();
+      for (const inv of invList) {
+        const cust = (inv.customerId || '').toString().trim();
+        if (!cust || seen.has(cust)) continue;
+        if (cust.toLowerCase().includes(q)) {
+          seen.add(cust);
+          customersList.push({ customerId: cust });
+          if (customersList.length >= limit) break;
+        }
+      }
+    }
+
+    res.json({
+      success: true,
+      data: { products: productsList, invoices: invoicesList, customers: customersList, suppliers: suppliersList },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— رصيد الصندوق (Cash balance): مقبوضات - مصروفات على حسابات الصندوق ——
+router.get('/dashboard/cash-balance', (req, res) => {
+  try {
+    const asOfDate = req.query.asOfDate || null;
+    const b1010 = journal.getAccountBalance('1010', asOfDate);
+    const b1020 = journal.getAccountBalance('1020', asOfDate);
+    const totalSYP = (b1010.balance || 0) + (b1020.balance || 0);
+    const acc1010 = accounts.get('1010');
+    const acc1020 = accounts.get('1020');
+    res.json({
+      success: true,
+      data: {
+        totalSYP,
+        byAccount: [
+          { accountId: '1010', name: (acc1010 && acc1010.name) || 'صندوق ل.س', balance: b1010.balance },
+          { accountId: '1020', name: (acc1020 && acc1020.name) || 'صندوق دولار', balance: b1020.balance },
+        ],
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Dashboard summary for profit report: Cash + Receivables + Inventory Value ——
+router.get('/dashboard/summary', (req, res) => {
+  try {
+    const asOfDate = req.query.asOfDate || null;
+    const b1010 = journal.getAccountBalance('1010', asOfDate);
+    const b1020 = journal.getAccountBalance('1020', asOfDate);
+    const cash = (b1010.balance ?? 0) + (b1020.balance ?? 0);
+    const receivablesBalance = journal.getAccountBalance('1200', asOfDate);
+    const totalReceivables = receivablesBalance.balance ?? 0;
+    const warehouse = statements.getWarehouseValuation();
+    const inventoryValue = warehouse.totalValueCostSYP ?? 0;
+    res.json({
+      success: true,
+      data: {
+        cash: Number(cash),
+        totalReceivables: Number(totalReceivables),
+        inventoryValue: Number(inventoryValue),
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— تنبيهات المخزون المنخفض (Low stock alerts) ——
+router.get('/dashboard/low-stock', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const list = [];
+    for (const p of products.values()) {
+      if ((p.tenantId || 'default') !== tenantId || !p.active) continue;
+      const minLevel = p.min_stock_level != null ? Number(p.min_stock_level) : null;
+      if (minLevel == null) continue;
+      const unitId = p.defaultUnitId || 'piece';
+      const inv = fractioning.getEffectiveInventory(p.id, unitId);
+      const current_stock = (inv && inv.quantity != null) ? Number(inv.quantity) : 0;
+      if (current_stock > minLevel) continue;
+      const supplier = p.supplierId ? suppliers.get(p.supplierId) : null;
+      list.push({
+        id: p.id,
+        name: p.name || p.id,
+        current_stock,
+        min_stock_level: minLevel,
+        supplier_name: supplier ? supplier.name : null,
+        supplier_phone: supplier ? supplier.phone : null,
+        supplier_address: supplier ? supplier.address : null,
+      });
+    }
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Pricing engine: update selling prices for USD-linked products when rate changes ——
+router.post('/prices/update-by-rate', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const rates = multiCurrency.getRates();
+    const sypPerUsd = (req.body.rate != null && Number(req.body.rate) > 0)
+      ? Number(req.body.rate)
+      : (rates.SYP != null && rates.SYP !== 0 ? 1 / rates.SYP : null);
+    if (sypPerUsd == null || sypPerUsd <= 0) {
+      return res.status(400).json({ success: false, error: 'سعر الصرف غير متوفر. قم بمزامنة سعر الل.س أولاً.' });
+    }
+    let updated = 0;
+    for (const p of products.values()) {
+      if ((p.tenantId || 'default') !== tenantId || !p.active) continue;
+      if ((p.base_currency || 'SYP') !== 'USD') continue;
+      const basePrice = p.base_price != null ? Number(p.base_price) : null;
+      if (basePrice == null) continue;
+      p.salesPricePerUnit = Math.round(basePrice * sypPerUsd);
+      updated++;
+    }
+    res.json({ success: true, data: { updated, rateUsed: sypPerUsd } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // —— Global settings (white-label config) ——
 router.get('/settings', (req, res) => {
@@ -233,9 +402,10 @@ router.get('/products', (req, res) => {
 });
 
 router.post('/products', (req, res) => {
-  const { name, sku, barcode, defaultUnitId, costPerDefaultUnit, salesPricePerUnit } = req.body;
+  const { name, sku, barcode, defaultUnitId, costPerDefaultUnit, salesPricePerUnit, min_stock_level, supplierId, base_currency, base_price } = req.body;
   const id = getNextId('products');
   const tenantId = getTenantId(req);
+  const baseCurrency = (base_currency === 'USD' || base_currency === 'SYP') ? base_currency : 'SYP';
   const p = {
     id,
     tenantId,
@@ -245,6 +415,10 @@ router.post('/products', (req, res) => {
     defaultUnitId: defaultUnitId || 'piece',
     costPerDefaultUnit: Number(costPerDefaultUnit) || 0,
     salesPricePerUnit: salesPricePerUnit != null ? Number(salesPricePerUnit) : null,
+    min_stock_level: min_stock_level != null ? Number(min_stock_level) : null,
+    supplierId: supplierId || null,
+    base_currency: baseCurrency,
+    base_price: base_price != null ? Number(base_price) : null,
     active: true,
   };
   products.set(id, p);
@@ -255,7 +429,7 @@ router.patch('/products/:id', (req, res) => {
   const tenantId = getTenantId(req);
   const p = products.get(req.params.id);
   if (!p || (p.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'Product not found' });
-  const { costPerDefaultUnit, salesPricePerUnit, barcode, name } = req.body;
+  const { costPerDefaultUnit, salesPricePerUnit, barcode, name, min_stock_level, supplierId, base_currency, base_price } = req.body;
   if (costPerDefaultUnit !== undefined) {
     const oldVal = p.costPerDefaultUnit;
     p.costPerDefaultUnit = Number(costPerDefaultUnit);
@@ -264,6 +438,10 @@ router.patch('/products/:id', (req, res) => {
   if (salesPricePerUnit !== undefined) p.salesPricePerUnit = Number(salesPricePerUnit);
   if (barcode !== undefined) p.barcode = barcode || null;
   if (name !== undefined) p.name = name;
+  if (min_stock_level !== undefined) p.min_stock_level = min_stock_level == null ? null : Number(min_stock_level);
+  if (supplierId !== undefined) p.supplierId = supplierId || null;
+  if (base_currency !== undefined) p.base_currency = (base_currency === 'USD' || base_currency === 'SYP') ? base_currency : 'SYP';
+  if (base_price !== undefined) p.base_price = base_price == null ? null : Number(base_price);
   res.json({ success: true, data: p });
 });
 
@@ -826,6 +1004,62 @@ router.get('/procurement/purchase-invoices', (req, res) => {
 router.get('/procurement/purchase-returns', (req, res) => {
   const list = procurement.listPurchaseReturns({ supplierId: req.query.supplierId, fromDate: req.query.fromDate, toDate: req.query.toDate });
   res.json({ success: true, data: list });
+});
+
+// —— Suppliers (الموردين) ——
+router.get('/suppliers', (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const list = Array.from(suppliers.values())
+      .filter((s) => (s.tenantId || 'default') === tenantId)
+      .map((s) => ({ id: s.id, name: s.name, phone: s.phone || null, address: s.address || null, createdAt: s.createdAt }));
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/suppliers', requireAuth, (req, res) => {
+  try {
+    const { name, phone, address } = req.body || {};
+    const tenantId = getTenantId(req);
+    if (!name || !String(name).trim()) return res.status(400).json({ success: false, error: 'اسم المورد مطلوب' });
+    const id = 'sup_' + Date.now();
+    const doc = { id, name: String(name).trim(), phone: phone ? String(phone).trim() : null, address: address ? String(address).trim() : null, tenantId, createdAt: new Date().toISOString() };
+    suppliers.set(id, doc);
+    res.status(201).json({ success: true, data: doc });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.put('/suppliers/:id', requireAuth, (req, res) => {
+  try {
+    const s = suppliers.get(req.params.id);
+    if (!s) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    const tenantId = getTenantId(req);
+    if ((s.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    const { name, phone, address } = req.body || {};
+    if (name !== undefined) s.name = String(name).trim();
+    if (phone !== undefined) s.phone = phone ? String(phone).trim() : null;
+    if (address !== undefined) s.address = address ? String(address).trim() : null;
+    res.json({ success: true, data: s });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.delete('/suppliers/:id', requireAuth, (req, res) => {
+  try {
+    const s = suppliers.get(req.params.id);
+    if (!s) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    const tenantId = getTenantId(req);
+    if ((s.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    suppliers.delete(req.params.id);
+    res.json({ success: true, data: { message: 'تم حذف المورد' } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
 });
 
 // —— Manufacturing (التصنيع): BOM + Build ——

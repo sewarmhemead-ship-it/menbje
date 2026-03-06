@@ -7,8 +7,9 @@ import { DEFAULT_CHART } from '../accounting/chartOfAccounts.js';
 import * as fractioning from '../modules/fractioning/engine.js';
 import * as barter from '../modules/barter/index.js';
 import * as fifo from '../inventory/fifo.js';
+import * as debtLedger from '../accounting/debtLedger.js';
 
-const { products, units, accounts, users } = store;
+const { products, units, accounts, users, suppliers, exchangeRates } = store;
 
 export function seedDemoData() {
   if (products.size > 0) return;
@@ -46,6 +47,18 @@ export function seedDemoData() {
   units.set('packet', { id: 'packet', name: 'باكت', symbol: 'باكت', type: 'discrete' });
   units.set('stationery_bundle', { id: 'stationery_bundle', name: 'شدّة', symbol: 'شدّة', type: 'discrete' });
 
+  // Suppliers (low-stock + stress test)
+  const sup1 = getNextId('suppliers');
+  const sup2 = getNextId('suppliers');
+  suppliers.set(sup1, { id: sup1, name: 'مورد المعاجين والزيوت', phone: '0912345678', address: 'دمشق، الميدان', tenantId: 'default', createdAt: new Date().toISOString() });
+  suppliers.set(sup2, { id: sup2, name: 'مورد الألبان', phone: '0945678901', address: 'ريف دمشق', tenantId: 'default', createdAt: new Date().toISOString() });
+  const sup3 = getNextId('suppliers');
+  const sup4 = getNextId('suppliers');
+  const sup5 = getNextId('suppliers');
+  suppliers.set(sup3, { id: sup3, name: 'Al-Khair Wholesaler', phone: '0933330001', address: 'Damascus', tenantId: 'default', createdAt: new Date().toISOString() });
+  suppliers.set(sup4, { id: sup4, name: 'Modern Electronics', phone: '0933330002', address: 'Aleppo', tenantId: 'default', createdAt: new Date().toISOString() });
+  suppliers.set(sup5, { id: sup5, name: 'Global Food Co', phone: '0933330003', address: 'Homs', tenantId: 'default', createdAt: new Date().toISOString() });
+
   const p1 = getNextId('products');
   const p2 = getNextId('products');
   const p3 = getNextId('products');
@@ -54,8 +67,13 @@ export function seedDemoData() {
     tenantId: 'default',
     name: 'Tomato Paste Can',
     sku: 'TP-001',
+    barcode: '6221000010011',
     defaultUnitId: 'carton',
     costPerDefaultUnit: 24,
+    min_stock_level: 80,
+    supplierId: sup1,
+    base_currency: 'USD',
+    base_price: 0.5,
     active: true,
   });
   products.set(p2, {
@@ -63,8 +81,13 @@ export function seedDemoData() {
     tenantId: 'default',
     name: 'Olive Oil',
     sku: 'OO-002',
+    barcode: '6221000010028',
     defaultUnitId: 'carton',
     costPerDefaultUnit: 60,
+    min_stock_level: 50,
+    supplierId: sup1,
+    base_currency: 'SYP',
+    base_price: null,
     active: true,
   });
   products.set(p3, {
@@ -72,10 +95,85 @@ export function seedDemoData() {
     tenantId: 'default',
     name: 'Milk',
     sku: 'MLK-003',
+    barcode: '6221000010035',
     defaultUnitId: 'piece',
     costPerDefaultUnit: 2,
+    min_stock_level: 200,
+    supplierId: sup2,
+    base_currency: 'SYP',
+    base_price: null,
     active: true,
   });
+
+  // Test Oil: demo for pricing engine & low-stock. After seed + rate 15k SYP/USD:
+  // - Barcode 999, base_currency USD, base_price 10 → salesPricePerUnit = 150,000 SYP
+  // - min_stock_level 20, current_stock 5 → appears in Low Stock Alerts
+  const p4 = getNextId('products');
+  products.set(p4, {
+    id: p4,
+    tenantId: 'default',
+    name: 'Test Oil',
+    sku: 'TO-999',
+    barcode: '999',
+    defaultUnitId: 'piece',
+    costPerDefaultUnit: 0,
+    min_stock_level: 20,
+    supplierId: sup1,
+    base_currency: 'USD',
+    base_price: 10,
+    active: true,
+  });
+  fifo.receiveLot(p4, 'piece', 5, 0);
+
+  // Stress test: diverse inventory (multi-currency, barcode)
+  const p5 = getNextId('products');
+  const p6 = getNextId('products');
+  const p7 = getNextId('products');
+  products.set(p5, {
+    id: p5,
+    tenantId: 'default',
+    name: 'iPhone 15',
+    sku: 'IP15-888',
+    barcode: '888',
+    defaultUnitId: 'piece',
+    costPerDefaultUnit: 0,
+    min_stock_level: 5,
+    supplierId: sup4,
+    base_currency: 'USD',
+    base_price: 800,
+    active: true,
+  });
+  fifo.receiveLot(p5, 'piece', 2, 0);
+  products.set(p6, {
+    id: p6,
+    tenantId: 'default',
+    name: 'Sugar 50kg',
+    sku: 'SUG-777',
+    barcode: '777',
+    defaultUnitId: 'bag',
+    costPerDefaultUnit: 400000,
+    min_stock_level: 10,
+    supplierId: sup5,
+    base_currency: 'SYP',
+    base_price: 400000,
+    active: true,
+  });
+  fifo.receiveLot(p6, 'bag', 50, 400000);
+  products.set(p7, {
+    id: p7,
+    tenantId: 'default',
+    name: 'Cooking Oil',
+    sku: 'CO-666',
+    barcode: '666',
+    defaultUnitId: 'piece',
+    costPerDefaultUnit: 0,
+    min_stock_level: 100,
+    supplierId: sup3,
+    base_currency: 'USD',
+    base_price: 2.5,
+    active: true,
+  });
+  // Cooking Oil: stock 0 (no receiveLot) → out of stock in Low Stock Alerts
 
   fractioning.registerFractioningRule(p1, 'carton', 'piece', 24, 1.2, 1.8);
   fractioning.registerFractioningRule(p2, 'carton', 'piece', 12, 5, 7.5);
@@ -87,6 +185,27 @@ export function seedDemoData() {
 
   const tomato = products.get(p1);
   barter.addNeed(p1, tomato?.name, 5, 'user-demo');
+
+  // Currency: 14,850 SYP/USD (stress test) — bulk price update for all USD-linked products
+  exchangeRates.set('SYP', 1 / 14850);
+  const sypPerUsd = 14850;
+  for (const p of products.values()) {
+    if ((p.base_currency || 'SYP') !== 'USD') continue;
+    const basePrice = p.base_price != null ? Number(p.base_price) : null;
+    if (basePrice == null) continue;
+    p.salesPricePerUnit = Math.round(basePrice * sypPerUsd);
+  }
+
+  // Customers (receivables): Customer A 500k, Customer B 1.2M + sale 10 Sugar (4M) = 5.2M total
+  debtLedger.recordDebt(500000, { debtorId: 'Customer A', memo: 'Seed receivable' });
+  debtLedger.recordDebt(1200000, { debtorId: 'Customer B', memo: 'Seed receivable' });
+  debtLedger.recordDebt(4000000, { debtorId: 'Customer B', memo: 'Sale 10 Sugar 50kg' });
+
+  // --- Full-Scale Stress Test Validation (Dashboard) ---
+  // Low Stock Alerts: iPhone 15 (2 < 5), Cooking Oil (0 < 100). Test Oil, Tomato, Olive, Milk per min_level.
+  // Profit & Liquidity: Cash (1010+1020), Receivables = 500k + 5.2M = 5.7M, Inventory = warehouse valuation.
+  // Search (Ctrl+K): "iPhone" → iPhone 15; "Al-Khair" → Al-Khair Wholesaler (supplier).
+  // USD prices @ 14,850: iPhone 15 = 11,880,000 SYP; Cooking Oil = 37,125 SYP; Test Oil = 148,500 SYP; Tomato = 7,425 SYP.
 }
 
 export function seedUsers() {
