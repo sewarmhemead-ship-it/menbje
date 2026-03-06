@@ -523,6 +523,10 @@
             <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
             ملخص اليوم
           </button>
+          <button type="button" onclick="startOfDayNewSale()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-medium text-sm hover:bg-amber-500/30 transition-colors" title="بداية يوم جديد">
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+            بداية يوم جديد
+          </button>
         </div>
         <p class="page-desc mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
         <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -530,6 +534,11 @@
             <h3 class="text-sm font-medium text-slate-400 mb-1">رصيد الصندوق</h3>
             <p class="text-4xl font-extrabold text-emerald-400" id="dashboard-cash-total">— ل.س</p>
             <p class="text-xs text-slate-500 mt-1" id="dashboard-cash-detail">صندوق ل.س + صندوق دولار (بالل.س)</p>
+          </div>
+          <div class="glass-card bento-tilt rounded-2xl p-4 cursor-pointer hover:border-amber-500/30 transition-colors" id="dashboard-pending-card" onclick="openPendingInvoicesModal()" title="الفواتير المعلقة">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الفواتير المعلقة</h3>
+            <p class="text-2xl font-bold text-amber-400" id="dashboard-pending-count">0</p>
+            <p class="text-xs text-slate-500 mt-1">انقر للاستكمال</p>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-4">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
@@ -882,6 +891,17 @@
     </div>
   </div>
 
+  <!-- Pending Invoices (الفواتير المعلقة) modal -->
+  <div id="pending-invoices-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePendingInvoicesModal()">
+    <div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">
+      <h3 class="text-lg font-semibold text-white mb-2">الفواتير المعلقة</h3>
+      <p class="text-slate-400 text-sm mb-4">انقر استكمال لتحميل الفاتورة وإكمالها.</p>
+      <ul id="pending-invoices-list" class="space-y-2 text-sm text-slate-300"></ul>
+      <p id="pending-invoices-empty" class="text-slate-500 py-4 text-center hidden">لا توجد فواتير معلقة.</p>
+      <button type="button" onclick="closePendingInvoicesModal()" class="tap-haptic mt-4 w-full py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button>
+    </div>
+  </div>
+
   <script>
     (function() {
       try {
@@ -1100,11 +1120,12 @@
       return { css: css, headerHTML: headerHTML };
     }
 
-    /** Update on-screen branding (name + logo). Never reloads or redirects; uses default placeholder if logo missing. Call after auth and config are complete. */
+    /** Update on-screen branding (name + logo + page title). Never reloads or redirects; uses default placeholder if logo missing. Call after auth and config are complete. */
     function applyBrandingToDOM() {
       try {
         var b = getBranding();
         var name = b.companyName || 'Vault AI';
+        document.title = (name && name.trim()) ? (name.trim() + ' | Vault AI') : 'Vault AI';
         document.querySelectorAll('.app-name-placeholder').forEach(function(el) { try { el.textContent = name; } catch (e2) {} });
         var logoEl = document.getElementById('global-brand-logo');
         var fallback = document.querySelector('.global-brand-fallback');
@@ -1835,6 +1856,44 @@
       setTimeout(function() { win.print(); win.close(); }, 300);
     }
 
+    function updatePendingInvoicesCard() {
+      var count = 0;
+      try { var holds = typeof getResumableHolds === 'function' ? getResumableHolds() : []; count = (holds && holds.length) || 0; } catch (e) {}
+      var el = document.getElementById('dashboard-pending-count');
+      if (el) el.textContent = count;
+    }
+    function openPendingInvoicesModal() {
+      var list = document.getElementById('pending-invoices-list');
+      var empty = document.getElementById('pending-invoices-empty');
+      var modal = document.getElementById('pending-invoices-modal');
+      if (!modal || !list) return;
+      var holds = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
+      if (!holds.length) {
+        list.innerHTML = '';
+        if (empty) { empty.classList.remove('hidden'); }
+      } else {
+        if (empty) empty.classList.add('hidden');
+        list.innerHTML = holds.map(function(h, i) {
+          var label = (h.date || '').slice(0, 10) + ' · ' + (h.customer || '—') + ' · ' + (h.lines || []).length + ' صنف';
+          return '<li class="flex justify-between items-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10"><span class="truncate">' + (label.replace(/</g, '&lt;')) + '</span><button type="button" onclick="resumePendingHoldAndClose(' + i + ')" class="tap-haptic px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm shrink-0">استكمال</button></li>';
+        }).join('');
+      }
+      modal.classList.remove('hidden');
+    }
+    function closePendingInvoicesModal() {
+      var m = document.getElementById('pending-invoices-modal');
+      if (m) m.classList.add('hidden');
+    }
+    function resumePendingHoldAndClose(index) {
+      closePendingInvoicesModal();
+      window._pendingResumeHoldIndex = index;
+      openModule('sales-invoice', 'فاتورة بيع');
+    }
+    function startOfDayNewSale() {
+      window._startOfDayFocus = true;
+      openModule('sales-invoice', 'فاتورة بيع');
+    }
+
     function loadProfitReport() {
       var content = document.getElementById('profit-report-content');
       var insightEl = document.getElementById('profit-report-insight');
@@ -1881,6 +1940,7 @@
       loadCashBalance();
       loadLowStockAlerts();
       loadProfitReport();
+      updatePendingInvoicesCard();
       var now = new Date();
       var toDate = now.toISOString().slice(0, 10);
       var from = new Date(now);
@@ -2694,7 +2754,7 @@
       win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet"/>' + t.css + '<style>' + extraCss + '</style></head><body>' + t.headerHTML + '<div class="' + bodyClass + '" style="font-family:Cairo,Tajawal,sans-serif">' + wrap.innerHTML + '</div></body></html>');
       win.document.close();
       win.focus();
-      setTimeout(function() { win.print(); win.close(); }, 300);
+      setTimeout(function() { win.print(); closePrintPreview(); if (wrap) wrap.innerHTML = ''; win.close(); }, 300);
     }
     async function addLineFromBarcode(barcode) {
       var productId = resolveProductIdFromInput(barcode);
@@ -2825,7 +2885,7 @@
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم الأسطر</span><span id="inv-total-disc">0</span> ل.س</p>' +
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم عام</span><input type="number" id="inv-global-disc" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
         '<p id="inv-tax-row" class="flex justify-between text-slate-300 text-sm mb-2"><span>الضريبة (اختياري)</span><input type="number" id="inv-tax" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
-        '<p class="flex justify-between items-center mt-3 pt-3 border-t border-white/10"><span class="text-white font-medium">الإجمالي</span><span id="inv-grand-total" class="text-2xl font-bold text-emerald-400">0</span> ل.س</p></div></div></div>' +
+        '<p class="flex justify-between items-center mt-3 pt-3 border-t border-white/10"><span class="text-white font-medium">الإجمالي</span><span id="inv-grand-total" class="text-2xl font-bold text-emerald-400">0</span> ل.س</p></div><div class="glass-card rounded-2xl p-4 mt-4 border border-white/10"><h3 class="text-sm font-medium text-slate-400 mb-2">آخر فواتير اليوم</h3><div id="inv-today-list" class="text-slate-300 text-sm space-y-1 max-h-40 overflow-auto"></div><p id="inv-today-empty" class="text-slate-500 text-xs py-2 hidden">لا فواتير لليوم.</p></div></div></div>' +
         '<div id="print-preview-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePrintPreview()"><div class="glass-card rounded-2xl p-4 max-w-2xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()"><div id="print-preview-content" class="print-preview-paper a4 p-6 bg-white text-slate-800 rounded"></div><div class="flex flex-wrap gap-2 mt-4 items-center"><button type="button" onclick="doPrintInvoice(false)" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة A4</button><button type="button" onclick="doPrintInvoice(true)" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة 80mm</button><button type="button" onclick="closePrintPreview()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div></div>' +
         '<div id="split-payment-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closeSplitPaymentModal()"><div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()"><h3 class="text-white font-medium mb-3">تقسيم الدفع</h3><p class="text-slate-500 text-sm mb-3">الإجمالي: <span id="split-grand-total">0</span> ل.س</p><div class="space-y-2 mb-4"><label class="block text-slate-400 text-xs">نقداً</label><input type="number" id="split-cash" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label class="block text-slate-400 text-xs">تحويل بنكي</label><input type="number" id="split-bank" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label class="block text-slate-400 text-xs">متبقي على الذمة</label><input type="number" id="split-debt" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div><p id="split-sum-msg" class="text-slate-500 text-xs mb-3"></p><div class="flex gap-2"><button type="button" onclick="confirmSplitAndSubmit()" class="btn-3d flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">تأكيد وحفظ</button><button type="button" onclick="closeSplitPaymentModal()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إلغاء</button></div></div></div>';
       renderInvoiceLinesTable();
@@ -2874,6 +2934,21 @@
       var unitSel = document.getElementById('inv-unit');
       if (unitSel) unitSel.setAttribute('data-last-unit', unitSel.value || 'piece');
       renderResumableList();
+      loadTodaysInvoices();
+      if (window._pendingResumeHoldIndex != null) {
+        var idx = window._pendingResumeHoldIndex;
+        window._pendingResumeHoldIndex = null;
+        setTimeout(function() { if (typeof resumeHold === 'function') resumeHold(idx); }, 200);
+      }
+      if (window._startOfDayFocus) {
+        window._startOfDayFocus = false;
+        setTimeout(function() {
+          var rate = (typeof rateHistory !== 'undefined' && rateHistory.length) ? rateHistory[rateHistory.length - 1].rate : null;
+          if (rate != null && typeof showToast === 'function') showToast('سعر الصرف', '1 USD = ' + formatNum(rate) + ' ل.س', 'success');
+          var barcode = document.getElementById('inv-barcode-scan');
+          if (barcode) barcode.focus();
+        }, 300);
+      }
       ['split-cash', 'split-bank', 'split-debt'].forEach(function(id) {
         var el = document.getElementById(id);
         if (el) el.addEventListener('input', updateSplitSumMessage);
@@ -2960,6 +3035,78 @@
       updateSalesSummary();
       renderResumableList();
       renderInvoiceStatusBadge();
+    }
+    async function loadTodaysInvoices() {
+      var listEl = document.getElementById('inv-today-list');
+      var emptyEl = document.getElementById('inv-today-empty');
+      if (!listEl) return;
+      var today = new Date().toISOString().slice(0, 10);
+      var tomorrow = new Date();
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      tomorrow = tomorrow.toISOString().slice(0, 10);
+      try {
+        var r = await fetch(API + '/sales/invoices?fromDate=' + today + '&toDate=' + tomorrow, { headers: getAuthHeaders() });
+        var j = await r.json();
+        var invoices = (j.data || []).filter(function(inv) { return (inv.date || '').slice(0, 10) === today; });
+        if (!invoices.length) {
+          listEl.innerHTML = '';
+          if (emptyEl) { emptyEl.classList.remove('hidden'); }
+          return;
+        }
+        if (emptyEl) emptyEl.classList.add('hidden');
+        listEl.innerHTML = invoices.map(function(inv) {
+          var id = (inv.id || '').toString().replace(/</g, '&lt;');
+          var total = formatNum(inv.totalRevenue || 0);
+          return '<div class="flex justify-between items-center gap-2 py-1.5 px-2 rounded bg-white/5"><span class="truncate text-slate-300">' + id + ' · ' + total + ' ل.س</span><button type="button" onclick="reprintSavedInvoice(\'' + (inv.id || '').replace(/'/g, "\\'") + '\')" class="tap-haptic px-2 py-1 rounded bg-white/10 text-emerald-400 text-xs shrink-0">إعادة طباعة</button></div>';
+        }).join('');
+      } catch (e) {
+        listEl.innerHTML = '';
+        if (emptyEl) { emptyEl.textContent = 'تعذر التحميل'; emptyEl.classList.remove('hidden'); }
+      }
+    }
+    async function reprintSavedInvoice(invId) {
+      if (!invId) return;
+      try {
+        var invRes = await fetch(API + '/sales/invoices/' + encodeURIComponent(invId), { headers: getAuthHeaders() });
+        var invJson = await invRes.json();
+        if (!invJson.success || !invJson.data) { showToast('تنبيه', 'فاتورة غير موجودة', 'error'); return; }
+        var inv = invJson.data;
+        var map = window._salesProductMap;
+        if (!map || !map.byId) {
+          var pr = await fetchJson('/products');
+          var products = pr.data || [];
+          var units = window._salesUnits || [];
+          map = buildProductMap(products, units);
+        }
+        var lines = (inv.items || []).map(function(l) {
+          var name = (map.byId && map.byId[l.productId]) ? map.byId[l.productId].name : (l.productId || '—');
+          var lineTotal = (l.quantity || 0) * (l.unitPrice || 0);
+          return '<tr style="border-bottom:1px solid #e2e8f0"><td style="padding:8px;text-align:right;font-family:Cairo,Tajawal,sans-serif">' + (name.replace(/</g, '&lt;')) + '</td><td style="padding:8px;text-align:center;font-family:Cairo,Tajawal,sans-serif">' + (l.quantity || 0) + '</td><td style="padding:8px;text-align:left;font-family:Cairo,Tajawal,sans-serif">' + (lineTotal || 0).toFixed(0) + '</td></tr>';
+        }).join('');
+        var customer = (inv.customerId || '—').toString().replace(/</g, '&lt;');
+        var invDate = (inv.date || '').slice(0, 10);
+        var totalRevenue = Number(inv.totalRevenue) || 0;
+        var currencySym = (window._appConfig.settings && window._appConfig.settings.localization && window._appConfig.settings.localization.currencySymbol) || 'ل.س';
+        var branding = getBranding();
+        var companyName = (branding.companyName || 'Vault AI').replace(/</g, '&lt;');
+        var logoBase64 = (branding.logoBase64 || '').replace(/</g, '&lt;');
+        var companyPhone = (branding.phone || '').replace(/</g, '&lt;');
+        var companyAddress = (branding.address || '').replace(/</g, '&lt;');
+        var invoiceNote = (branding.invoiceNote || '').replace(/</g, '&lt;') || 'شكراً لتعاملكم';
+        var logoImg = logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" style="width:100px;height:auto;object-fit:contain;display:block"/>' : '';
+        var headerBlock = '<div style="margin-bottom:8px"><span style="font-size:1.25rem;font-weight:700;font-family:Cairo,Tajawal,sans-serif">' + companyName + '</span></div>' + (companyPhone ? '<div style="font-size:0.875rem;color:#475569">' + companyPhone + '</div>' : '') + (companyAddress ? '<div style="font-size:0.875rem;color:#475569">' + companyAddress + '</div>' : '');
+        var bodyHtml = '<div class="print-area p-4 a4" dir="rtl" style="font-family:Cairo,Tajawal,sans-serif;color:#111">' + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:20px"><div style="flex:1;text-align:right">' + logoImg + headerBlock + '</div></div>' + '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:8px">فاتورة بيع</h2>' + '<p style="margin-bottom:12px"><strong>العميل:</strong> ' + customer + ' &nbsp; | &nbsp; <strong>التاريخ:</strong> ' + invDate + '</p>' + '<table class="inv-print-table" style="width:100%;font-size:0.875rem;margin:16px 0;border-collapse:collapse"><thead><tr style="border:2px solid #334155;background:#f1f5f9"><th style="padding:10px;text-align:right">الصنف</th><th style="padding:10px;text-align:center">الكمية</th><th style="padding:10px;text-align:left">المجموع</th></tr></thead><tbody>' + lines + '</tbody></table>' + '<p style="margin-top:12px;font-size:1.25rem;font-weight:700">الإجمالي: ' + totalRevenue.toFixed(0) + ' ' + currencySym + '</p>' + '<div style="margin-top:24px;padding-top:16px;border-top:1px solid #e2e8f0;text-align:center">' + invoiceNote + '</div></div>';
+        var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+        var t = getPrintHeaderTemplate('فاتورة بيع ' + (inv.id || ''), printDate, { showPageNumber: false });
+        var extraCss = 'body{padding:16px;color:#111;background:#fff}.print-body{padding-top:16px}.inv-print-table thead tr{border:2px solid #334155}.inv-print-table th,.inv-print-table td{border:1px solid #334155;padding:8px}.inv-print-table th{background:#f1f5f9;font-weight:700}';
+        var win = window.open('', '_blank');
+        win.document.write('<html dir="rtl"><head><title>فاتورة بيع</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '<style>' + extraCss + '</style></head><body>' + t.headerHTML + '<div class="print-body" style="font-family:Cairo,Tajawal,sans-serif">' + bodyHtml + '</div></body></html>');
+        win.document.close();
+        win.focus();
+        setTimeout(function() { win.print(); win.close(); }, 300);
+      } catch (e) {
+        if (typeof showToast === 'function') showToast('خطأ', e.message || 'فشل إعادة الطباعة', 'error');
+      }
     }
     function openSplitPaymentModal(grandTotal) {
       document.getElementById('split-grand-total').textContent = (grandTotal || 0).toFixed(0);
@@ -3900,8 +4047,9 @@
         '<div class="mb-4"><label class="text-slate-400 text-sm">العنوان</label><input type="text" id="br-address" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="العنوان" value="' + escapeAttr(branding.address) + '"/></div>' +
         '<div class="mb-4"><label class="text-slate-400 text-sm">ملاحظة الفاتورة (تظهر في تذييل الطباعة)</label><textarea id="br-invoiceNote" rows="2" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" placeholder="شكراً لتعاملكم">' + escapeAttr(branding.invoiceNote) + '</textarea></div>' +
         '<button type="button" onclick="saveBrandingLocal()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الهوية محلياً</button><p id="br-message" class="mt-2 text-sm hidden"></p></div>';
+      var vaultSafeCard = '<div class="card-standard mt-6"><h3 class="page-title-h3 mb-4">إدارة البيانات والأمان</h3><p class="page-desc mb-4">نسخة آمنة من الحسابات والأصناف والفواتير ودفتر اليومية وإعدادات الهوية. تصدير بصيغة .vlt أو استيراد من نسخة سابقة.</p><p class="text-amber-300/90 text-xs mb-4 border border-amber-500/30 rounded-lg px-3 py-2">يُنصح بأخذ نسخة احتياطية أسبوعياً وحفظها على فلاشة خارجية.</p><div class="flex flex-wrap gap-3 mb-4"><button type="button" onclick="exportDataBackup()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">تصدير نسخة آمنة (.vlt)</button></div><div class="border-t border-white/10 pt-4 mt-4"><label class="text-slate-400 text-sm block mb-2">استيراد من نسخة (.vlt أو .json)</label><input type="file" id="vault-restore-file" accept=".vlt,.json" class="hidden"/><button type="button" onclick="document.getElementById(\'vault-restore-file\').click()" class="tap-haptic px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 font-medium text-sm">اختيار ملف</button><span id="vault-restore-filename" class="text-slate-500 text-sm mr-2"></span><p id="vault-backup-message" class="mt-2 text-sm hidden"></p></div></div>';
       var backupCard = '<div class="card-standard mt-6"><h3 class="page-title-h3 mb-4">النسخ الاحتياطي واستعادة البيانات</h3><p class="page-desc mb-4">تصدير كل البيانات (دفتر اليومية، المخزون، الحركات، الوصفات، المصاريف، الملف) أو استعادتها من ملف.</p><div class="flex flex-wrap gap-3 mb-4"><button type="button" onclick="downloadBackup()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">تصدير نسخة احتياطية</button><button type="button" onclick="downloadExcelAudit()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">تصدير إلى Excel</button></div><div class="border-t border-white/10 pt-4 mt-4"><label class="text-slate-400 text-sm block mb-2">استعادة من نسخة احتياطية</label><input type="file" id="restore-file" accept=".json" class="hidden"/><button type="button" onclick="document.getElementById(\'restore-file\').click()" class="tap-haptic px-4 py-2 rounded-lg bg-amber-500/20 text-amber-300 font-medium text-sm">اختيار ملف JSON</button><span id="restore-filename" class="text-slate-500 text-sm mr-2"></span><button type="button" id="restore-do-btn" onclick="doRestoreFromFile()" class="tap-haptic px-4 py-2 rounded-lg bg-rose-500/20 text-rose-300 font-medium text-sm hidden">تنفيذ الاستعادة</button><p class="text-slate-500 text-xs mt-2">آخر نسخ تلقائي محلي: <span id="autosave-time">—</span></p><button type="button" onclick="restoreFromLocalAutosave()" class="tap-haptic mt-2 px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium text-sm">استعادة من النسخ التلقائي المحلي</button><p id="backup-message" class="mt-2 text-sm hidden"></p></div></div>';
-      container.innerHTML = brandingCard + '<div class="card-standard"><h3 class="page-title-h3 mb-4">إعدادات الشركة</h3><p class="page-desc mb-6">الشعار، الاسم، الرقم الضريبي، والعملة الافتراضية.</p><div class="mb-4"><label class="text-slate-400 text-sm">رابط الشعار (URL)</label><input type="text" id="cp-logo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="https://..." value="' + escapeAttr(data.logoUrl) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="cp-name" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Vault AI" value="' + escapeAttr(data.name) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">الرقم الضريبي</label><input type="text" id="cp-taxid" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="الرقم الضريبي" value="' + escapeAttr(data.taxId) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">العملة الافتراضية</label><input type="text" id="cp-currency" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="SYP" value="' + escapeAttr(data.defaultCurrency || 'SYP') + '"/></div><button type="button" onclick="submitCompanyProfile()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الإعدادات</button><p id="cp-message" class="mt-3 text-sm hidden"></p></div>' + backupCard;
+      container.innerHTML = brandingCard + '<div class="card-standard"><h3 class="page-title-h3 mb-4">إعدادات الشركة</h3><p class="page-desc mb-6">الشعار، الاسم، الرقم الضريبي، والعملة الافتراضية.</p><div class="mb-4"><label class="text-slate-400 text-sm">رابط الشعار (URL)</label><input type="text" id="cp-logo" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="https://..." value="' + escapeAttr(data.logoUrl) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="cp-name" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="Vault AI" value="' + escapeAttr(data.name) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">الرقم الضريبي</label><input type="text" id="cp-taxid" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="الرقم الضريبي" value="' + escapeAttr(data.taxId) + '"/></div><div class="mb-4"><label class="text-slate-400 text-sm">العملة الافتراضية</label><input type="text" id="cp-currency" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="SYP" value="' + escapeAttr(data.defaultCurrency || 'SYP') + '"/></div><button type="button" onclick="submitCompanyProfile()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ الإعدادات</button><p id="cp-message" class="mt-3 text-sm hidden"></p></div>' + vaultSafeCard + backupCard;
       var restoreInput = document.getElementById('restore-file');
       if (restoreInput) {
         restoreInput.addEventListener('change', function() {
@@ -3911,6 +4059,18 @@
             _pendingRestoreData = null;
             document.getElementById('restore-filename').textContent = '';
             document.getElementById('restore-do-btn').classList.add('hidden');
+          }
+        });
+      }
+      var vaultRestoreInput = document.getElementById('vault-restore-file');
+      if (vaultRestoreInput) {
+        vaultRestoreInput.addEventListener('change', function() {
+          var file = this.files && this.files[0] ? this.files[0] : null;
+          if (file) onVaultRestoreFileChosen(file);
+          else {
+            document.getElementById('vault-restore-filename').textContent = '';
+            var msg = document.getElementById('vault-backup-message');
+            if (msg) { msg.classList.add('hidden'); }
           }
         });
       }
@@ -3946,6 +4106,56 @@
       } catch (e) {
         showToast('خطأ', e.message || 'فشل التصدير', 'error');
       }
+    }
+    /** Vault Safe: export backup as .vlt (same content as API, filename with date). Memory-efficient: stream blob to download. */
+    async function exportDataBackup() {
+      try {
+        var res = await fetch(API + '/backup/export', { headers: getAuthHeaders() });
+        if (!res.ok) throw new Error(res.statusText);
+        var blob = await res.blob();
+        var url = URL.createObjectURL(blob);
+        var dateStr = new Date().toISOString().slice(0, 10);
+        var a = document.createElement('a'); a.href = url; a.download = 'VaultAI_Backup_' + dateStr + '.vlt'; a.click();
+        URL.revokeObjectURL(url);
+        showToast('Success', 'تم تصدير النسخة الآمنة (.vlt)', 'success');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل التصدير', 'error');
+      }
+    }
+    /** Validate backup payload has minimal structure (version + object). */
+    function validateVaultBackupStructure(data) {
+      if (!data || typeof data !== 'object') return { valid: false, error: 'ملف غير صالح: ليس كائناً' };
+      if (data.version === undefined && !data.accounts && !data.journalEntriesList) return { valid: false, error: 'ملف غير صالح: بنية نسخة غير معروفة' };
+      return { valid: true };
+    }
+    /** Vault Safe: import .vlt/.json — validate, confirm, restore, reload. */
+    function onVaultRestoreFileChosen(file) {
+      var msgEl = document.getElementById('vault-backup-message');
+      var nameEl = document.getElementById('vault-restore-filename');
+      if (nameEl) nameEl.textContent = file.name;
+      if (msgEl) msgEl.classList.add('hidden');
+      var reader = new FileReader();
+      reader.onload = function() {
+        var data;
+        try { data = JSON.parse(reader.result); } catch (e) {
+          if (msgEl) { msgEl.textContent = 'ملف غير صالح: محتوى ليس JSON'; msgEl.className = 'mt-2 text-sm text-rose-400'; msgEl.classList.remove('hidden'); }
+          return;
+        }
+        var check = validateVaultBackupStructure(data);
+        if (!check.valid) {
+          if (msgEl) { msgEl.textContent = check.error; msgEl.className = 'mt-2 text-sm text-rose-400'; msgEl.classList.remove('hidden'); }
+          return;
+        }
+        if (!confirm('تنبيه: استيراد نسخة سيمسح البيانات الحالية. هل أنت متأكد؟')) return;
+        postJson('/backup/restore', data).then(function() {
+          showToast('Success', 'تم استعادة النسخة. جاري إعادة تحميل الصفحة…', 'success');
+          setTimeout(function() { location.reload(); }, 500);
+        }).catch(function(e) {
+          if (msgEl) { msgEl.textContent = e.message || 'فشل الاستعادة'; msgEl.className = 'mt-2 text-sm text-rose-400'; msgEl.classList.remove('hidden'); }
+          showToast('خطأ', e.message || 'فشل الاستعادة', 'error');
+        });
+      };
+      reader.readAsText(file, 'UTF-8');
     }
     async function downloadExcelAudit() {
       try {
