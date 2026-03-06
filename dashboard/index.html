@@ -91,7 +91,7 @@
     .barter-card:hover { transform: translateY(-2px); box-shadow: 0 12px 40px -12px rgba(16, 185, 129, 0.25); }
     .ring-progress { transform: rotate(90deg); }
     .detail-panel { max-height: 0; overflow: hidden; transition: max-height 0.35s ease; }
-    .detail-panel.open { max-height: 400px; }
+    .detail-panel.open { max-height: 420px; }
     [data-section] { display: none; }
     [data-section].active { display: block; animation: fadeIn 0.3s ease; }
     .mobile-nav-btn.active { color: #34d399; }
@@ -138,6 +138,19 @@
     .dashboard-hero-card { border: 1px solid rgba(16, 185, 129, 0.35); box-shadow: 0 0 24px rgba(16, 185, 129, 0.12); padding: var(--space-6); }
     .table-sticky-header thead th { position: sticky; top: 0; z-index: 10; background: rgba(15, 23, 42, 0.98); backdrop-filter: blur(8px); border-bottom: 1px solid rgba(255,255,255,0.12); }
     .table-zebra tbody tr:nth-child(even) { background: rgba(255,255,255,0.02); }
+    /* Glassmorphism tables (detail modals & panels) */
+    .table-glass { width: 100%; border-collapse: collapse; font-size: 0.875rem; background: rgba(15, 23, 42, 0.4); border: 1px solid rgba(16, 185, 129, 0.35); border-radius: 0.75rem; overflow: hidden; }
+    .table-glass thead th { background: rgba(16, 185, 129, 0.12); color: #94a3b8; font-weight: 600; padding: 0.5rem 0.75rem; text-align: right; border-bottom: 1px solid rgba(16, 185, 129, 0.25); }
+    .table-glass tbody td { padding: 0.5rem 0.75rem; text-align: right; border-bottom: 1px solid rgba(255,255,255,0.06); color: #e2e8f0; }
+    .table-glass tbody tr:hover { background: rgba(16, 185, 129, 0.08); }
+    .table-glass tfoot td { background: rgba(15, 23, 42, 0.6); font-weight: 600; color: #fff; border-top: 1px solid rgba(16, 185, 129, 0.3); padding: 0.5rem 0.75rem; }
+    .detail-table-wrap { overflow-x: auto; max-height: 18rem; -webkit-overflow-scrolling: touch; }
+    .detail-table-wrap .table-glass { min-width: 280px; }
+    .table-cell-ellipsis { max-width: 120px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+    @media (max-width: 640px) { .table-cell-ellipsis { max-width: 80px; } }
+    /* Empty state with icon */
+    .state-empty-box { display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 1.5rem; color: #94a3b8; font-size: var(--text-desc); text-align: center; }
+    .state-empty-box .state-empty-icon { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.7; }
     @media (max-width: 1023px) {
       #section-dashboard .grid { display: flex; flex-direction: column; gap: 1rem; }
       #section-dashboard .chart-card { min-width: 0; }
@@ -572,7 +585,7 @@
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
             <div id="trial-balance-content" class="text-white state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('tb-detail')" class="mt-3 text-xs text-emerald-400 hover:underline transition-opacity hover:opacity-80">عرض التفاصيل</button>
-            <div id="tb-detail" class="detail-panel mt-2"><pre id="tb-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden font-mono"></pre></div>
+            <div id="tb-detail" class="detail-panel mt-2"><div id="tb-detail-inner" class="detail-table-wrap"></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5 flex flex-col items-center justify-center" data-rbac="admin">
             <h3 class="text-sm font-medium text-slate-400 mb-3">ربح القوة الشرائية (الأرباح والخسائر)</h3>
@@ -590,20 +603,20 @@
             </div>
             <div class="w-full mt-3 progress-track"><div id="pl-bar" class="progress-fill" style="width: 0%"></div></div>
             <button type="button" onclick="toggleDetail('pl-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-            <div id="pl-detail" class="detail-panel"><pre id="pl-raw" class="text-xs text-slate-500 overflow-auto max-h-32 hidden"></pre></div>
+            <div id="pl-detail" class="detail-panel"><div id="pl-detail-inner" class="detail-table-wrap"></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5">
             <h3 class="text-sm font-medium text-slate-400 mb-2">التدفق النقدي</h3>
             <div id="cashflow-content" class="text-white state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('cf-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-            <div id="cf-detail" class="detail-panel"><pre id="cf-raw" class="text-xs text-slate-500 hidden"></pre></div>
+            <div id="cf-detail" class="detail-panel"><div id="cf-detail-inner" class="detail-table-wrap"></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">دفتر القيود</h3>
             <p class="text-xs text-slate-500 mb-1">كل بيع أو مقايضة → مدين ودائن</p>
             <div id="journal-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('j-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-            <div id="j-detail" class="detail-panel"><pre id="j-raw" class="text-xs text-slate-500 overflow-auto max-h-48 hidden"></pre></div>
+            <div id="j-detail" class="detail-panel"><div id="j-detail-inner" class="detail-table-wrap"></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5">
             <h3 class="text-sm font-medium text-slate-400 mb-2">تسجيل الذمم المدينة</h3>
@@ -616,7 +629,7 @@
             <h3 class="text-sm font-medium text-slate-400 mb-2">سجل التدقيق</h3>
             <div id="audit-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
             <button type="button" onclick="toggleDetail('audit-detail')" class="mt-2 text-xs text-emerald-400 hover:underline" title="للمراجعين">عرض التفاصيل</button>
-            <div id="audit-detail" class="detail-panel"><pre id="audit-raw" class="text-xs text-slate-500 hidden"></pre></div>
+            <div id="audit-detail" class="detail-panel"><div id="audit-detail-inner" class="detail-table-wrap"></div></div>
           </div>
         </div>
       </section>
@@ -655,7 +668,7 @@
             <h3 class="text-sm font-medium text-slate-400 mb-2">آخر مسح</h3>
             <div id="vision-content" class="text-slate-300 text-sm state-empty">لا توجد عناصر بعد.</div>
             <button type="button" onclick="toggleDetail('vision-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-            <div id="vision-detail" class="detail-panel"><pre id="vision-raw" class="text-xs text-slate-500 hidden"></pre></div>
+            <div id="vision-detail" class="detail-panel"><div id="vision-detail-inner" class="detail-table-wrap"></div></div>
           </div>
         </div>
       </section>
@@ -669,7 +682,7 @@
           <div id="fractioning-heatmap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 min-h-[120px]"></div>
           <p id="fractioning-summary" class="text-slate-500 text-sm mt-3"></p>
           <button type="button" onclick="toggleDetail('inv-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-          <div id="inv-detail" class="detail-panel"><pre id="inv-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          <div id="inv-detail" class="detail-panel"><div id="inv-detail-inner" class="detail-table-wrap"></div></div>
         </div>
       </section>
 
@@ -690,7 +703,7 @@
             <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">مكاسب/خسائر الصرف</h3>
             <div id="fx-content" class="text-slate-300 text-sm">—</div>
             <button type="button" onclick="toggleDetail('fx-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-            <div id="fx-detail" class="detail-panel"><pre id="fx-raw" class="text-xs text-slate-500 hidden"></pre></div>
+            <div id="fx-detail" class="detail-panel"><div id="fx-detail-inner" class="detail-table-wrap"></div></div>
           </div>
         </div>
       </section>
@@ -705,7 +718,7 @@
           <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">طلبات مسودة</h3>
           <div id="drafts-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
           <button type="button" onclick="toggleDetail('wa-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
-          <div id="wa-detail" class="detail-panel"><pre id="wa-raw" class="text-xs text-slate-500 hidden"></pre></div>
+          <div id="wa-detail" class="detail-panel"><div id="wa-detail-inner" class="detail-table-wrap"></div></div>
         </div>
       </section>
 
@@ -743,7 +756,7 @@
           <button type="button" onclick="parseImport()" class="tap-haptic mt-3 py-2 px-4 rounded-xl bg-emerald-500/20 text-emerald-400 text-sm font-medium">تحليل وعرض المعاينة</button>
           <div id="import-preview" class="mt-4 hidden">
             <p id="import-summary" class="text-white text-sm mb-2"></p>
-            <pre id="import-mapping" class="text-xs text-slate-400 bg-black/20 rounded p-2 mb-3 overflow-auto max-h-24"></pre>
+            <div id="import-mapping-wrap" class="detail-table-wrap mb-3 max-h-48 overflow-auto rounded-xl border border-white/10 bg-slate-900/50 overflow-x-auto"></div>
             <button type="button" onclick="executeImport()" class="tap-haptic py-2 px-4 rounded-xl bg-emerald-500 text-white text-sm font-medium">تنفيذ الاستيراد</button>
           </div>
           <p id="import-result" class="mt-3 text-sm hidden"></p>
@@ -1194,8 +1207,8 @@
       const panel = document.getElementById(id);
       if (!panel) return;
       panel.classList.toggle('open');
-      const pre = panel.querySelector('pre');
-      if (pre) pre.classList.toggle('hidden', !panel.classList.contains('open'));
+      const wrap = panel.querySelector('.detail-table-wrap');
+      if (wrap) wrap.style.display = panel.classList.contains('open') ? '' : 'none';
     }
 
     var sidebar = document.getElementById('sidebar');
@@ -1305,20 +1318,53 @@
       return j;
     }
 
+    function formatNum(n) {
+      if (n == null || isNaN(n)) return '0';
+      return Number(n).toLocaleString('ar-SY', { maximumFractionDigits: 0 });
+    }
+
+    function detailEmptyState(msg) {
+      msg = msg || 'لا توجد بيانات لهذا الحساب حالياً';
+      return '<div class="state-empty-box"><span class="state-empty-icon" aria-hidden="true">📋</span><p>' + msg + '</p></div>';
+    }
+
     function renderTrialBalance(data) {
       const el = document.getElementById('trial-balance-content');
       const dashTb = document.getElementById('dashboard-tb');
-      if (!data?.data) { if (el) el.innerHTML = '<span class="state-error">لا توجد بيانات</span>'; if (dashTb) dashTb.textContent = '—'; return; }
+      const inner = document.getElementById('tb-detail-inner');
+      if (!data?.data) {
+        if (el) el.innerHTML = '<div class="state-empty-box"><span class="state-empty-icon" aria-hidden="true">📋</span><p>لا توجد بيانات لهذا الحساب حالياً</p></div>';
+        if (dashTb) dashTb.textContent = '—';
+        if (inner) inner.innerHTML = detailEmptyState('لا توجد بيانات لهذا الحساب حالياً');
+        return;
+      }
       const d = data.data;
-      const html = '<p class="text-white font-medium">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p><p class="text-slate-500 text-sm">إجمالي مدين ' + (d.totalDebit || 0) + ' · دائن ' + (d.totalCredit || 0) + ' ل.س</p>';
+      const rows = d.rows || [];
+      const totalDebit = d.totalDebit != null ? d.totalDebit : 0;
+      const totalCredit = d.totalCredit != null ? d.totalCredit : 0;
+      const html = '<p class="text-white font-medium">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p><p class="text-slate-500 text-sm">إجمالي مدين ' + formatNum(totalDebit) + ' · دائن ' + formatNum(totalCredit) + ' ل.س</p>';
       if (el) el.innerHTML = html;
       if (dashTb) dashTb.innerHTML = html;
-      const raw = document.getElementById('tb-raw');
-      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+      if (inner) {
+        if (!rows.length) {
+          inner.innerHTML = detailEmptyState();
+        } else {
+          const bodyRows = rows.map(function(r) {
+            var name = (r.name || '').toString().replace(/</g, '&lt;');
+            var code = (r.code || '').toString().replace(/</g, '&lt;');
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + name + '">' + name + '</td><td class="p-2">' + code + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit) + '</td></tr>';
+          }).join('');
+          inner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">اسم الحساب / Account</th><th class="p-2">الكود / Code</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th></tr></thead><tbody>' + bodyRows + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2 text-emerald-400">' + formatNum(totalDebit) + '</td><td class="p-2 text-amber-400">' + formatNum(totalCredit) + '</td></tr></tfoot></table>';
+        }
+      }
     }
 
     function renderPL(data) {
-      if (!data?.data) return;
+      const plInner = document.getElementById('pl-detail-inner');
+      if (!data?.data) {
+        if (plInner) plInner.innerHTML = detailEmptyState();
+        return;
+      }
       const d = data.data;
       const trueProfit = d.trueProfit != null ? Number(d.trueProfit) : 0;
       const loss = d.exchangeGainLossSYP != null && d.exchangeGainLossSYP < 0 ? Math.abs(d.exchangeGainLossSYP) : 0;
@@ -1337,8 +1383,22 @@
         lossRing.setAttribute('stroke-dasharray', lossDash + ',' + (circumference - lossDash));
         lossRing.setAttribute('stroke-dashoffset', -profitDash);
       }
-      const plRaw = document.getElementById('pl-raw');
-      if (plRaw) plRaw.textContent = JSON.stringify(d, null, 2);
+      if (plInner) {
+        var rev = d.revenue != null ? Number(d.revenue) : 0;
+        var exp = d.expenses != null ? Number(d.expenses) : 0;
+        var gross = d.grossProfit != null ? Number(d.grossProfit) : 0;
+        var fx = d.exchangeGainLossSYP != null ? Number(d.exchangeGainLossSYP) : 0;
+        var trueP = d.trueProfit != null ? Number(d.trueProfit) : 0;
+        var rows = [
+          [ 'الإيرادات', '0', formatNum(rev) ],
+          [ 'المصروفات', formatNum(exp), '0' ],
+          [ 'إجمالي الربح', gross >= 0 ? formatNum(gross) : '0', gross < 0 ? formatNum(Math.abs(gross)) : '0' ],
+          [ 'مكاسب/خسائر الصرف', fx < 0 ? formatNum(Math.abs(fx)) : '0', fx > 0 ? formatNum(fx) : '0' ],
+          [ 'الربح الحقيقي', trueP >= 0 ? formatNum(trueP) : '0', trueP < 0 ? formatNum(Math.abs(trueP)) : '0' ]
+        ];
+        plInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">البيان</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>' +
+          rows.map(function(r) { return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + r[0] + '</td><td class="p-2 text-emerald-400">' + r[1] + '</td><td class="p-2 text-amber-400">' + r[2] + '</td></tr>'; }).join('') + '</tbody></table>';
+      }
       const dashPl = document.getElementById('dashboard-pl');
       if (dashPl) dashPl.textContent = trueProfit;
       var refMax = 5000;
@@ -1351,29 +1411,68 @@
 
     function renderCashflow(data) {
       const el = document.getElementById('cashflow-content');
-      if (!data?.data) return;
+      const cfInner = document.getElementById('cf-detail-inner');
+      if (!data?.data) {
+        if (cfInner) cfInner.innerHTML = detailEmptyState();
+        return;
+      }
       const d = data.data;
       const op = d.operating || {};
-      el.innerHTML = '<p class="text-white font-medium">صافي التشغيل: ' + (op.net || 0) + ' ل.س</p><p class="text-slate-500 text-sm">وارد ' + (op.inflows || 0) + ' / صادر ' + (op.outflows || 0) + ' ل.س</p>';
-      const raw = document.getElementById('cf-raw');
-      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+      const inv = d.investing || {};
+      const fin = d.financing || {};
+      el.innerHTML = '<p class="text-white font-medium">صافي التشغيل: ' + formatNum(op.net || 0) + ' ل.س</p><p class="text-slate-500 text-sm">وارد ' + formatNum(op.inflows || 0) + ' / صادر ' + formatNum(op.outflows || 0) + ' ل.س</p>';
+      if (cfInner) {
+        var cfRows = [
+          { section: 'التشغيل', inflows: op.inflows || 0, outflows: op.outflows || 0, net: op.net != null ? op.net : 0 },
+          { section: 'الاستثمار', inflows: inv.inflows || 0, outflows: inv.outflows || 0, net: inv.net != null ? inv.net : 0 },
+          { section: 'التمويل', inflows: fin.inflows || 0, outflows: fin.outflows || 0, net: fin.net != null ? fin.net : 0 }
+        ];
+        cfInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">القسم</th><th class="p-2">وارد</th><th class="p-2">صادر</th><th class="p-2">الصافي</th></tr></thead><tbody>' +
+          cfRows.map(function(r) { return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + r.section + '</td><td class="p-2 text-emerald-400">' + formatNum(r.inflows) + '</td><td class="p-2 text-amber-400">' + formatNum(r.outflows) + '</td><td class="p-2 text-white">' + formatNum(r.net) + '</td></tr>'; }).join('') +
+          '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2">صافي التغير في النقدية</td><td class="p-2" colspan="2"></td><td class="p-2 text-emerald-400">' + formatNum(d.netChangeInCash != null ? d.netChangeInCash : 0) + '</td></tr></tfoot></table>';
+      }
     }
 
     function renderJournal(data) {
       const el = document.getElementById('journal-content');
       const dashJ = document.getElementById('dashboard-journal');
-      if (!data?.data) return;
+      const jInner = document.getElementById('j-detail-inner');
+      if (!data?.data) {
+        if (jInner) jInner.innerHTML = detailEmptyState('لا توجد قيود لهذا الحساب حالياً');
+        return;
+      }
       const list = data.data;
       if (!list.length) {
         if (el) el.innerHTML = '<p class="state-empty">لا توجد قيود بعد. المبيعات وتأكيد المقايضة والذمم تنشئها.</p>';
         if (dashJ) dashJ.textContent = 'لا توجد قيود بعد.';
+        if (jInner) jInner.innerHTML = detailEmptyState('لا توجد قيود لعرضها حالياً');
         return;
       }
-      const summary = list.length + ' قيد · آخر: ' + (list[0]?.refType || '') + ' ' + (list[0]?.amountSYP || 0) + ' ل.س';
-      if (el) el.innerHTML = '<p class="text-white font-medium">' + list.length + ' قيد</p><p class="text-slate-500 text-sm">آخر: ' + (list[0]?.refType || '') + ' · ' + (list[0]?.amountSYP || 0) + ' ل.س</p>';
+      const summary = list.length + ' قيد · آخر: ' + (list[0]?.refType || '') + ' ' + formatNum(list[0]?.amountSYP || 0) + ' ل.س';
+      if (el) el.innerHTML = '<p class="text-white font-medium">' + list.length + ' قيد</p><p class="text-slate-500 text-sm">آخر: ' + (list[0]?.refType || '') + ' · ' + formatNum(list[0]?.amountSYP || 0) + ' ل.س</p>';
       if (dashJ) dashJ.textContent = summary;
-      const raw = document.getElementById('j-raw');
-      if (raw) raw.textContent = JSON.stringify(list.slice(0, 15), null, 2);
+      fetchJson('/accounts').then(function(accR) {
+        var accMap = {};
+        (accR.data || []).forEach(function(a) { accMap[a.id] = { name: a.name || a.code || a.id, code: a.code || a.id }; });
+        var slice = list.slice(0, 25);
+        var bodyRows = slice.map(function(e) {
+          var amt = e.amountSYP != null ? Number(e.amountSYP) : 0;
+          var dr = accMap[e.debitAccountId];
+          var cr = accMap[e.creditAccountId];
+          var drName = (dr && dr.name) ? dr.name : (e.debitAccountId || '');
+          var drCode = (dr && dr.code) ? dr.code : '';
+          var crName = (cr && cr.name) ? cr.name : (e.creditAccountId || '');
+          var crCode = (cr && cr.code) ? cr.code : '';
+          var date = (e.date || '').toString().slice(0, 10);
+          return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + drName + '">' + drName + '</td><td class="p-2">' + drCode + '</td><td class="p-2 text-emerald-400">' + formatNum(amt) + '</td><td class="p-2">0</td></tr>' +
+            '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + crName + '">' + crName + '</td><td class="p-2">' + crCode + '</td><td class="p-2">0</td><td class="p-2 text-amber-400">' + formatNum(amt) + '</td></tr>';
+        }).join('');
+        if (jInner) {
+          jInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">اسم الحساب / Account</th><th class="p-2">الكود / Code</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th></tr></thead><tbody>' + bodyRows + '</tbody></table>';
+        }
+      }).catch(function() {
+        if (jInner) jInner.innerHTML = detailEmptyState('تعذر تحميل أسماء الحسابات');
+      });
     }
 
     function barterCardSwipe(el, matchId) {
@@ -1796,28 +1895,58 @@
 
     function renderFX(data) {
       const el = document.getElementById('fx-content');
-      if (!data?.data) return;
+      const fxInner = document.getElementById('fx-detail-inner');
+      if (!data?.data) {
+        if (fxInner) fxInner.innerHTML = detailEmptyState();
+        return;
+      }
       const d = data.data;
-      el.innerHTML = '<p class="text-white">إجمالي مكاسب/خسائر الصرف: <span class="' + (d.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + '">' + (d.totalGainLossSYP ?? '—') + '</span> ل.س</p>';
-      const raw = document.getElementById('fx-raw');
-      if (raw) raw.textContent = JSON.stringify(d, null, 2);
+      el.innerHTML = '<p class="text-white">إجمالي مكاسب/خسائر الصرف: <span class="' + (d.totalGainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + '">' + formatNum(d.totalGainLossSYP ?? 0) + '</span> ل.س</p>';
+      if (fxInner) {
+        var details = d.details || [];
+        var rows = details.slice(0, 20).map(function(e) {
+          var date = (e.date || '').toString().slice(0, 10);
+          var gl = e.gainLossSYP != null ? Number(e.gainLossSYP) : 0;
+          var cls = gl >= 0 ? 'text-emerald-400' : 'text-rose-400';
+          return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + date + '</td><td class="p-2 table-cell-ellipsis">' + (e.entryId || '—') + '</td><td class="p-2 ' + cls + '">' + formatNum(gl) + '</td></tr>';
+        });
+        if (!rows.length) { fxInner.innerHTML = detailEmptyState('لا توجد تفاصيل صرف لعرضها'); return; }
+        fxInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">القيود</th><th class="p-2">مكاسب/خسائر ل.س</th></tr></thead><tbody>' + rows.join('') + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2">' + formatNum(d.totalGainLossSYP != null ? d.totalGainLossSYP : 0) + '</td></tr></tfoot></table>';
+      }
     }
 
     function renderVision(data) {
       const el = document.getElementById('vision-content');
-      if (!data?.data) return;
+      const visionInner = document.getElementById('vision-detail-inner');
+      if (!data?.data) {
+        if (visionInner) visionInner.innerHTML = detailEmptyState();
+        return;
+      }
       const list = data.data;
-      if (!list.length) { el.innerHTML = 'لا مسح بعد.'; return; }
-      el.innerHTML = list.slice(-3).map(v => v.label || v.productId).join(' · ') || '—';
-      const raw = document.getElementById('vision-raw');
-      if (raw) raw.textContent = JSON.stringify(list.slice(-10), null, 2);
+      if (!list.length) {
+        el.innerHTML = 'لا مسح بعد.';
+        if (visionInner) visionInner.innerHTML = detailEmptyState('لا توجد عناصر مسح لعرضها');
+        return;
+      }
+      el.innerHTML = list.slice(-3).map(function(v) { return v.label || v.productId; }).join(' · ') || '—';
+      if (visionInner) {
+        var slice = list.slice(-15);
+        var rows = slice.map(function(v) {
+          var name = (v.label || v.productId || '—').toString().replace(/</g, '&lt;');
+          var qty = v.quantity != null ? v.quantity : (v.qty != null ? v.qty : '—');
+          return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + name + '</td><td class="p-2">' + qty + '</td></tr>';
+        });
+        visionInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">العنصر</th><th class="p-2">الكمية</th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      }
     }
 
     function renderFractioning(data) {
       const heatEl = document.getElementById('fractioning-heatmap');
       const summaryEl = document.getElementById('fractioning-summary');
+      const invInner = document.getElementById('inv-detail-inner');
       if (!data?.data) {
         if (heatEl) heatEl.innerHTML = '<p class="state-loading col-span-full">جاري التحميل…</p>';
+        if (invInner) invInner.innerHTML = detailEmptyState();
         return;
       }
       const { rules, inventory, sypRate } = data.data;
@@ -1842,30 +1971,68 @@
         }
       }
       if (summaryEl) summaryEl.textContent = (rules?.length || 0) + ' قاعدة · ' + list.length + ' سطر مخزون' + (sypRate != null ? ' · الأسعار بالل.س' : '');
-      const raw = document.getElementById('inv-raw');
-      if (raw) raw.textContent = JSON.stringify(data.data, null, 2);
+      if (invInner) {
+        if (!list.length) {
+          invInner.innerHTML = detailEmptyState('لا توجد عناصر مخزون لعرضها');
+        } else {
+          var invRows = list.slice(0, 30).map(function(i) {
+            var name = (i.productId || '—').toString().replace(/</g, '&lt;');
+            var unit = (i.unitId || '').toString().replace(/</g, '&lt;');
+            var qty = formatNum(i.quantity != null ? i.quantity : 0);
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + name + '">' + name + '</td><td class="p-2">' + unit + '</td><td class="p-2 text-emerald-400">' + qty + '</td></tr>';
+          });
+          invInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المنتج</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th></tr></thead><tbody>' + invRows.join('') + '</tbody></table>';
+        }
+      }
     }
 
     function renderDrafts(data) {
       const el = document.getElementById('drafts-content');
-      if (!data?.data) return;
+      const waInner = document.getElementById('wa-detail-inner');
+      if (!data?.data) {
+        if (waInner) waInner.innerHTML = detailEmptyState();
+        return;
+      }
       const list = data.data;
-      if (!list.length) { el.innerHTML = 'لا مسودات. أرسل رسالة لإنشاء واحدة.'; return; }
-      el.innerHTML = list.slice(0, 5).map(d => '<p class="text-white">' + d.id + ' · ' + (d.lines?.length || 0) + ' صنف</p>').join('');
-      const raw = document.getElementById('wa-raw');
-      if (raw) raw.textContent = JSON.stringify(list, null, 2);
+      if (!list.length) {
+        el.innerHTML = 'لا مسودات. أرسل رسالة لإنشاء واحدة.';
+        if (waInner) waInner.innerHTML = detailEmptyState('لا توجد مسودات لعرضها');
+        return;
+      }
+      el.innerHTML = list.slice(0, 5).map(function(d) { return '<p class="text-white">' + (d.id || '') + ' · ' + (d.lines && d.lines.length ? d.lines.length : 0) + ' صنف</p>'; }).join('');
+      if (waInner) {
+        var waRows = list.slice(0, 15).map(function(d) {
+          return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + (d.id || '—') + '</td><td class="p-2">' + (d.lines && d.lines.length ? d.lines.length : 0) + '</td><td class="p-2 text-slate-400">' + (d.createdAt ? (d.createdAt + '').slice(0, 10) : '—') + '</td></tr>';
+        });
+        waInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المسودة</th><th class="p-2">عدد الأصناف</th><th class="p-2">التاريخ</th></tr></thead><tbody>' + waRows.join('') + '</tbody></table>';
+      }
     }
 
     function renderAudit(data) {
       const el = document.getElementById('audit-content');
       const setAudit = document.getElementById('settings-audit');
-      if (!data?.data) return;
+      const auditInner = document.getElementById('audit-detail-inner');
+      if (!data?.data) {
+        if (auditInner) auditInner.innerHTML = detailEmptyState();
+        return;
+      }
       const list = data.data;
-      const text = !list.length ? 'لا إدخالات.' : list.slice(0, 5).map(e => e.action + ' ' + (e.entityType || '')).join(' · ');
+      const text = !list.length ? 'لا إدخالات.' : list.slice(0, 5).map(function(e) { return e.action + ' ' + (e.entityType || ''); }).join(' · ');
       if (el) el.innerHTML = text;
       if (setAudit) setAudit.textContent = text;
-      const raw = document.getElementById('audit-raw');
-      if (raw) raw.textContent = JSON.stringify(list, null, 2);
+      if (auditInner) {
+        if (!list.length) {
+          auditInner.innerHTML = detailEmptyState('لا توجد إدخالات تدقيق لعرضها');
+        } else {
+          var auditRows = list.slice(0, 25).map(function(e) {
+            var date = (e.timestamp || e.date || '').toString().slice(0, 10);
+            var action = (e.action || '—').toString().replace(/</g, '&lt;');
+            var entity = (e.entityType || e.entity || '—').toString().replace(/</g, '&lt;');
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + date + '</td><td class="p-2 table-cell-ellipsis">' + action + '</td><td class="p-2 table-cell-ellipsis">' + entity + '</td></tr>';
+          });
+          auditInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">الإجراء</th><th class="p-2">الكيان</th></tr></thead><tbody>' + auditRows.join('') + '</tbody></table>';
+        }
+      }
     }
 
     async function renderChartOfAccounts(container) {
@@ -1894,19 +2061,24 @@
         amount: e.amountSYP,
         memo: e.memo || ''
       }));
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">قيود اليومية</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">المبلغ ل.س</th><th class="p-2">البيان</th></tr></thead><tbody>' +
-        rows.map(r => '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + r.date + '</td><td class="p-2">' + r.debit + '</td><td class="p-2">' + r.credit + '</td><td class="p-2 text-emerald-400">' + (r.amount || 0) + '</td><td class="p-2 text-slate-400">' + (r.memo || '') + '</td></tr>').join('') +
-        '</tbody></table></div></div>';
+      var tableBody = rows.length ? rows.map(function(r) { var memo = (r.memo || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + r.date + '</td><td class="p-2 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + (r.debit || '') + '</td><td class="p-2 table-cell-ellipsis">' + (r.credit || '') + '</td><td class="p-2 text-emerald-400">' + formatNum(r.amount || 0) + '</td><td class="p-2 text-slate-400 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + memo + '</td></tr>'; }).join('') : '';
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">قيود اليومية</h3>' + (rows.length ? '<div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">المبلغ ل.س</th><th class="p-2">البيان</th></tr></thead><tbody>' + tableBody + '</tbody></table></div>' : emptyStateHTML('لا توجد قيود لعرضها حالياً')) + '</div>';
     }
 
     async function renderTrialBalanceGrid(container) {
       const asOf = document.getElementById('tb-filter-date')?.value || new Date().toISOString().slice(0,10);
       const r = await fetchJson('/statements/trial-balance?asOfDate=' + asOf);
       const d = r.data;
-      if (!d || !d.rows) { container.innerHTML = '<div class="card-standard"><p class="state-empty">لا بيانات</p></div>'; return; }
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d.asOfDate || '').slice(0,10) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="overflow-x-auto mt-4"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">كود</th><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>' +
-        d.rows.map(r => '<tr class="border-b border-white/5"><td class="p-2">' + (r.code||'') + '</td><td class="p-2">' + (r.name||'') + '</td><td class="p-2 text-emerald-400">' + (r.debit||0) + '</td><td class="p-2 text-amber-400">' + (r.credit||0) + '</td></tr>').join('') +
-        '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2">' + (d.totalDebit||0) + '</td><td class="p-2">' + (d.totalCredit||0) + '</td></tr></tfoot></table></div><p class="text-slate-500 text-sm mt-2">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
+      if (!d || !d.rows || d.rows.length === 0) {
+        container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d && d.asOfDate ? (d.asOfDate + '').slice(0,10) : new Date().toISOString().slice(0,10)) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="state-empty-box mt-4"><span class="state-empty-icon" aria-hidden="true">📋</span><p>لا توجد بيانات لهذا الحساب حالياً</p></div></div>';
+        return;
+      }
+      var bodyRows = d.rows.map(function(r) {
+        var name = (r.name || '').toString().replace(/</g, '&lt;');
+        var code = (r.code || '').toString();
+        return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + code + '</td><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit || 0) + '</td></tr>';
+      }).join('');
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d.asOfDate || '').slice(0,10) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="detail-table-wrap mt-4"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الكود / Code</th><th class="p-2">اسم الحساب / Account</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th></tr></thead><tbody>' + bodyRows + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2 text-emerald-400">' + formatNum(d.totalDebit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(d.totalCredit || 0) + '</td></tr></tfoot></table></div><p class="text-slate-500 text-sm mt-2">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
     }
 
     async function renderStatementOfAccount(container) {
@@ -1927,9 +2099,16 @@
       if (!el) return;
       if (!json.success || json.error) { el.innerHTML = '<p class="text-rose-400">' + (json.error || 'خطأ') + '</p>'; return; }
       const d = json.data;
-      el.innerHTML = '<table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">الرصيد</th></tr></thead><tbody>' +
-        (d.rows || []).map(r => '<tr class="border-b border-white/5"><td class="p-2">' + (r.date||'').slice(0,10) + '</td><td class="p-2">' + (r.memo||'') + '</td><td class="p-2">' + (r.debit||0) + '</td><td class="p-2">' + (r.credit||0) + '</td><td class="p-2 font-medium">' + (r.balance||0) + '</td></tr>').join('') +
-        '</tbody></table><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + (d.openingBalance||0) + ' · رصيد إغلاق: ' + (d.closingBalance||0) + '</p>';
+      var rows = d.rows || [];
+      if (!rows.length) {
+        el.innerHTML = '<div class="state-empty-box"><span class="state-empty-icon" aria-hidden="true">📋</span><p>لا توجد بيانات لهذا الحساب حالياً</p></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(d.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(d.closingBalance || 0) + '</p>';
+        return;
+      }
+      var bodyRows = rows.map(function(r) {
+        var memo = (r.memo || '').toString().replace(/</g, '&lt;');
+        return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + (r.date || '').slice(0, 10) + '</td><td class="p-2 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + memo + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit || 0) + '</td><td class="p-2 font-medium text-white">' + formatNum(r.balance || 0) + '</td></tr>';
+      }).join('');
+      el.innerHTML = '<div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th><th class="p-2">الرصيد</th></tr></thead><tbody>' + bodyRows + '</tbody></table></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(d.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(d.closingBalance || 0) + '</p>';
     }
 
     function renderVoucherReceipt(container) {
@@ -3081,19 +3260,32 @@
         if (reportId === 'balance-sheet') {
           var r = await fetchJson('/reports/balance-sheet');
           var d = r.data || {};
-          var assets = (d.assets && d.assets.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-emerald-400">' + (row.debit - row.credit || 0) + '</td></tr>'; }).join('');
-          var liab = (d.liabilities && d.liabilities.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-amber-400">' + (row.credit - row.debit || 0) + '</td></tr>'; }).join('');
-          var eq = (d.equity && d.equity.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.code || '') + '</td><td class="p-2">' + (row.name || '') + '</td><td class="p-2 text-amber-400">' + (row.credit - row.debit || 0) + '</td></tr>'; }).join('');
-          el.innerHTML = '<div class="glass-card rounded-xl p-4 overflow-x-auto"><h4 class="text-white font-medium mb-3">الميزانية العمومية</h4><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">كود</th><th class="p-2">الحساب</th><th class="p-2">المبلغ ل.س</th></tr></thead><tbody><tr class="text-emerald-300 font-medium"><td colspan="2" class="p-2">الأصول</td><td class="p-2">' + (d.assets && d.assets.total) + '</td></tr>' + assets + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">الخصوم</td><td class="p-2">' + (d.liabilities && d.liabilities.total) + '</td></tr>' + liab + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">حقوق الملكية</td><td class="p-2">' + (d.equity && d.equity.total) + '</td></tr>' + eq + '</tbody></table><p class="text-slate-500 text-sm mt-2">متوازنة: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
+          var assetRows = (d.assets && d.assets.rows || []);
+          var liabRows = (d.liabilities && d.liabilities.rows || []);
+          var eqRows = (d.equity && d.equity.rows || []);
+          var assets = assetRows.map(function(row) { var code = (row.code || '').toString().replace(/</g, '&lt;'); var name = (row.name || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + code + '</td><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2 text-emerald-400">' + formatNum(row.debit - row.credit || 0) + '</td></tr>'; }).join('');
+          var liab = liabRows.map(function(row) { var code = (row.code || '').toString().replace(/</g, '&lt;'); var name = (row.name || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + code + '</td><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2 text-amber-400">' + formatNum(row.credit - row.debit || 0) + '</td></tr>'; }).join('');
+          var eq = eqRows.map(function(row) { var code = (row.code || '').toString().replace(/</g, '&lt;'); var name = (row.name || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + code + '</td><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2 text-amber-400">' + formatNum(row.credit - row.debit || 0) + '</td></tr>'; }).join('');
+          var hasData = assetRows.length || liabRows.length || eqRows.length;
+          if (!hasData) {
+            el.innerHTML = '<div class="card-standard"><h4 class="text-white font-medium mb-3">الميزانية العمومية</h4>' + emptyStateHTML('لا توجد بيانات للميزانية حالياً') + '<p class="text-slate-500 text-sm mt-2">متوازنة: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
+          } else {
+            el.innerHTML = '<div class="card-standard overflow-x-auto"><h4 class="text-white font-medium mb-3">الميزانية العمومية</h4><div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الكود</th><th class="p-2">اسم الحساب</th><th class="p-2">المبلغ ل.س</th></tr></thead><tbody><tr class="text-emerald-300 font-medium"><td colspan="2" class="p-2">الأصول</td><td class="p-2">' + formatNum(d.assets && d.assets.total) + '</td></tr>' + assets + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">الخصوم</td><td class="p-2">' + formatNum(d.liabilities && d.liabilities.total) + '</td></tr>' + liab + '<tr class="text-amber-300 font-medium"><td colspan="2" class="p-2">حقوق الملكية</td><td class="p-2">' + formatNum(d.equity && d.equity.total) + '</td></tr>' + eq + '</tbody></table></div><p class="text-slate-500 text-sm mt-2">متوازنة: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
+          }
         } else if (reportId === 'profit-loss') {
           var pl = await fetchJson('/reports/profit-loss');
           var p = pl.data || {};
-          el.innerHTML = '<div class="glass-card rounded-xl p-4"><h4 class="text-white font-medium mb-3">قائمة الدخل</h4><p class="text-slate-400">الإيرادات: <span class="text-emerald-400 font-medium">' + (p.revenue ?? '—') + '</span> ل.س</p><p class="text-slate-400">المصروفات: <span class="text-rose-400 font-medium">' + (p.expenses ?? '—') + '</span> ل.س</p><p class="text-slate-400 mt-2">إجمالي الربح: <span class="text-white font-medium">' + (p.grossProfit ?? '—') + '</span> ل.س</p><p class="text-slate-400">مكاسب/خسائر الصرف: ' + (p.exchangeGainLossSYP ?? '—') + ' ل.س</p><p class="text-emerald-300 font-medium mt-2">الربح الحقيقي (القوة الشرائية): ' + (p.trueProfit ?? '—') + ' ل.س</p></div>';
+          el.innerHTML = '<div class="card-standard"><h4 class="text-white font-medium mb-3">قائمة الدخل</h4><p class="text-slate-400">الإيرادات: <span class="text-emerald-400 font-medium">' + formatNum(p.revenue) + '</span> ل.س</p><p class="text-slate-400">المصروفات: <span class="text-rose-400 font-medium">' + formatNum(p.expenses) + '</span> ل.س</p><p class="text-slate-400 mt-2">إجمالي الربح: <span class="text-white font-medium">' + formatNum(p.grossProfit) + '</span> ل.س</p><p class="text-slate-400">مكاسب/خسائر الصرف: ' + formatNum(p.exchangeGainLossSYP) + ' ل.س</p><p class="text-emerald-300 font-medium mt-2">الربح الحقيقي (القوة الشرائية): ' + formatNum(p.trueProfit) + ' ل.س</p></div>';
         } else if (reportId === 'warehouse') {
           var wh = await fetchJson('/reports/warehouse-valuation');
           var w = wh.data || {};
-          var rows = (w.rows || []).map(function(row) { return '<tr class="border-b border-white/5"><td class="p-2">' + (row.productName || row.productId) + '</td><td class="p-2">' + (row.unitName || row.unitId) + '</td><td class="p-2">' + (row.quantity || 0) + '</td><td class="p-2 text-emerald-400">' + (row.valueCostSYP || 0) + '</td></tr>'; }).join('');
-          el.innerHTML = '<div class="glass-card rounded-xl p-4 overflow-x-auto"><h4 class="text-white font-medium mb-3">جرد المستودع (قيمة بالتكلفة FIFO)</h4><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المادة</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th><th class="p-2">القيمة ل.س</th></tr></thead><tbody>' + rows + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="3">الإجمالي</td><td class="p-2 text-emerald-400">' + (w.totalValueCostSYP ?? 0) + '</td></tr></tfoot></table></div>';
+          var rows = (w.rows || []);
+          if (!rows.length) {
+            el.innerHTML = '<div class="card-standard"><h4 class="text-white font-medium mb-3">جرد المستودع (قيمة بالتكلفة FIFO)</h4>' + emptyStateHTML('لا توجد أصناف في المستودع حالياً') + '</div>';
+          } else {
+            var rowHtml = rows.map(function(row) { var name = (row.productName || row.productId || '').toString().replace(/</g, '&lt;'); var unit = (row.unitName || row.unitId || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2">' + unit + '</td><td class="p-2">' + formatNum(row.quantity || 0) + '</td><td class="p-2 text-emerald-400">' + formatNum(row.valueCostSYP || 0) + '</td></tr>'; }).join('');
+            el.innerHTML = '<div class="card-standard overflow-x-auto"><h4 class="text-white font-medium mb-3">جرد المستودع (قيمة بالتكلفة FIFO)</h4><div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المادة</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th><th class="p-2">القيمة ل.س</th></tr></thead><tbody>' + rowHtml + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="3">الإجمالي</td><td class="p-2 text-emerald-400">' + formatNum(w.totalValueCostSYP ?? 0) + '</td></tr></tfoot></table></div></div>';
+          }
         }
       } catch (e) {
         el.innerHTML = '<p class="text-rose-400">' + (e.message || 'خطأ') + '</p>';
@@ -3107,6 +3299,14 @@
     function escapeHtml(s) {
       if (s == null || s === undefined) return '';
       return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+    function formatCurrency(n) {
+      if (n == null || isNaN(Number(n))) return '0';
+      return Number(n).toLocaleString('ar-SY');
+    }
+    function emptyStateHTML(msg) {
+      msg = msg || 'لا يوجد بيانات لعرضها حالياً';
+      return '<div class="state-empty-box"><span class="state-empty-icon" aria-hidden="true">📋</span><p>' + escapeHtml(msg) + '</p></div>';
     }
     var _systemSettingsTab = 'general';
     async function renderSystemSettings(container) {
@@ -4164,7 +4364,18 @@
         var d = j.data;
         _importData = { rows: d.rows || [], mapping: d.mapping || {}, totalRows: d.totalRows || 0 };
         document.getElementById('import-summary').textContent = 'تم العثور على ' + (d.preview?.itemsCount || d.totalRows) + ' صنف و ' + (d.preview?.accountsCount || 0) + ' حسابات. جاهز للاستيراد؟';
-        document.getElementById('import-mapping').textContent = JSON.stringify(d.mapping, null, 2);
+        var mappingEl = document.getElementById('import-mapping');
+        var map = d.mapping || {};
+        if (Object.keys(map).length === 0) {
+          mappingEl.innerHTML = '<p class="text-slate-400 text-sm text-center py-4">يرجى تحديد الحقول للمطابقة</p>';
+        } else {
+          var cards = Object.keys(map).map(function(excelCol) {
+            var sysField = (map[excelCol] || '').toString().replace(/</g, '&lt;');
+            var excelSafe = (excelCol || '').toString().replace(/</g, '&lt;');
+            return '<div class="rounded-xl border border-emerald-500/20 bg-emerald-500/10 px-3 py-2 flex items-center justify-between gap-2 text-sm"><span class="text-slate-300 truncate" title="' + excelSafe.replace(/"/g, '&quot;') + '">' + excelSafe + '</span><span class="text-emerald-400 shrink-0" aria-hidden="true">→</span><span class="text-emerald-300 font-medium truncate" title="' + sysField.replace(/"/g, '&quot;') + '">' + sysField + '</span></div>';
+          }).join('');
+          mappingEl.innerHTML = '<div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2">' + cards + '</div>';
+        }
         document.getElementById('import-preview').classList.remove('hidden');
         document.getElementById('import-result').classList.add('hidden');
       } catch (e) {
