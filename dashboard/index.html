@@ -3586,26 +3586,85 @@
     /** Alias for global refresh; used after sales invoice and is the same refresh used after purchase, expense, build. */
     function refreshAfterSale() { refreshAll(); }
 
+    var _lastPurchaseInvoice = null;
+
     async function renderPurchaseInvoice(container) {
-      var productsR = await fetchJson('/products');
-      var unitsR = await fetchJson('/units');
+      var today = new Date().toISOString().slice(0, 10);
+      var fromDate = new Date(Date.now() - 90 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      var [productsR, unitsR, suppliersR, pinvR] = await Promise.all([
+        fetchJson('/products'),
+        fetchJson('/units'),
+        fetchJson('/suppliers').catch(function() { return { data: [] }; }),
+        fetchJson('/procurement/purchase-invoices?fromDate=' + encodeURIComponent(fromDate) + '&toDate=' + encodeURIComponent(today)).catch(function() { return { data: [] }; })
+      ]);
       var products = productsR.data || [];
       var units = unitsR.data || [];
-      var productOpts = products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
+      var suppliers = suppliersR.data || [];
+      var recentInvoices = (pinvR.data || []);
+      var productOpts = '<option value="">— اختر صنف —</option>' + products.map(function(p) { return '<option value="' + p.id + '">' + (p.name || p.id) + '</option>'; }).join('');
       var unitOpts = units.map(function(u) { return '<option value="' + u.id + '">' + (u.name || u.symbol) + '</option>'; }).join('');
+      var supplierOpts = '<option value="">— اختر المورد (اختياري) —</option>' + suppliers.map(function(s) { return '<option value="' + (s.id || '') + '">' + (s.name || s.id) + '</option>'; }).join('');
       window._purchaseLines = [];
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">فاتورة مشتريات</h3><p class="page-desc mb-4">المورد (اختياري)، شبكة أصناف، ودفع نقدي أو آجل.</p><div class="mb-4"><label class="text-slate-400 text-sm">المورد (معرّف أو اسم)</label><input type="text" id="pinv-supplier" placeholder="معرّف المورد" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div><div id="purchase-lines"></div><div class="flex flex-wrap gap-2 mb-4"><select id="pinv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select><select id="pinv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select><input type="number" id="pinv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24"/><input type="number" id="pinv-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/><button type="button" onclick="addPurchaseLine()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">+ سطر</button></div><div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pinv-pay-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">دفع نقدي</span></label></div><button type="button" onclick="submitPurchaseInvoice()" class="w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">حفظ فاتورة المشتريات</button><p id="purchase-message" class="mt-3 text-sm hidden"></p></div>';
+      window._purchaseProducts = products;
+      window._purchaseLastCostMap = {};
+      recentInvoices.forEach(function(inv) {
+        (inv.items || []).forEach(function(line) {
+          var pid = line.productId;
+          var c = Number(line.unitCostSYP);
+          if (pid && !isNaN(c)) window._purchaseLastCostMap[pid] = c;
+        });
+      });
+      container.innerHTML =
+        '<div class="card-standard"><h3 class="page-title-h3 mb-4">فاتورة مشتريات</h3>' +
+        '<p class="page-desc mb-4">اختر المورد من القائمة، أضف أصنافاً، ودفع نقدي أو آجل مع تاريخ استحقاق.</p>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
+        '<div><label class="text-slate-400 text-sm">المورد</label><select id="pinv-supplier" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + supplierOpts + '</select>' +
+        '<p class="text-slate-500 text-xs mt-1">أو أدخل معرّفاً يدوياً أدناه</p></div>' +
+        '<div><label class="text-slate-400 text-sm">معرّف المورد (إن لم يكن في القائمة)</label><input type="text" id="pinv-supplier-id" placeholder="معرّف المورد" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/></div></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">' +
+        '<div><label class="text-slate-400 text-sm">تاريخ الفاتورة</label><input type="date" id="pinv-date" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + today + '"/></div>' +
+        '<div><label class="text-slate-400 text-sm">تاريخ الاستحقاق (للدفع الآجل)</label><input type="date" id="pinv-due-date" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" placeholder="اختياري"/></div></div>' +
+        '<div class="mb-4"><label class="text-slate-400 text-sm">ملاحظة / مرجع الفاتورة</label><textarea id="pinv-memo" rows="2" placeholder="رقم فاتورة المورد أو ملاحظة..." class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"></textarea></div>' +
+        '<div id="purchase-lines"></div>' +
+        '<p id="purchase-total-line" class="text-left text-emerald-400 font-semibold text-sm mt-2 hidden">إجمالي الفاتورة: <span id="purchase-total-value">0</span> ل.س</p>' +
+        '<div class="flex flex-wrap gap-2 mb-4 mt-3 items-end">' +
+        '<select id="pinv-product" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]">' + productOpts + '</select>' +
+        '<select id="pinv-unit" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + unitOpts + '</select>' +
+        '<input type="number" id="pinv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-24" title="اضغط Enter لإضافة السطر"/>' +
+        '<input type="number" id="pinv-cost" placeholder="تكلفة وحدة ل.س" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white w-28"/>' +
+        '<button type="button" onclick="addPurchaseLine()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium">+ سطر</button></div>' +
+        '<div class="flex items-center gap-3 mb-4"><label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="pinv-pay-cash" class="rounded bg-white/5 border-white/20 text-emerald-500"/> <span class="text-slate-300">دفع نقدي</span></label></div>' +
+        '<div class="flex flex-wrap gap-3"><button type="button" onclick="submitPurchaseInvoice()" class="px-6 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ فاتورة المشتريات</button>' +
+        '<button type="button" onclick="printPurchaseInvoiceReceipt()" id="pinv-print-btn" class="px-6 py-3 rounded-xl bg-white/10 text-slate-300 font-medium hidden">طباعة الفاتورة</button></div>' +
+        '<p id="purchase-message" class="mt-3 text-sm hidden"></p></div>';
+      document.getElementById('pinv-product').addEventListener('change', function() {
+        var pid = this.value;
+        var costMap = window._purchaseLastCostMap || {};
+        if (pid && costMap[pid] != null) document.getElementById('pinv-cost').value = costMap[pid];
+      });
+      document.getElementById('pinv-supplier').addEventListener('change', function() {
+        var manual = document.getElementById('pinv-supplier-id');
+        if (manual && this.value) manual.value = '';
+      });
+      document.getElementById('pinv-qty').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addPurchaseLine(); } });
+      document.getElementById('pinv-cost').addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); addPurchaseLine(); } });
       renderPurchaseLinesTable();
     }
     function addPurchaseLine() {
-      var productId = document.getElementById('pinv-product')?.value;
+      var productId = document.getElementById('pinv-product')?.value?.trim();
       var unitId = document.getElementById('pinv-unit')?.value || 'piece';
       var qty = Number(document.getElementById('pinv-qty')?.value) || 0;
       var cost = Number(document.getElementById('pinv-cost')?.value) || 0;
-      if (!productId || qty <= 0) { alert('اختر منتجاً وأدخل كمية'); return; }
+      if (!productId || qty <= 0) { showToast('تنبيه', 'اختر صنفاً وأدخل كمية', 'error'); return; }
+      var products = window._purchaseProducts || [];
+      var productName = (products.find(function(p) { return p.id === productId; }) || {}).name || productId;
       window._purchaseLines = window._purchaseLines || [];
-      window._purchaseLines.push({ productId, unitId, quantity: qty, unitCostSYP: cost });
+      window._purchaseLines.push({ productId, productName, unitId, quantity: qty, unitCostSYP: cost });
       renderPurchaseLinesTable();
+      document.getElementById('pinv-qty').value = '';
+      document.getElementById('pinv-cost').value = '';
+      var costMap = window._purchaseLastCostMap || {};
+      if (productId && costMap[productId] != null) document.getElementById('pinv-cost').value = costMap[productId];
     }
     function removePurchaseLine(i) {
       window._purchaseLines = window._purchaseLines || [];
@@ -3614,29 +3673,95 @@
     }
     function renderPurchaseLinesTable() {
       var el = document.getElementById('purchase-lines');
+      var totalEl = document.getElementById('purchase-total-line');
+      var totalVal = document.getElementById('purchase-total-value');
       if (!el) return;
       var lines = window._purchaseLines || [];
-      if (!lines.length) { el.innerHTML = '<p class="text-slate-500 text-sm mb-2">لا أصناف بعد. أضف سطراً أعلاه.</p>'; return; }
-      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">منتج</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">تكلفة وحدة ل.س</th><th></th></tr></thead><tbody>' + lines.map(function(l, i) { return '<tr class="border-b border-white/5"><td class="p-2">' + l.productId + '</td><td class="p-2">' + (l.unitId || 'piece') + '</td><td class="p-2">' + l.quantity + '</td><td class="p-2">' + (l.unitCostSYP || 0) + '</td><td class="p-2"><button type="button" onclick="removePurchaseLine(' + i + ')" class="text-rose-400 text-xs">حذف</button></td></tr>'; }).join('') + '</tbody></table>';
+      if (!lines.length) {
+        el.innerHTML = '<p class="text-slate-500 text-sm mb-2">لا أصناف بعد. أضف سطراً أعلاه (أو اضغط Enter بعد الكمية أو التكلفة).</p>';
+        if (totalEl) totalEl.classList.add('hidden');
+        return;
+      }
+      var grandTotal = 0;
+      var rows = lines.map(function(l, i) {
+        var lineTotal = (l.quantity || 0) * (l.unitCostSYP || 0);
+        grandTotal += lineTotal;
+        return '<tr class="border-b border-white/5"><td class="p-2 text-white font-medium">' + (l.productName || l.productId) + '</td><td class="p-2 text-slate-300">' + (l.unitId || 'piece') + '</td><td class="p-2">' + l.quantity + '</td><td class="p-2">' + (l.unitCostSYP || 0) + '</td><td class="p-2 text-emerald-400">' + Math.round(lineTotal).toLocaleString('ar-SY') + '</td><td class="p-2"><button type="button" onclick="removePurchaseLine(' + i + ')" class="text-rose-400 text-xs hover:underline">حذف</button></td></tr>';
+      });
+      el.innerHTML = '<table class="w-full text-sm text-right mb-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المنتج</th><th class="p-2">وحدة</th><th class="p-2">كمية</th><th class="p-2">تكلفة وحدة</th><th class="p-2">الإجمالي</th><th class="p-2"></th></tr></thead><tbody>' + rows.join('') + '</tbody></table>';
+      if (totalEl) totalEl.classList.remove('hidden');
+      if (totalVal) totalVal.textContent = Math.round(grandTotal).toLocaleString('ar-SY');
     }
     async function submitPurchaseInvoice() {
       var lines = window._purchaseLines || [];
-      if (!lines.length) { alert('أضف صنفاً واحداً على الأقل'); return; }
-      var supplierId = document.getElementById('pinv-supplier')?.value?.trim() || null;
+      if (!lines.length) { showToast('تنبيه', 'أضف صنفاً واحداً على الأقل', 'error'); return; }
+      var supplierSelect = document.getElementById('pinv-supplier')?.value?.trim();
+      var supplierManual = document.getElementById('pinv-supplier-id')?.value?.trim();
+      var supplierId = supplierSelect || supplierManual || null;
       var payWithCash = document.getElementById('pinv-pay-cash')?.checked || false;
+      var invoiceDate = document.getElementById('pinv-date')?.value?.trim() || '';
+      var dueDate = document.getElementById('pinv-due-date')?.value?.trim() || '';
+      var memo = document.getElementById('pinv-memo')?.value?.trim() || '';
+      var items = lines.map(function(l) { return { productId: l.productId, unitId: l.unitId || 'piece', quantity: l.quantity, unitCostSYP: l.unitCostSYP }; });
       var msgEl = document.getElementById('purchase-message');
       if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
       try {
-        var j = await postJson('/procurement/purchase-invoice', { items: lines, supplierId: supplierId || null, payWithCash: payWithCash });
+        var payload = { items: items, supplierId: supplierId, payWithCash: payWithCash };
+        if (memo) payload.memo = memo;
+        if (invoiceDate) payload.invoiceDate = invoiceDate;
+        if (dueDate) payload.dueDate = dueDate;
+        var j = await postJson('/procurement/purchase-invoice', payload);
         if (!j.success) throw new Error(j.error || 'فشل الحفظ');
-        var invId = (j.data && j.data.invoice && j.data.invoice.id) ? j.data.invoice.id : '';
+        var inv = (j.data && j.data.invoice) ? j.data.invoice : null;
+        var invId = inv ? inv.id : '';
+        _lastPurchaseInvoice = inv ? { id: inv.id, date: inv.date, supplierId: inv.supplierId, items: (inv.items || []).map(function(line) { var p = (window._purchaseProducts || []).find(function(x) { return x.id === line.productId; }); return { productName: (p && p.name) || line.productId, unitId: line.unitId, quantity: line.quantity, unitCostSYP: line.unitCostSYP }; }), totalSYP: inv.totalSYP, payWithCash: inv.payWithCash, memo: inv.memo, dueDate: inv.dueDate } : null;
         window._purchaseLines = [];
         renderPurchaseLinesTable();
-        showToast('Success', invId ? ('فاتورة مشتريات: ' + invId) : 'تم حفظ فاتورة المشتريات', 'success');
+        document.getElementById('pinv-memo').value = '';
+        var printBtn = document.getElementById('pinv-print-btn');
+        if (printBtn) { printBtn.classList.remove('hidden'); }
+        showToast('Success', invId ? ('تم الحفظ: ' + invId) : 'تم حفظ فاتورة المشتريات', 'success');
         refreshAll();
       } catch (e) {
         if (msgEl) { msgEl.textContent = e.message || 'خطأ'; msgEl.classList.remove('hidden'); msgEl.className = 'mt-3 text-sm text-rose-400'; }
         showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    function printPurchaseInvoiceReceipt() {
+      if (!_lastPurchaseInvoice) { showToast('تنبيه', 'احفظ فاتورة أولاً لطباعتها', 'error'); return; }
+      var d = _lastPurchaseInvoice;
+      var b = getBranding();
+      var storeName = (b.companyName || 'Vault AI').replace(/</g, '&lt;');
+      var logoHtml = b.logoBase64 ? '<img src="' + (b.logoBase64 || '').replace(/"/g, '&quot;') + '" alt="" style="height:28px;width:auto;object-fit:contain;display:block;margin:0 auto 4px"/>' : '';
+      var dateStr = d.date ? d.date.slice(0, 10) : '';
+      var itemsHtml = (d.items || []).map(function(l) {
+        var tot = (l.quantity || 0) * (l.unitCostSYP || 0);
+        return '<tr><td style="padding:4px 0;border-bottom:1px dotted #333">' + (l.productName || l.productId) + '</td><td style="text-align:left">' + (l.quantity || 0) + ' x ' + (l.unitCostSYP || 0) + ' = ' + Math.round(tot).toLocaleString('ar-SY') + ' ل.س</td></tr>';
+      }).join('');
+      var payNote = d.payWithCash ? '<p style="font-size:10px">دفع نقدي</p>' : '<p style="font-size:10px">دفع آجل' + (d.dueDate ? ' — استحقاق: ' + d.dueDate : '') + '</p>';
+      var memoLine = (d.memo && d.memo.trim()) ? '<p style="font-size:10px">' + (d.memo || '').replace(/</g, '&lt;') + '</p>' : '';
+      var wrap = document.createElement('div');
+      wrap.innerHTML = '<div id="pinv-receipt-content" style="width:80mm;max-width:80mm;padding:8px;font-family:Cairo,Arial,sans-serif;font-size:12px" dir="rtl">' +
+        (logoHtml || '') +
+        '<p style="text-align:center;font-weight:bold;font-size:11px;margin-bottom:4px">' + storeName + '</p>' +
+        '<p style="text-align:center;font-weight:bold;margin-bottom:8px">فاتورة مشتريات</p>' +
+        '<p style="font-size:10px">رقم: ' + (d.id || '—') + '</p>' +
+        '<p style="font-size:10px">التاريخ: ' + dateStr + '</p>' +
+        '<p style="font-size:10px">المورد: ' + (d.supplierId || '—') + '</p>' +
+        memoLine + payNote +
+        '<table style="width:100%;margin:8px 0;font-size:10px">' + itemsHtml + '</table>' +
+        '<p style="text-align:left;font-weight:bold">الإجمالي: ' + Math.round(d.totalSYP || 0).toLocaleString('ar-SY') + ' ل.س</p>' +
+        '<p style="margin-top:12px;font-size:9px;text-align:center">شكراً لتعاملكم</p></div>';
+      var printEl = wrap.querySelector('#pinv-receipt-content');
+      if (printEl) {
+        var win = window.open('', '_blank', 'width=320,height=520');
+        win.document.write('<html dir="rtl"><head><title>فاتورة مشتريات</title><style>@media print{body{width:80mm;margin:0;padding:8px}}</style></head><body>' + (printEl.outerHTML || '') + '</body></html>');
+        win.document.close();
+        win.focus();
+        win.onafterprint = function() { try { win.close(); } catch (e) {} };
+        win.print();
+        setTimeout(function() { try { if (win && !win.closed) win.close(); } catch (e) {} }, 10000);
       }
     }
 
@@ -4396,39 +4521,101 @@
       var branding = (window._appConfig.settings && window._appConfig.settings.branding) || {};
       var companyName = branding.companyName || 'Vault AI';
       var logoBase64 = branding.logoBase64 || '';
+      var settings = (window._appConfig.settings) || {};
+      var returnsPolicy = (settings.branding && settings.branding.returnsPolicy) ? String(settings.branding.returnsPolicy).trim() : '';
+      var policyHtml = returnsPolicy ? ('<div class="glass-card rounded-2xl p-4 shadow-lg mb-4 border border-amber-500/20"><h3 class="text-sm font-medium text-amber-400/90 mb-2">سياسة المرتجعات</h3><p class="text-slate-400 text-sm whitespace-pre-wrap">' + (returnsPolicy.replace(/</g, '&lt;').replace(/\n/g, '<br/>')) + '</p></div>') : '';
       container.innerHTML =
         '<div id="sales-return-root" class="font-sans" dir="rtl">' +
         '<div class="glass-card rounded-2xl p-3 shadow-lg mb-2 flex items-center gap-3">' +
         (logoBase64 ? '<img src="' + logoBase64.replace(/"/g, '&quot;') + '" alt="" class="h-10 w-10 object-contain rounded"/>' : '') +
         '<span class="text-white font-semibold">' + (companyName.replace(/</g, '&lt;')) + '</span></div>' +
+        policyHtml +
         '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4">' +
-        '<h3 class="text-sm font-medium text-slate-400 mb-3">بحث عن فاتورة</h3>' +
-        '<div class="flex gap-2 flex-wrap">' +
-        '<input type="text" id="return-inv-id" placeholder="معرّف الفاتورة (مثال: inv-...)" class="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/>' +
-        '<button type="button" onclick="loadInvoiceForReturn()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">تحميل</button>' +
+        '<h3 class="text-sm font-medium text-slate-400 mb-3">اختر فاتورة للمرتجع</h3>' +
+        '<div class="flex flex-wrap gap-3 items-end mb-3">' +
+        '<div><label class="text-slate-500 text-xs block">من تاريخ</label><input type="date" id="return-filter-from" class="mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-500 text-xs block">إلى تاريخ</label><input type="date" id="return-filter-to" class="mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-500 text-xs block">العميل (اختياري)</label><input type="text" id="return-filter-customer" placeholder="معرّف العميل" class="mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-36"/></div>' +
+        '<button type="button" onclick="loadReturnInvoicesList()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 text-sm">عرض الفواتير</button>' +
         '</div>' +
-        '<p id="return-inv-meta" class="text-slate-500 text-sm mt-2 hidden"></p></div>' +
+        '<div class="mb-3"><label class="text-slate-500 text-xs">أو أدخل معرّف الفاتورة مباشرة</label><div class="flex gap-2 flex-wrap mt-1">' +
+        '<input type="text" id="return-inv-id" placeholder="معرّف الفاتورة (inv-...)" class="flex-1 min-w-[200px] bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/>' +
+        '<button type="button" onclick="loadInvoiceForReturn()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">تحميل</button></div></div>' +
+        '<div id="return-invoices-table-wrap" class="overflow-x-auto max-h-[220px] overflow-y-auto hidden"><table class="w-full text-sm text-right table-zebra"><thead><tr class="text-slate-400 border-b border-white/20"><th class="p-2">رقم الفاتورة</th><th class="p-2">التاريخ</th><th class="p-2">العميل</th><th class="p-2">الإجمالي</th><th class="p-2">اختيار</th></tr></thead><tbody id="return-invoices-tbody"></tbody></table></div>' +
+        '<p id="return-inv-meta" class="text-slate-300 text-sm mt-3 hidden"></p>' +
+        '<div id="return-inv-detail-card" class="hidden mt-3 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20"><p id="return-inv-detail-text" class="text-sm text-slate-300"></p></div></div>' +
         '<div class="glass-card rounded-2xl p-4 shadow-lg mb-4" id="return-table-wrap">' +
         '<div id="return-table-empty" class="py-12 flex flex-col items-center justify-center text-center">' +
         '<div class="w-20 h-20 rounded-2xl bg-white/5 border border-white/10 flex items-center justify-center mb-4"><svg class="w-10 h-10 text-slate-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg></div>' +
-        '<p class="text-slate-400 text-base">أدخل رقم الفاتورة للبدء بعملية المرتجع الذكية</p>' +
+        '<p class="text-slate-400 text-base">اختر فاتورة من القائمة أو أدخل معرّف الفاتورة ثم اضغط تحميل</p>' +
         '<p id="return-print-last-wrap" class="mt-3 hidden"><button type="button" onclick="printReturnReceipt()" class="text-emerald-400 hover:underline text-sm">طباعة إيصال آخر مرتجع</button></p></div>' +
         '<div id="return-lines-table" class="overflow-x-auto hidden"></div>' +
         '<div id="return-options-row" class="hidden mt-4 space-y-3">' +
         '<div class="flex flex-wrap gap-4"><span class="text-slate-400 text-sm">طريقة الاسترداد:</span>' +
         '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="return-refund-type" value="cash" checked class="text-emerald-500"/> <span class="text-slate-300 text-sm">استرداد نقدي (Cash)</span></label>' +
-        '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="return-refund-type" value="credit" class="text-emerald-500"/> <span class="text-slate-300 text-sm">خصم من الحساب (Credit Account)</span></label></div>' +
-        '<div class="flex flex-wrap gap-3 items-center"><label class="text-slate-400 text-sm">سبب المرتجع:</label><select id="return-reason" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">' +
-        '<option value="">— اختر —</option><option value="معيوب">معيوب</option><option value="تغيير رأي العميل">تغيير رأي العميل</option><option value="خطأ في الفاتورة">خطأ في الفاتورة</option><option value="منتهي الصلاحية">منتهي الصلاحية</option><option value="أخرى">أخرى</option></select></div>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="radio" name="return-refund-type" value="credit" class="text-emerald-500"/> <span class="text-slate-300 text-sm">خصم من الحساب (Credit)</span></label></div>' +
+        '<div class="grid grid-cols-1 md:grid-cols-2 gap-3">' +
+        '<div><label class="text-slate-400 text-sm">سبب المرتجع:</label><select id="return-reason" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm">' +
+        '<option value="">— اختر —</option><option value="معيوب">معيوب</option><option value="تغيير رأي العميل">تغيير رأي العميل</option><option value="خطأ في الفاتورة">خطأ في الفاتورة</option><option value="منتهي الصلاحية">منتهي الصلاحية</option><option value="تأخر التوصيل">تأخر التوصيل</option><option value="عدم مطابقة المواصفات">عدم مطابقة المواصفات</option><option value="أخرى">أخرى</option></select></div>' +
+        '<div><label class="text-slate-400 text-sm">رقم RMA (اختياري):</label><input type="text" id="return-rma" placeholder="RMA-2026-001" class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div></div>' +
+        '<div><label class="text-slate-400 text-sm">تاريخ المرتجع (اختياري):</label><input type="date" id="return-date" class="mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div>' +
+        '<div><label class="text-slate-400 text-sm">ملاحظة / وصف إضافي:</label><textarea id="return-notes" rows="2" placeholder="ملاحظات للمرتجع..." class="w-full mt-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"></textarea></div>' +
         '<div class="flex flex-wrap gap-3"><button type="button" onclick="submitSalesReturn()" class="btn-3d px-6 py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ المرتجع</button>' +
         '<button type="button" onclick="printReturnReceipt()" class="btn-3d px-6 py-3 rounded-xl bg-white/10 text-slate-300 font-medium">طباعة إيصال المرتجع</button></div>' +
         '<p id="return-message" class="text-sm mt-2 hidden"></p></div></div>' +
         '<div id="return-receipt-print" class="hidden"></div></div>';
+      var today = new Date().toISOString().slice(0, 10);
+      var firstDay = today.slice(0, 8) + '01';
+      var fromEl = document.getElementById('return-filter-from');
+      var toEl = document.getElementById('return-filter-to');
+      if (fromEl) fromEl.value = firstDay;
+      if (toEl) toEl.value = today;
     }
 
-    async function loadInvoiceForReturn() {
-      var id = document.getElementById('return-inv-id')?.value?.trim();
-      if (!id) { showToast('تنبيه', 'أدخل معرّف الفاتورة', 'error'); return; }
+    async function loadReturnInvoicesList() {
+      var fromDate = document.getElementById('return-filter-from')?.value?.trim() || '';
+      var toDate = document.getElementById('return-filter-to')?.value?.trim() || '';
+      var customerId = document.getElementById('return-filter-customer')?.value?.trim() || '';
+      if (!fromDate || !toDate) { showToast('تنبيه', 'اختر من تاريخ وإلى تاريخ', 'error'); return; }
+      try {
+        var url = '/sales/invoices?fromDate=' + encodeURIComponent(fromDate) + '&toDate=' + encodeURIComponent(toDate);
+        if (customerId) url += '&customerId=' + encodeURIComponent(customerId);
+        var r = await fetchJson(url);
+        var list = (r.success && r.data) ? r.data : [];
+        var tbody = document.getElementById('return-invoices-tbody');
+        var wrap = document.getElementById('return-invoices-table-wrap');
+        if (!tbody || !wrap) return;
+        if (!list.length) {
+          tbody.innerHTML = '<tr><td colspan="5" class="p-3 text-slate-500 text-center">لا فواتير في هذه الفترة</td></tr>';
+          wrap.classList.remove('hidden');
+          return;
+        }
+        var totalFmt = function(n) { var x = Math.round(Number(n) || 0); return x.toLocaleString('ar-SY'); };
+        tbody.innerHTML = list.map(function(inv) {
+          var tot = (inv.items || []).reduce(function(s, i) { return s + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0); }, 0);
+          return '<tr class="border-b border-white/10 hover:bg-white/5 cursor-pointer return-inv-row" data-inv-id="' + (inv.id || '').replace(/"/g, '&quot;') + '">' +
+            '<td class="p-2 text-white font-medium">' + (inv.id || '—') + '</td>' +
+            '<td class="p-2 text-slate-300">' + (inv.date ? inv.date.slice(0, 10) : '—') + '</td>' +
+            '<td class="p-2 text-slate-300">' + (inv.customerId || '—') + '</td>' +
+            '<td class="p-2 text-emerald-400">' + totalFmt(tot) + ' ل.س</td>' +
+            '<td class="p-2"><button type="button" class="return-select-inv-btn text-emerald-400 hover:underline text-xs">اختر</button></td></tr>';
+        }).join('');
+        wrap.classList.remove('hidden');
+        tbody.querySelectorAll('.return-inv-row, .return-select-inv-btn').forEach(function(el) {
+          el.addEventListener('click', function() {
+            var row = el.classList.contains('return-inv-row') ? el : el.closest('.return-inv-row');
+            var id = row && row.getAttribute('data-inv-id');
+            if (id) { document.getElementById('return-inv-id').value = id; loadInvoiceForReturn(id); }
+          });
+        });
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل تحميل الفواتير', 'error');
+      }
+    }
+
+    async function loadInvoiceForReturn(idFromInput) {
+      var id = (typeof idFromInput === 'string' && idFromInput) ? idFromInput : (document.getElementById('return-inv-id')?.value?.trim());
+      if (!id) { showToast('تنبيه', 'أدخل معرّف الفاتورة أو اختر من القائمة', 'error'); return; }
       try {
         var r = await fetchJson('/sales/invoices/' + encodeURIComponent(id));
         if (!r.success || !r.data) throw new Error(r.error || 'الفاتورة غير موجودة');
@@ -4445,12 +4632,22 @@
             restock: true,
           };
         });
-        document.getElementById('return-inv-meta').textContent = 'التاريخ: ' + (r.data.date || '—') + ' | العميل: ' + (r.data.customerId || '—');
-        document.getElementById('return-inv-meta').classList.remove('hidden');
+        var inv = r.data;
+        var totalInv = (inv.items || []).reduce(function(s, i) { return s + (Number(i.quantity) || 0) * (Number(i.unitPrice) || 0); }, 0);
+        var metaEl = document.getElementById('return-inv-meta');
+        var detailCard = document.getElementById('return-inv-detail-card');
+        var detailText = document.getElementById('return-inv-detail-text');
+        if (metaEl) { metaEl.textContent = 'رقم الفاتورة: ' + (inv.id || '—') + ' | التاريخ: ' + (inv.date ? inv.date.slice(0, 10) : '—') + ' | العميل: ' + (inv.customerId || '—'); metaEl.classList.remove('hidden'); }
+        if (detailCard && detailText) {
+          detailText.innerHTML = 'الفاتورة الأصلية: <strong>' + (inv.id || '—') + '</strong> — التاريخ: ' + (inv.date ? inv.date.slice(0, 10) : '—') + ' — العميل: ' + (inv.customerId || '—') + ' — إجمالي الفاتورة: <strong>' + Math.round(totalInv).toLocaleString('ar-SY') + ' ل.س</strong>';
+          detailCard.classList.remove('hidden');
+        }
         renderReturnLinesTable();
       } catch (e) {
         showToast('خطأ', e.message || 'لم يتم العثور على الفاتورة', 'error');
         document.getElementById('return-inv-meta').classList.add('hidden');
+        var dc = document.getElementById('return-inv-detail-card');
+        if (dc) dc.classList.add('hidden');
         _returnInvoice = null;
         _returnLines = [];
       }
@@ -4524,19 +4721,35 @@
       var refundToCash = !refundCashRadio || refundCashRadio.checked;
       var reasonEl = document.getElementById('return-reason');
       var reason = reasonEl ? (reasonEl.value || '').trim() : '';
+      var notesEl = document.getElementById('return-notes');
+      var notes = notesEl ? (notesEl.value || '').trim() : '';
+      var rmaEl = document.getElementById('return-rma');
+      var rmaNumber = rmaEl ? (rmaEl.value || '').trim() : '';
+      var dateEl = document.getElementById('return-date');
+      var returnDate = dateEl && dateEl.value ? dateEl.value.trim() : '';
       var msgEl = document.getElementById('return-message');
       if (msgEl) { msgEl.classList.add('hidden'); msgEl.textContent = ''; }
       try {
-        var j = await postJson('/sales/return', { invoiceId: _returnInvoice.id, items: items, refundToCash: refundToCash, reason: reason });
+        var payload = { invoiceId: _returnInvoice.id, items: items, refundToCash: refundToCash, reason: reason };
+        if (notes) payload.notes = notes;
+        if (rmaNumber) payload.rmaNumber = rmaNumber;
+        if (returnDate) payload.returnDate = returnDate;
+        var j = await postJson('/sales/return', payload);
         if (!j.success) throw new Error(j.error || 'فشل الحفظ');
         var totalAmount = items.reduce(function(s, l) { return s + (l.returnQuantity || 0) * (l.unitPrice || 0); }, 0);
-        _lastReturnDoc = { returnId: j.data && j.data.returnId, invoiceId: _returnInvoice.id, date: new Date().toISOString(), items: _returnLines.filter(function(l) { return (l.returnQty || 0) > 0; }), totalAmount: totalAmount, refundToCash: refundToCash, reason: reason };
+        var docDate = returnDate ? (returnDate + 'T12:00:00.000Z') : new Date().toISOString();
+        _lastReturnDoc = { returnId: j.data && j.data.returnId, invoiceId: _returnInvoice.id, date: docDate, items: _returnLines.filter(function(l) { return (l.returnQty || 0) > 0; }), totalAmount: totalAmount, refundToCash: refundToCash, reason: reason, notes: notes, rmaNumber: rmaNumber };
         showToast('Success', 'تم حفظ المرتجع بنجاح', 'success');
         refreshAll();
         _returnInvoice = null;
         _returnLines = [];
         document.getElementById('return-inv-id').value = '';
         document.getElementById('return-inv-meta').classList.add('hidden');
+        var detailCard = document.getElementById('return-inv-detail-card');
+        if (detailCard) detailCard.classList.add('hidden');
+        if (notesEl) notesEl.value = '';
+        if (rmaEl) rmaEl.value = '';
+        if (dateEl) dateEl.value = '';
         var opt = document.getElementById('return-options-row');
         if (opt) opt.classList.add('hidden');
         renderReturnLinesTable();
@@ -4563,16 +4776,21 @@
       var wrap = document.getElementById('return-receipt-print');
       if (!wrap) return;
       var reasonLine = (d.reason && d.reason.trim()) ? '<p style="font-size:10px">سبب المرتجع: ' + (d.reason || '').replace(/</g, '&lt;') + '</p>' : '';
+      var rmaLine = (d.rmaNumber && d.rmaNumber.trim()) ? '<p style="font-size:10px">رقم RMA: ' + (d.rmaNumber || '').replace(/</g, '&lt;') + '</p>' : '';
+      var notesLine = (d.notes && d.notes.trim()) ? '<p style="font-size:10px">ملاحظة: ' + (d.notes || '').replace(/</g, '&lt;').replace(/\n/g, ' ') + '</p>' : '';
+      var policyText = (window._appConfig.settings && window._appConfig.settings.branding && window._appConfig.settings.branding.returnsPolicy) ? String(window._appConfig.settings.branding.returnsPolicy).trim() : '';
+      var policyLine = policyText ? '<p style="margin-top:8px;font-size:9px;border-top:1px dotted #444;padding-top:6px">' + (policyText.replace(/</g, '&lt;').replace(/\n/g, '<br/>')) + '</p>' : '';
       wrap.innerHTML = '<div id="return-receipt-content" class="return-receipt-80mm">' +
         (logoHtml ? logoHtml : '') +
         '<p style="text-align:center;font-weight:bold;font-size:11px;margin-bottom:4px">' + storeName + '</p>' +
         '<p style="text-align:center;font-weight:bold;margin-bottom:8px">إيصال مرتجع</p>' +
         '<p style="font-size:10px">فاتورة أصلية: ' + (d.invoiceId || '—') + '</p>' +
         '<p style="font-size:10px">تاريخ المرتجع: ' + dateStr + '</p>' +
-        reasonLine +
+        reasonLine + rmaLine + notesLine +
         '<table style="width:100%;margin:8px 0;font-size:10px">' + itemsHtml + '</table>' +
         '<p style="text-align:left;font-weight:bold">الإجمالي المرتجع: ' + (d.totalAmount || 0).toFixed(0) + ' ل.س</p>' +
         creditNotice +
+        policyLine +
         '<p style="margin-top:12px;font-size:9px;text-align:center">شكراً لتعاملكم</p></div>';
       wrap.classList.remove('hidden');
       var printEl = document.getElementById('return-receipt-content');

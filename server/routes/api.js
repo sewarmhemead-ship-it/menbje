@@ -863,7 +863,7 @@ router.get('/sales/invoices/:id', (req, res) => {
 router.post('/sales/return', (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const { invoiceId, items = [], refundToCash = true, reason } = req.body;
+    const { invoiceId, items = [], refundToCash = true, reason, notes, rmaNumber, returnDate } = req.body;
     if (!invoiceId || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'invoiceId and items array required' });
     }
@@ -948,16 +948,19 @@ router.post('/sales/return', (req, res) => {
     });
     if (!r.success) return res.status(400).json(r);
 
+    const docDate = returnDate && /^\d{4}-\d{2}-\d{2}/.test(String(returnDate).trim()) ? new Date(returnDate.trim()).toISOString() : new Date().toISOString();
     const doc = {
       id: returnId,
       tenantId,
       invoiceId,
-      date: new Date().toISOString(),
+      date: docDate,
       items: itemsToSave,
       totalAmount,
       totalDamagedAmount: totalDamagedAmount || 0,
       refundToCash,
       reason: reason != null ? String(reason).trim() : '',
+      notes: notes != null ? String(notes).trim() : '',
+      rmaNumber: rmaNumber != null ? String(rmaNumber).trim() : '',
       entryIds: [r.entry.id],
       movements: movements.map((m) => m.id),
     };
@@ -990,8 +993,8 @@ router.get('/sales/returns', (req, res) => {
 // —— Procurement (المشتريات): Purchase Invoice & Purchase Return ——
 router.post('/procurement/purchase-invoice', (req, res) => {
   try {
-    const { items, supplierId, payWithCash, memo, createdBy } = req.body;
-    const result = procurement.postPurchaseInvoice({ items: items || [], supplierId, payWithCash: !!payWithCash, memo, createdBy: createdBy || 'user' });
+    const { items, supplierId, payWithCash, memo, invoiceDate, dueDate, createdBy } = req.body;
+    const result = procurement.postPurchaseInvoice({ items: items || [], supplierId, payWithCash: !!payWithCash, memo, invoiceDate, dueDate, createdBy: createdBy || 'user' });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
   } catch (e) {

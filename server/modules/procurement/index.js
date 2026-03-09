@@ -33,11 +33,12 @@ function getValuationAtTx(amountSYP) {
  * items: [{ productId, unitId, quantity, unitCostSYP }]
  * payWithCash: true = Dr Inventory Cr Cash; false = Dr Inventory Cr Creditors (supplier balance).
  */
-export function postPurchaseInvoice({ items = [], supplierId = null, payWithCash = false, memo = '', createdBy = 'user' }) {
+export function postPurchaseInvoice({ items = [], supplierId = null, payWithCash = false, memo = '', invoiceDate, dueDate, createdBy = 'user' }) {
   if (!items.length) return { success: false, error: 'items required' };
   let totalSYP = 0;
   const movements = [];
   const invoiceId = 'pinv-' + Date.now();
+  const docDate = invoiceDate && /^\d{4}-\d{2}-\d{2}/.test(String(invoiceDate).trim()) ? new Date(invoiceDate.trim()).toISOString() : new Date().toISOString();
 
   for (const line of items) {
     const { productId, unitId, quantity, unitCostSYP } = line;
@@ -67,11 +68,13 @@ export function postPurchaseInvoice({ items = [], supplierId = null, payWithCash
 
   const doc = {
     id: invoiceId,
-    date: new Date().toISOString(),
+    date: docDate,
     items,
     totalSYP,
     supplierId,
     payWithCash,
+    memo: memo != null ? String(memo).trim() : '',
+    dueDate: dueDate && /^\d{4}-\d{2}-\d{2}/.test(String(dueDate).trim()) ? String(dueDate).trim() : null,
     entryIds: [r.entry.id],
     movements: movements.map((m) => m.id),
     createdBy,

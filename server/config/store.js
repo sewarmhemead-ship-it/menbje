@@ -30,7 +30,7 @@ const purchaseReturns = [];
 
 // Sales: invoices and returns (for lookup and reports)
 const salesInvoices = [];           // { id, date, customerId, items: [{ productId, unitId, quantity, unitPrice }], totalRevenue, totalCogsSYP }
-const salesReturns = [];            // { id, invoiceId, date, items: [...], totalAmount, refundToCash, reason? }
+const salesReturns = [];            // { id, invoiceId, date, items: [...], totalAmount, refundToCash, reason?, notes?, rmaNumber? }
 
 // Manufacturing: BOMs and build orders
 const boms = [];                   // { id, finishedProductId, finishedUnitId, components: [{ productId, unitId, quantityPerUnit }] }
