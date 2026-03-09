@@ -723,6 +723,15 @@ router.post('/vouchers/transfer', (req, res) => {
   }
 });
 
+// ترقيم تسلسلي سنوي: inv-YYYY-NNNN أو sret-YYYY-NNNN
+function getNextSeqForYear(collection, prefix, year) {
+  const y = String(year);
+  const list = collection.filter((d) => d.id && String(d.id).startsWith(prefix + '-' + y + '-'));
+  const nums = list.map((d) => parseInt(String(d.id).split('-')[2], 10)).filter((n) => !isNaN(n));
+  const max = nums.length ? Math.max(...nums) : 0;
+  return max + 1;
+}
+
 // —— Sales Invoice (Logic Bridge): validate all → deduct stock → ONE journal entry → multiple stock movements ——
 router.post('/sales/invoice', requireAuth, (req, res) => {
   try {
@@ -752,7 +761,9 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
       }
     }
 
-    const invoiceId = 'inv-' + Date.now();
+    const year = new Date().getFullYear();
+    const seq = getNextSeqForYear(salesInvoices, 'inv', year);
+    const invoiceId = 'inv-' + year + '-' + String(seq).padStart(4, '0');
     let totalRevenue = 0;
     let totalCogsSYP = 0;
     const movements = [];
@@ -852,14 +863,16 @@ router.get('/sales/invoices/:id', (req, res) => {
 router.post('/sales/return', (req, res) => {
   try {
     const tenantId = getTenantId(req);
-    const { invoiceId, items = [], refundToCash = true } = req.body;
+    const { invoiceId, items = [], refundToCash = true, reason } = req.body;
     if (!invoiceId || !Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'invoiceId and items array required' });
     }
     const inv = salesInvoices.find((i) => i.id === invoiceId && (i.tenantId || 'default') === tenantId);
     if (!inv) return res.status(404).json({ success: false, error: 'Invoice not found' });
 
-    const returnId = 'sret-' + Date.now();
+    const year = new Date().getFullYear();
+    const seq = getNextSeqForYear(salesReturns, 'sret', year);
+    const returnId = 'sret-' + year + '-' + String(seq).padStart(4, '0');
     let totalAmount = 0;
     let totalDamagedAmount = 0;
     const movements = [];
@@ -944,6 +957,7 @@ router.post('/sales/return', (req, res) => {
       totalAmount,
       totalDamagedAmount: totalDamagedAmount || 0,
       refundToCash,
+      reason: reason != null ? String(reason).trim() : '',
       entryIds: [r.entry.id],
       movements: movements.map((m) => m.id),
     };
