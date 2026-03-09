@@ -1,0 +1,17 @@
+@import "tailwindcss";
+
+/* Scan all HTML in dashboard for class names */
+@source "../*.html";
+
+@theme {
+  --font-sans: Cairo, system-ui, sans-serif;
+  --color-midnight-950: #0b1220;
+  --color-midnight-900: #0f172a;
+  --color-midnight-800: #1e293b;
+  --color-midnight-700: #334155;
+  --color-emerald-400: #34d399;
+  --color-emerald-500: #10b981;
+  --color-emerald-600: #059669;
+  --color-gold-400: #fbbf24;
+  --color-gold-500: #f59e0b;
+}

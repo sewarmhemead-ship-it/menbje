@@ -7,14 +7,26 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "node --watch server/index.js",
-    "simulate": "node scripts/simulate-live-test.js"
+    "simulate": "node scripts/simulate-live-test.js",
+    "build:css": "npx @tailwindcss/cli -i ./dashboard/src/input.css -o ./dashboard/dist/tailwind.css --minify"
   },
-  "keywords": ["pos", "inventory", "barter", "multi-currency", "fractioning", "whatsapp"],
+  "keywords": [
+    "pos",
+    "inventory",
+    "barter",
+    "multi-currency",
+    "fractioning",
+    "whatsapp"
+  ],
   "author": "",
   "license": "MIT",
   "dependencies": {
-    "express": "^4.18.2",
     "cors": "^2.8.5",
-    "dotenv": "^16.3.1"
+    "dotenv": "^16.3.1",
+    "express": "^4.18.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.2.1",
+    "tailwindcss": "^4.2.1"
   }
 }

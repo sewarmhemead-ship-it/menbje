@@ -9,7 +9,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0b1220" />
-  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <title>Vault AI · محاسبة ومؤسسات عالمية</title>
   <link rel="icon" href="data:," />
@@ -18,23 +18,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
-  <script src="https://cdn.tailwindcss.com?v=1.1"></script>
+  <link href="dist/tailwind.css" rel="stylesheet" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js?v=1.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js?v=1.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js?v=1.1"></script>
-  <script>
-    tailwind.config = {
-      theme: {
-        extend: {
-          fontFamily: { sans: ['Cairo', 'system-ui', 'sans-serif'] },
-          colors: {
-            midnight: { 950: '#0b1220', 900: '#0f172a', 800: '#1e293b', 700: '#334155' },
-            emerald: { 400: '#34d399', 500: '#10b981', 600: '#059669' },
-          },
-        },
-      },
-    };
-  </script>
   <style>
     :root {
       --primary-color: #10b981;
@@ -699,10 +686,16 @@
 
       <!-- Inventory -->
       <section id="section-inventory" data-section>
-        <h2 class="page-title-h2 mb-1">المخزون · نظام التجزئة الذكي</h2>
-        <p class="page-desc mb-6">خرائط حرارة: أخضر = مخزون مرتفع، أحمر باهت = مخزون منخفض. قواعد الوحدات وتكلفة أول صادر أول وارد.</p>
+        <h2 class="page-title-h2 mb-1">المخزون</h2>
+        <p class="page-desc mb-4">عرض الرصيد حسب الصنف والوحدة. نظام وحدات وتكلفة أول صادر أول وارد.</p>
         <div class="card-standard">
-          <h3 class="text-sm font-medium text-slate-400 mb-3">خريطة حرارة المخزون</h3>
+          <div class="flex flex-wrap items-center justify-between gap-2 mb-3">
+            <h3 class="text-sm font-medium text-slate-400">خريطة حرارة المخزون</h3>
+            <div class="flex items-center gap-3 text-xs">
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-emerald-500/80"></span> مرتفع</span>
+              <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded-full bg-rose-500/80"></span> منخفض</span>
+            </div>
+          </div>
           <div id="fractioning-heatmap" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 min-h-[120px]"></div>
           <p id="fractioning-summary" class="text-slate-500 text-sm mt-3"></p>
           <button type="button" onclick="toggleDetail('inv-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
@@ -2220,6 +2213,7 @@
       const heatEl = document.getElementById('fractioning-heatmap');
       const summaryEl = document.getElementById('fractioning-summary');
       const invInner = document.getElementById('inv-detail-inner');
+      var productMap = window._inventoryProductMap || {};
       if (!data?.data) {
         if (heatEl) heatEl.innerHTML = '<p class="state-loading col-span-full">جاري التحميل…</p>';
         if (invInner) invInner.innerHTML = detailEmptyState();
@@ -2227,22 +2221,26 @@
       }
       const { rules, inventory, sypRate } = data.data;
       const list = inventory || [];
-      const maxQ = list.length ? Math.max(1, Math.max.apply(null, list.map(i => Number(i.quantity) || 0))) : 1;
+      var positiveQtys = list.map(function(i) { return Number(i.quantity) || 0; }).filter(function(n) { return n > 0; });
+      const maxQ = positiveQtys.length ? Math.max(1, Math.max.apply(null, positiveQtys)) : 1;
       if (heatEl) {
         if (!list.length) {
           heatEl.innerHTML = '<p class="text-slate-500 col-span-full">لا عناصر مخزون لعرضها.</p>';
         } else {
           heatEl.innerHTML = list.map(function(i) {
             var q = Number(i.quantity) || 0;
-            var t = maxQ > 0 ? q / maxQ : 0;
-            var r = Math.round(127 + (1 - t) * 128);
-            var g = Math.round(60 + t * 195);
-            var b = Math.round(60 + t * 153);
-            var bg = 'rgb(' + r + ',' + g + ',' + b + ')';
-            var borderGlow = t > 0.5 ? 'rgba(16, 185, 129, 0.4)' : 'rgba(127, 60, 60, 0.5)';
-            var boxShadow = t > 0.5 ? '0 0 12px rgba(16, 185, 129, 0.25)' : '0 0 8px rgba(127, 60, 60, 0.2)';
+            var isNegative = q < 0;
+            var productName = (productMap[i.productId] || i.productId || '—').toString().replace(/</g, '&lt;');
+            var unitLabel = (i.unitId || '').toString().replace(/</g, '&lt;');
+            if (isNegative) {
+              return '<div class="heat-cell rounded-xl p-3 text-center border border-rose-500/50 bg-rose-950/30 shadow-[0_0_8px_rgba(244,63,94,0.15)]"><p class="text-white font-medium text-sm truncate" title="' + productName + '">' + productName + '</p><p class="text-slate-400 text-xs">' + unitLabel + '</p><p class="text-rose-400 font-semibold text-sm mt-2">' + q + '</p><p class="text-rose-400/80 text-xs mt-0.5">رصيد سالب</p></div>';
+            }
+            var t = maxQ > 0 ? Math.min(1, q / maxQ) : 0;
             var pct = maxQ > 0 ? Math.min(100, (q / maxQ) * 100) : 0;
-            return '<div class="heat-cell rounded-xl p-3 text-center border border-white/10" style="background:' + bg + '; border-color:' + borderGlow + '; box-shadow:' + boxShadow + '"><p class="text-white font-medium text-sm truncate">' + (i.productId || '—') + '</p><p class="text-slate-300 text-xs">' + (i.unitId || '') + '</p><div class="progress-track mt-2"><div class="progress-fill" style="width:' + pct + '%"></div></div><p class="text-xs mt-1 ' + (t > 0.5 ? 'text-emerald-300' : 'text-rose-200') + '">' + q + '</p></div>';
+            var bg = t >= 0.5 ? 'rgba(16, 185, 129, 0.2)' : (t >= 0.2 ? 'rgba(251, 191, 36, 0.15)' : 'rgba(244, 63, 94, 0.18)');
+            var borderClr = t >= 0.5 ? 'rgba(16, 185, 129, 0.45)' : (t >= 0.2 ? 'rgba(251, 191, 36, 0.4)' : 'rgba(244, 63, 94, 0.45)');
+            var qtyCls = t >= 0.5 ? 'text-emerald-300' : (t >= 0.2 ? 'text-amber-200' : 'text-rose-200');
+            return '<div class="heat-cell rounded-xl p-3 text-center border transition-shadow hover:shadow-lg" style="background:' + bg + '; border-color:' + borderClr + '"><p class="text-white font-medium text-sm truncate" title="' + productName + '">' + productName + '</p><p class="text-slate-400 text-xs">' + unitLabel + '</p><div class="mt-2 h-2 rounded-full bg-white/10 overflow-hidden"><div class="h-full rounded-full bg-emerald-500/80 transition-all" style="width:' + pct + '%"></div></div><p class="text-xs mt-1.5 ' + qtyCls + ' font-medium">' + q + '</p></div>';
           }).join('');
         }
       }
@@ -2252,10 +2250,11 @@
           invInner.innerHTML = detailEmptyState('لا توجد عناصر مخزون لعرضها');
         } else {
           var invRows = list.slice(0, 30).map(function(i) {
-            var name = (i.productId || '—').toString().replace(/</g, '&lt;');
+            var name = (productMap[i.productId] || i.productId || '—').toString().replace(/</g, '&lt;');
             var unit = (i.unitId || '').toString().replace(/</g, '&lt;');
             var qty = formatNum(i.quantity != null ? i.quantity : 0);
-            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + name + '">' + name + '</td><td class="p-2">' + unit + '</td><td class="p-2 text-emerald-400">' + qty + '</td></tr>';
+            var qtyCls = (Number(i.quantity) || 0) < 0 ? 'text-rose-400 font-medium' : 'text-emerald-400';
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis" title="' + name + '">' + name + '</td><td class="p-2 text-slate-300">' + unit + '</td><td class="p-2 ' + qtyCls + '">' + qty + '</td></tr>';
           });
           invInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">المنتج</th><th class="p-2">الوحدة</th><th class="p-2">الكمية</th></tr></thead><tbody>' + invRows.join('') + '</tbody></table>';
         }
@@ -5274,6 +5273,13 @@
       const el = document.getElementById(contentId);
       if (el) el.textContent = 'جاري التحميل…';
       try {
+        if (module === 'fractioning' && !window._inventoryProductMap) {
+          try {
+            var pr = await fetchJson('/products');
+            window._inventoryProductMap = {};
+            (pr.data || []).forEach(function(p) { window._inventoryProductMap[p.id] = p.name || p.id; });
+          } catch (e) {}
+        }
         const data = await fetchJson(paths[module] || paths.fractioning);
         if (fns[module]) fns[module](data);
       } catch (e) {
