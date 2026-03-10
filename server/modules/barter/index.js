@@ -9,11 +9,16 @@ import { postBarterJournal } from '../../accounting/transactions.js';
 
 const { barterLedger, barterSurplus, barterNeeds, barterMatchAlerts, products } = store;
 
-export function getBarterSummary() {
-  const ledger = barterLedger || [];
-  const surplus = Array.from(barterSurplus || []);
-  const needs = Array.from(barterNeeds || []);
-  const alerts = Array.from(barterMatchAlerts || []).slice(-20);
+/** Get barter summary for a tenant only. Each tenant (e.g. restaurants, shops, pharmacies) has its own pool. */
+export function getBarterSummary(tenantId = 'default') {
+  const allSurplus = Array.from(barterSurplus || []);
+  const allNeeds = Array.from(barterNeeds || []);
+  const allAlerts = Array.from(barterMatchAlerts || []);
+  const allLedger = barterLedger || [];
+  const surplus = allSurplus.filter((e) => (e.tenantId || 'default') === tenantId);
+  const needs = allNeeds.filter((e) => (e.tenantId || 'default') === tenantId);
+  const alerts = allAlerts.filter((a) => (a.tenantId || 'default') === tenantId).slice(-20);
+  const ledger = allLedger.filter((t) => (t.tenantId || 'default') === tenantId);
   return {
     totalTrades: ledger.length,
     recent: ledger.slice(-10),
@@ -24,9 +29,9 @@ export function getBarterSummary() {
 }
 
 /**
- * Add a surplus item. Runs matchmaker: if any need matches this product, create Match Alert with Fair Value in SYP.
+ * Add a surplus item. Runs matchmaker within same tenant only.
  */
-export function addSurplus(productId, productName, quantity, userId = 'current-user') {
+export function addSurplus(productId, productName, quantity, userId = 'current-user', tenantId = 'default') {
   const id = `surplus-${Date.now()}`;
   const entry = {
     id,
@@ -34,6 +39,7 @@ export function addSurplus(productId, productName, quantity, userId = 'current-u
     productName: productName || products.get(productId)?.name || productId,
     quantity: Number(quantity) || 1,
     userId,
+    tenantId,
     createdAt: new Date().toISOString(),
   };
   barterSurplus.push(entry);
@@ -45,9 +51,9 @@ export function addSurplus(productId, productName, quantity, userId = 'current-u
 }
 
 /**
- * Add a need. Optionally run matchmaker against existing surplus.
+ * Add a need. Matchmaker runs within same tenant only.
  */
-export function addNeed(productId, productName, quantity, userId = 'current-user') {
+export function addNeed(productId, productName, quantity, userId = 'current-user', tenantId = 'default') {
   const id = `need-${Date.now()}`;
   const entry = {
     id,
@@ -55,6 +61,7 @@ export function addNeed(productId, productName, quantity, userId = 'current-user
     productName: productName || products.get(productId)?.name || productId,
     quantity: Number(quantity) || 1,
     userId,
+    tenantId,
     createdAt: new Date().toISOString(),
   };
   barterNeeds.push(entry);
@@ -92,7 +99,8 @@ function runMatchmakerSurplus(surplusEntry) {
 }
 
 function runMatchmakerNeed(needEntry) {
-  const surplus = barterSurplus.find((s) => s.productId === needEntry.productId);
+  const tenantId = needEntry.tenantId || 'default';
+  const surplus = barterSurplus.find((s) => s.productId === needEntry.productId && (s.tenantId || 'default') === tenantId);
   if (!surplus) return null;
   const fairValueSYP = getFairValueSYP(needEntry.productId);
   const alertId = `match-${Date.now()}`;
@@ -103,6 +111,7 @@ function runMatchmakerNeed(needEntry) {
     productId: needEntry.productId,
     productName: needEntry.productName,
     fairValueSYP: fairValueSYP != null ? fairValueSYP : 0,
+    tenantId,
     createdAt: new Date().toISOString(),
   };
   return matchAlert;
@@ -116,10 +125,10 @@ export function registerBarterTrade(offerProductId, wantProductId, quantity, not
 }
 
 /**
- * Confirm a barter match: post non-cash journal (swap inventory at fair value) and record trade.
+ * Confirm a barter match for the given tenant only. Posts non-cash journal and records trade.
  */
-export function confirmBarterMatch(matchAlertId, createdBy = 'system') {
-  const alert = barterMatchAlerts.find((a) => a.id === matchAlertId);
+export function confirmBarterMatch(matchAlertId, createdBy = 'system', tenantId = 'default') {
+  const alert = barterMatchAlerts.find((a) => a.id === matchAlertId && (a.tenantId || 'default') === tenantId);
   if (!alert) return { success: false, error: 'Match alert not found' };
 
   const fairValueSYP = alert.fairValueSYP ?? 0;
@@ -138,6 +147,7 @@ export function confirmBarterMatch(matchAlertId, createdBy = 'system') {
     productId: alert.productId,
     productName: alert.productName,
     fairValueSYP,
+    tenantId,
     createdAt: new Date().toISOString(),
   };
   barterLedger.push(trade);

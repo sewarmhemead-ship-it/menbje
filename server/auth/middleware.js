@@ -8,7 +8,7 @@ import { store } from '../config/store.js';
 import { verifyJWT } from './jwt.js';
 
 const TIER_FEATURES = {
-  basic: ['accounting', 'inventory', 'dashboard', 'settings'],
+  basic: ['accounting', 'inventory', 'dashboard', 'settings', 'barter'],
   pro: ['accounting', 'inventory', 'dashboard', 'settings', 'barter', 'currency'],
   enterprise: ['accounting', 'inventory', 'dashboard', 'settings', 'barter', 'currency', 'vision', 'whatsapp'],
 };

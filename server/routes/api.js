@@ -167,7 +167,7 @@ router.get('/dashboard/summary', async (req, res) => {
     const warehouse = statements.getWarehouseValuation();
     const inventoryValueSYP = warehouse.totalValueCostSYP ?? 0;
 
-    const barterSummary = barter.getBarterSummary();
+    const barterSummary = barter.getBarterSummary(getTenantId(req));
     const draftsList = store.draftOrders && typeof store.draftOrders.size === 'number' ? store.draftOrders.size : (Array.isArray(store.draftOrders) ? store.draftOrders.length : 0);
     const vouchersList = (store.vouchers || []);
     const voucherCount = Array.isArray(vouchersList) ? vouchersList.length : 0;
@@ -309,7 +309,7 @@ router.get('/dashboard/os', async (req, res) => {
     const warehouse = statements.getWarehouseValuation();
     const inventoryValueSYP = warehouse.totalValueCostSYP ?? 0;
 
-    const barterSummary = barter.getBarterSummary();
+    const barterSummary = barter.getBarterSummary(getTenantId(req));
     const draftsList = store.draftOrders && typeof store.draftOrders.size === 'number' ? store.draftOrders.size : (Array.isArray(store.draftOrders) ? store.draftOrders.length : 0);
     const vouchersList = (store.vouchers || []);
     const voucherCount = Array.isArray(vouchersList) ? vouchersList.length : 0;
@@ -711,16 +711,18 @@ router.get('/fractioning/summary', (req, res) => {
   });
 });
 
-// —— Barter (with Matchmaker) ——
+// —— Barter (with Matchmaker) — per-tenant: مطاعم لحال، محلات لحال، صيدليات لحال ——
 router.get('/barter/summary', (req, res) => {
-  res.json({ success: true, data: barter.getBarterSummary() });
+  const tenantId = getTenantId(req);
+  res.json({ success: true, data: barter.getBarterSummary(tenantId) });
 });
 
 router.post('/barter/surplus', (req, res) => {
   try {
+    const tenantId = getTenantId(req);
     const { productId, productName, quantity, userId } = req.body;
     if (!productId) return res.status(400).json({ success: false, error: 'productId required' });
-    const result = barter.addSurplus(productId, productName, quantity, userId);
+    const result = barter.addSurplus(productId, productName, quantity, userId || req.user?.id, tenantId);
     res.status(201).json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -729,9 +731,10 @@ router.post('/barter/surplus', (req, res) => {
 
 router.post('/barter/needs', (req, res) => {
   try {
+    const tenantId = getTenantId(req);
     const { productId, productName, quantity, userId } = req.body;
     if (!productId) return res.status(400).json({ success: false, error: 'productId required' });
-    const result = barter.addNeed(productId, productName, quantity, userId);
+    const result = barter.addNeed(productId, productName, quantity, userId || req.user?.id, tenantId);
     res.status(201).json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -740,9 +743,10 @@ router.post('/barter/needs', (req, res) => {
 
 router.post('/barter/confirm', (req, res) => {
   try {
+    const tenantId = getTenantId(req);
     const { matchAlertId, createdBy } = req.body;
     if (!matchAlertId) return res.status(400).json({ success: false, error: 'matchAlertId required' });
-    const result = barter.confirmBarterMatch(matchAlertId, createdBy || 'api');
+    const result = barter.confirmBarterMatch(matchAlertId, createdBy || 'api', tenantId);
     if (!result.success) return res.status(400).json(result);
     res.json({ success: true, data: result });
   } catch (e) {

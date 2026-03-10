@@ -783,13 +783,21 @@
       <!-- Barter: Match Center -->
       <section id="section-barter" data-section data-feature="barter">
         <h2 class="page-title-h2 mb-1">مركز المقايضة الذكي</h2>
-        <p class="page-desc mb-6">بطاقات مطابقة. أضف فائضاً → تنبيهات مطابقة لما تحتاجه. القيمة العادلة (ل.س) لموازنة الصفقة. اضغط لتأكيد مطابقة الصفقة → يُسجّل في الدفتر.</p>
+        <p class="page-desc mb-6">بطاقات مطابقة. أضف فائضاً أو احتياجاً → تنبيهات مطابقة. القيمة العادلة (ل.س) لموازنة الصفقة. اضغط لتأكيد مطابقة الصفقة → يُسجّل في الدفتر.</p>
         <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div class="card-standard">
-            <h3 class="text-sm font-medium text-slate-400 mb-3">إضافة فائض</h3>
-            <select id="barter-surplus-product" class="tap-haptic w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none"><option value="">جاري التحميل…</option></select>
-            <input type="number" id="barter-surplus-qty" value="1" min="1" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" />
-            <button type="button" onclick="addBarterSurplus()" class="tap-haptic w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إضافة فائض</button>
+          <div class="space-y-4">
+            <div class="card-standard">
+              <h3 class="text-sm font-medium text-slate-400 mb-3">إضافة فائض</h3>
+              <select id="barter-surplus-product" class="tap-haptic w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-emerald-500/50 outline-none"><option value="">جاري التحميل…</option></select>
+              <input type="number" id="barter-surplus-qty" value="1" min="1" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" />
+              <button type="button" onclick="addBarterSurplus()" class="tap-haptic w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إضافة فائض</button>
+            </div>
+            <div class="card-standard">
+              <h3 class="text-sm font-medium text-slate-400 mb-3">إضافة احتياج</h3>
+              <select id="barter-need-product" class="tap-haptic w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-2 focus:ring-1 focus:ring-amber-500/50 outline-none"><option value="">جاري التحميل…</option></select>
+              <input type="number" id="barter-need-qty" value="1" min="1" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm mb-3 focus:ring-1 focus:ring-amber-500/50 outline-none" />
+              <button type="button" onclick="addBarterNeed()" class="tap-haptic w-full py-2 rounded-lg bg-amber-500/20 text-amber-300 text-sm font-medium hover:bg-amber-500/30 transition-colors">إضافة احتياج</button>
+            </div>
           </div>
           <div class="lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-3">اسحب لليمين للمطابقة · لليسار للتخطي · أو اضغط للتأكيد</h3>
@@ -1102,7 +1110,7 @@
     let currencyChart = null;
     let rateHistory = [];
     let currentUser = null;
-    let tierFeatures = ['accounting', 'inventory', 'dashboard', 'settings'];
+    let tierFeatures = ['accounting', 'inventory', 'dashboard', 'settings', 'barter'];
     window._appConfig = { settings: { branding: {}, localization: {}, features: {} }, user: {} };
 
     var INDUSTRY_PRESETS = {
@@ -1590,6 +1598,7 @@
       if (id === 'dashboard') setMobileNav('dashboard');
       else document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
       if (id === 'dashboard' && typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
+      if (id === 'barter' && typeof refresh === 'function') refresh('barter');
     }
 
     function setMobileNav(id) {
@@ -6098,9 +6107,11 @@
 
     async function loadProducts() {
       const r = await fetchJson('/products');
-      const sel = document.getElementById('barter-surplus-product');
-      if (!sel || !r?.data?.length) return;
-      sel.innerHTML = r.data.map(p => '<option value="' + p.id + '">' + p.name + '</option>').join('');
+      const opts = r?.data?.length ? r.data.map(p => '<option value="' + p.id + '">' + (p.name || p.id) + '</option>').join('') : '<option value="">لا منتجات</option>';
+      const selSurplus = document.getElementById('barter-surplus-product');
+      const selNeed = document.getElementById('barter-need-product');
+      if (selSurplus) selSurplus.innerHTML = opts;
+      if (selNeed) selNeed.innerHTML = opts;
     }
 
     async function addBarterSurplus() {
@@ -6111,6 +6122,18 @@
         await postJson('/barter/surplus', { productId, quantity: qty });
         await refresh('barter');
         await refresh('journal');
+        if (typeof loadUnifiedDashboard === 'function') loadUnifiedDashboard();
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
+    }
+
+    async function addBarterNeed() {
+      const productId = document.getElementById('barter-need-product')?.value;
+      const qty = document.getElementById('barter-need-qty')?.value || 1;
+      if (!productId) { showToast('تنبيه', 'اختر منتجاً', 'warning'); return; }
+      try {
+        await postJson('/barter/needs', { productId, quantity: qty });
+        await refresh('barter');
+        if (typeof loadUnifiedDashboard === 'function') loadUnifiedDashboard();
       } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
