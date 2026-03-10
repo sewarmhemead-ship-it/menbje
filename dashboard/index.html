@@ -86,7 +86,6 @@
     .detail-panel.open { max-height: 420px; }
     [data-section] { display: none; }
     [data-section].active { display: block; animation: fadeIn 0.3s ease; }
-    .mobile-nav-btn.active { color: #34d399; }
     @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
     button { transition: transform 0.2s ease-out; -webkit-tap-highlight-color: transparent; }
     button:active { transform: scale(0.95); }
@@ -95,6 +94,19 @@
     .bottom-nav { background: rgba(11, 18, 32, 0.92); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border-top: 1px solid rgba(255,255,255,0.08); }
     .fab { box-shadow: 0 4px 20px rgba(16, 185, 129, 0.4); transition: transform 0.2s, box-shadow 0.2s; }
     .fab:active { transform: scale(0.95); }
+    /* Navigation Drawer (Side Menu) — SaaS-style */
+    #nav-drawer-overlay { position: fixed; inset: 0; z-index: 60; background: rgba(0,0,0,0.4); backdrop-filter: blur(4px); -webkit-backdrop-filter: blur(4px); opacity: 0; visibility: hidden; transition: opacity 0.25s ease, visibility 0.25s; }
+    #nav-drawer-overlay.open { opacity: 1; visibility: visible; }
+    #nav-drawer { position: fixed; top: 0; right: 0; bottom: 0; z-index: 61; width:  min(85vw, 280px); background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-left: 1px solid rgba(255,255,255,0.08); box-shadow: -8px 0 32px rgba(0,0,0,0.3); transform: translateX(100%); transition: transform 0.3s ease; display: flex; flex-direction: column; }
+    #nav-drawer .drawer-header { position: relative; }
+    #nav-drawer.open { transform: translateX(0); }
+    #nav-drawer .drawer-item { display: flex; align-items: center; gap: 0.75rem; width: 100%; padding: 0.875rem 1rem; text-align: right; color: #cbd5e1; font-size: 0.9375rem; border: none; background: transparent; cursor: pointer; transition: background 0.2s, color 0.2s; border-radius: 0.5rem; margin: 0 0.5rem; }
+    #nav-drawer .drawer-item:hover { background: rgba(255,255,255,0.06); color: #f8fafc; }
+    #nav-drawer .drawer-item .lucide-thin { stroke-width: 1; }
+    /* Bottom Nav: Lucide-style thin icons + Blue Neon Glow for active */
+    .mobile-nav-btn { transition: color 0.2s, filter 0.2s; }
+    .mobile-nav-btn .lucide-thin { stroke-width: 1; }
+    .mobile-nav-btn.active { color: #60a5fa; filter: drop-shadow(0 0 8px rgba(96, 165, 250, 0.6)); }
     .splash-out { animation: splashOut 0.5s ease forwards; }
     @keyframes splashOut { to { opacity: 0; pointer-events: none; } }
     body.splash-forced-done #splash { display: none !important; visibility: hidden !important; }
@@ -333,7 +345,7 @@
       body * { visibility: hidden !important; }
       .print-area, .print-area *, .vault-print-only, .vault-print-only * { visibility: visible !important; }
       .print-area, .vault-print-only { position: absolute !important; left: 0; top: 0; width: 100%; max-width: 100%; background: #fff !important; color: #111 !important; }
-      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast, #toast-container { display: none !important; visibility: hidden !important; }
+      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast, #toast-container, #nav-drawer-overlay, #nav-drawer { display: none !important; visibility: hidden !important; }
     }
   </style>
 </head>
@@ -565,6 +577,9 @@
           <p class="text-slate-500 text-xs md:text-sm mt-1 hidden sm:block">محاسبة ومؤسسات عالمية · قيد مزدوج · عملة شبحية · ربح القوة الشرائية</p>
         </div>
         <div class="flex items-center gap-2">
+          <button type="button" onclick="openNavDrawer()" class="tap-haptic md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30" title="القائمة" aria-label="فتح القائمة">
+            <svg class="w-5 h-5 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+          </button>
           <button type="button" id="focus-mode-btn" onclick="toggleFocusMode()" class="tap-haptic flex items-center gap-2 px-4 py-2 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-emerald-400 hover:border-emerald-500/30 text-sm font-medium transition-colors" title="وضع التركيز للمحاسب">
             <svg id="focus-mode-icon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 8V4m0 0h4M4 4l5 5m11-1V4m0 0h-4m4 0l5-5m11 5l-5-5m5 5v-4m0 4h-4"/></svg>
             <span id="focus-mode-label">وضع التركيز</span>
@@ -902,33 +917,64 @@
     </main>
   </div>
 
-  <!-- Mobile Bottom Nav -->
+  <!-- Navigation Drawer (القائمة المنسدلة) — SaaS-style side menu -->
+  <div id="nav-drawer-overlay" class="md:hidden" onclick="closeNavDrawer()" aria-hidden="true"></div>
+  <aside id="nav-drawer" class="md:hidden" aria-label="قائمة التنقل">
+    <div class="drawer-header flex flex-col pt-6 pb-5 px-5 border-b border-white/5">
+      <button type="button" onclick="closeNavDrawer()" class="absolute top-3 left-3 tap-haptic p-2 rounded-xl text-slate-400 hover:text-white hover:bg-white/10" aria-label="إغلاق">
+        <svg class="w-5 h-5 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M6 18L18 6M6 6l12 12"/></svg>
+      </button>
+      <div class="flex items-center gap-2.5 justify-start text-right">
+        <svg class="w-5 h-5 lucide-thin shrink-0 text-emerald-400/90" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.187-.382-3.314z"/></svg>
+        <span class="font-bold text-lg text-white tracking-tight">سوار أمان التاجر</span>
+      </div>
+      <p class="text-[11px] text-slate-400/80 mt-1.5">نظام Vault AI المحاسبي الذكي</p>
+    </div>
+    <nav class="flex-1 overflow-auto py-2">
+      <button type="button" class="drawer-item tap-haptic" onclick="showSection('accounting'); closeNavDrawer();">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
+        <span>المحاسبة</span>
+      </button>
+      <button type="button" class="drawer-item tap-haptic" onclick="showSection('inventory'); closeNavDrawer();">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg>
+        <span>المخزون</span>
+      </button>
+      <button type="button" class="drawer-item tap-haptic" onclick="showSection('barter'); closeNavDrawer();">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
+        <span>المقايضة</span>
+      </button>
+      <button type="button" class="drawer-item tap-haptic" onclick="showSection('accounting'); openModule('reports','مركز التقارير'); closeNavDrawer();">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+        <span>التقارير</span>
+      </button>
+      <button type="button" class="drawer-item tap-haptic" onclick="showSection('settings'); closeNavDrawer();">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
+        <span>الإعدادات</span>
+      </button>
+    </nav>
+    <div class="drawer-footer border-t border-white/5 p-4 pt-3">
+      <button type="button" onclick="logout(); closeNavDrawer();" class="drawer-item tap-haptic w-full justify-center text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/5">
+        <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
+        <span>تسجيل الخروج</span>
+      </button>
+    </div>
+  </aside>
+
+  <!-- Mobile Bottom Nav — 3 items only: الرئيسية | FAB كاميرا | القائمة -->
   <nav class="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bottom-nav safe-area-pb">
     <div class="flex-1 flex items-center justify-around py-2">
-      <button type="button" onclick="showSection('dashboard'); setMobileNav('dashboard');" data-mobile-nav="dashboard" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn active">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
+      <button type="button" onclick="showSection('dashboard'); setMobileNav('dashboard');" data-mobile-nav="dashboard" class="tap-haptic flex flex-col items-center gap-1 px-4 py-1 text-slate-400 mobile-nav-btn active" title="الرئيسية">
+        <svg class="w-6 h-6 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"/></svg>
         <span class="text-[10px]">الرئيسية</span>
       </button>
-      <button type="button" onclick="showSection('barter'); setMobileNav('barter');" data-mobile-nav="barter" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg>
-        <span class="text-[10px]">المقايضة</span>
-      </button>
-      <div class="flex-shrink-0 w-14 h-14 -mt-5 flex items-center justify-center">
-        <button type="button" id="fab" class="fab tap-haptic w-14 h-14 rounded-full bg-emerald-500 flex items-center justify-center text-white" onclick="openQuickSale()" title="بيع سريع / إضافة قيد">
-          <svg class="w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6v6m0 0v6m0-6h6m-6 0H6"/></svg>
+      <div class="flex-shrink-0 w-16 h-14 flex items-center justify-center -mt-6">
+        <button type="button" id="fab" class="fab tap-haptic w-14 h-14 rounded-full bg-blue-500 flex items-center justify-center text-white shadow-lg shadow-blue-500/30" onclick="openCameraOrScanner();" title="الكاميرا / الماسح الضوئي">
+          <svg class="w-6 h-6 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" d="M19 13v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4M14 12v.01"/></svg>
         </button>
       </div>
-      <button type="button" onclick="showSection('vision'); setMobileNav('scan'); document.getElementById('vision-file').click();" data-mobile-nav="scan" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 13a3 3 0 11-6 0 3 3 0 016 0z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 13v4a2 2 0 01-2 2H7a2 2 0 01-2-2v-4M14 12v.01"/></svg>
-        <span class="text-[10px]">الكاميرا</span>
-      </button>
-      <button type="button" onclick="showSection('accounting'); setMobileNav('wallet');" data-mobile-nav="wallet" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 10h18M7 15h1m4 0h1m-7 4h12a3 3 0 003-3V8a3 3 0 00-3-3H6a3 3 0 00-3 3v8a3 3 0 003 3z"/></svg>
-        <span class="text-[10px]">المحفظة</span>
-      </button>
-      <button type="button" onclick="showSection('settings'); setMobileNav('settings');" data-mobile-nav="settings" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
-        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg>
-        <span class="text-[10px]">الإعدادات</span>
+      <button type="button" onclick="openNavDrawer(); setMobileNav('menu');" data-mobile-nav="menu" class="tap-haptic flex flex-col items-center gap-1 px-4 py-1 text-slate-400 mobile-nav-btn" title="القائمة">
+        <svg class="w-6 h-6 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
+        <span class="text-[10px]">القائمة</span>
       </button>
     </div>
   </nav>
@@ -1540,6 +1586,9 @@
       if (section) section.classList.add('active');
       const nav = document.querySelector('[data-nav="' + id + '"]');
       if (nav) nav.classList.add('active');
+      closeNavDrawer();
+      if (id === 'dashboard') setMobileNav('dashboard');
+      else document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
       if (id === 'dashboard' && typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
     }
 
@@ -1547,6 +1596,24 @@
       document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
       const nav = document.querySelector('[data-mobile-nav="' + id + '"]');
       if (nav) nav.classList.add('active');
+    }
+
+    function openNavDrawer() {
+      var overlay = document.getElementById('nav-drawer-overlay');
+      var drawer = document.getElementById('nav-drawer');
+      if (overlay) overlay.classList.add('open');
+      if (drawer) drawer.classList.add('open');
+    }
+    function closeNavDrawer() {
+      var overlay = document.getElementById('nav-drawer-overlay');
+      var drawer = document.getElementById('nav-drawer');
+      if (overlay) overlay.classList.remove('open');
+      if (drawer) drawer.classList.remove('open');
+    }
+    function openCameraOrScanner() {
+      showSection('vision');
+      var v = document.getElementById('vision-file');
+      if (v) v.click();
     }
 
     function openQuickSale() {
