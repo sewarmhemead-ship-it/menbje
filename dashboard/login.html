@@ -44,9 +44,15 @@
       <h1 class="text-2xl font-bold text-white">Vault AI</h1>
       <p class="text-slate-500 text-sm mt-1">محاسبة ومؤسسات عالمية</p>
     </div>
-    <div id="login-form">
-      <input type="text" id="login-email" placeholder="البريد الإلكتروني أو اسم المستخدم" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-3 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="username" />
-      <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-sm mb-4 focus:ring-2 focus:ring-emerald-500/50 outline-none" autocomplete="current-password" />
+    <div id="login-form" class="space-y-4">
+      <div>
+        <label for="login-email" class="block text-sm font-medium text-slate-400 mb-1">البريد الإلكتروني أو اسم المستخدم</label>
+        <input type="text" id="login-email" placeholder="البريد الإلكتروني أو اسم المستخدم" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50" autocomplete="username" />
+      </div>
+      <div>
+        <label for="login-password" class="block text-sm font-medium text-slate-400 mb-1">كلمة المرور</label>
+        <input type="password" id="login-password" placeholder="كلمة المرور" class="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-emerald-500/50" autocomplete="current-password" />
+      </div>
       <p id="login-error" class="text-rose-400 text-sm mb-3 hidden"></p>
       <button type="button" id="btn-login" class="w-full py-3 rounded-xl bg-emerald-500 text-white font-medium hover:bg-emerald-600 transition-colors">تسجيل الدخول</button>
         <div class="mt-5 pt-4 border-t border-white/10 flex flex-col items-center gap-3">
