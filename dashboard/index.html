@@ -884,14 +884,16 @@
     </div>
   </div>
 
-  <!-- Pending Invoices (الفواتير المعلقة) modal -->
-  <div id="pending-invoices-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePendingInvoicesModal()">
-    <div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">
-      <h3 class="text-lg font-semibold text-white mb-2">الفواتير المعلقة</h3>
-      <p id="pending-invoices-desc" class="text-slate-400 text-sm mb-4">انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.</p>
-      <ul id="pending-invoices-list" class="space-y-2 text-sm text-slate-300"></ul>
+  <!-- Pending Invoices (الفواتير المعلقة) modal - مخفي يدوياً عند البداية -->
+  <div id="pending-invoices-modal" class="hidden fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm print-preview-modal" aria-hidden="true" onclick="if(event.target===this) document.getElementById('pending-invoices-modal').classList.add('hidden')">
+    <div class="glass-card rounded-2xl p-6 max-w-md w-full max-h-[85vh] overflow-auto shadow-2xl border border-white/10" onclick="event.stopPropagation()">
+      <h3 class="text-xl font-bold text-white mb-4">الفواتير المعلقة</h3>
+      <p id="pending-invoices-desc" class="text-slate-400 text-sm mb-4">جاري التحميل...</p>
+      <ul id="pending-invoices-list" class="space-y-3 mb-6 max-h-60 overflow-y-auto text-sm text-slate-300"></ul>
       <p id="pending-invoices-empty" class="text-slate-500 py-4 text-center hidden">لا توجد فواتير معلقة حالياً.</p>
-      <button type="button" onclick="closePendingInvoicesModal()" class="tap-haptic mt-4 w-full py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button>
+      <div class="flex justify-end">
+        <button type="button" onclick="document.getElementById('pending-invoices-modal').classList.add('hidden'); forceCloseModal();" class="tap-haptic px-6 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-300 transition-all">إغلاق</button>
+      </div>
     </div>
   </div>
 
@@ -1898,9 +1900,30 @@
       modal.classList.remove('hidden');
     }
     function closePendingInvoicesModal() {
-      var modal = document.getElementById('pending-invoices-modal');
-      if (modal) modal.classList.add('hidden');
+      forceCloseModal();
     }
+    function forceCloseModal() {
+      try {
+        var modal = document.getElementById('pending-invoices-modal') || document.getElementById('pendingInvoicesModal');
+        if (modal) {
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+        var backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop) backdrop.remove();
+        var allModals = document.querySelectorAll('[role="dialog"]');
+        allModals.forEach(function(m) { m.classList.add('hidden'); });
+      } catch (e) { console.warn('forceCloseModal:', e); }
+    }
+    window.addEventListener('DOMContentLoaded', function() {
+      setTimeout(function() {
+        var modal = document.getElementById('pending-invoices-modal');
+        if (modal && !modal.classList.contains('hidden')) {
+          modal.classList.add('hidden');
+          modal.setAttribute('aria-hidden', 'true');
+        }
+      }, 500);
+    });
     function resumePendingHoldAndClose(index) {
       closePendingInvoicesModal();
       window._pendingResumeHoldIndex = index;
