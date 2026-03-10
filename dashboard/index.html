@@ -1872,18 +1872,35 @@
       var el = document.getElementById('dashboard-pending-count');
       if (el) el.textContent = count;
     }
-    function openPendingInvoicesModal() {
+    async function openPendingInvoicesModal() {
       var modal = document.getElementById('pending-invoices-modal');
-      if (!modal) return;
-      var listContainer = document.getElementById('pending-invoices-list');
       var statusText = document.getElementById('pending-invoices-desc');
+      var listContainer = document.getElementById('pending-invoices-list');
       var emptyEl = document.getElementById('pending-invoices-empty');
+      if (!modal) return;
+      modal.classList.remove('hidden');
+      if (statusText) statusText.textContent = 'جاري التحميل...';
+      if (listContainer) listContainer.innerHTML = '';
+      if (emptyEl) emptyEl.classList.add('hidden');
+      var fetchPromise = new Promise(function(resolve) {
+        try {
+          var h = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
+          resolve(Array.isArray(h) ? h : []);
+        } catch (e) { resolve([]); }
+      });
+      var timeoutPromise = new Promise(function(_, reject) {
+        setTimeout(function() { reject(new Error('Timeout')); }, 2000);
+      });
       var holds = [];
       try {
-        holds = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
-        if (!Array.isArray(holds)) holds = [];
-      } catch (e) { holds = []; }
-      if (holds.length > 0) {
+        holds = await Promise.race([fetchPromise, timeoutPromise]);
+      } catch (err) {
+        if (statusText) statusText.textContent = 'لا توجد فواتير معلقة حالياً.';
+        if (listContainer) listContainer.innerHTML = '';
+        if (emptyEl) emptyEl.classList.remove('hidden');
+        return;
+      }
+      if (holds && holds.length > 0) {
         if (statusText) statusText.textContent = 'انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.';
         if (emptyEl) emptyEl.classList.add('hidden');
         if (listContainer) {
@@ -1895,9 +1912,8 @@
       } else {
         if (statusText) statusText.textContent = 'لا توجد فواتير معلقة حالياً.';
         if (listContainer) listContainer.innerHTML = '';
-        if (emptyEl) { emptyEl.classList.remove('hidden'); }
+        if (emptyEl) emptyEl.classList.remove('hidden');
       }
-      modal.classList.remove('hidden');
     }
     function closePendingInvoicesModal() {
       forceCloseModal();
