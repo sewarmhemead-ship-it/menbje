@@ -104,8 +104,15 @@
     .financial-dashboard { --fd-primary: #10b981; }
     .financial-dashboard .fd-input:focus { outline: none; border-color: var(--fd-primary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
     .financial-dashboard .fd-card { transition: border-color 0.2s; }
-    .unified-dashboard .unified-widget { min-height: 7rem; transition: border-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease; }
-    .unified-dashboard .unified-widget:hover { box-shadow: 0 4px 20px -4px rgba(0,0,0,0.25); }
+    .unified-dashboard { background-color: #0b1220; }
+    .unified-dashboard .vault-card { min-height: 6.5rem; transition: border-color 0.25s ease, box-shadow 0.25s ease; }
+    .unified-dashboard .vault-card:hover { border-color: rgba(255,255,255,0.18); box-shadow: 0 8px 32px -8px rgba(0,0,0,0.4); }
+    .unified-dashboard .glow-icon { width: 2.25rem; height: 2.25rem; border-radius: 0.5rem; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .unified-dashboard .glow-icon.emerald { background: rgba(16, 185, 129, 0.2); box-shadow: 0 0 12px rgba(16, 185, 129, 0.35); color: #34d399; }
+    .unified-dashboard .glow-icon.amber { background: rgba(245, 158, 11, 0.2); box-shadow: 0 0 12px rgba(245, 158, 11, 0.35); color: #fbbf24; }
+    .unified-dashboard .glow-icon.rose { background: rgba(244, 63, 94, 0.2); box-shadow: 0 0 12px rgba(244, 63, 94, 0.35); color: #fb7185; }
+    .unified-dashboard .glow-icon.blue { background: rgba(59, 130, 246, 0.2); box-shadow: 0 0 12px rgba(59, 130, 246, 0.35); color: #60a5fa; }
+    .unified-dashboard .glow-icon.violet { background: rgba(139, 92, 246, 0.2); box-shadow: 0 0 12px rgba(139, 92, 246, 0.35); color: #a78bfa; }
     .unified-dashboard .font-mono { font-variant-numeric: tabular-nums; }
     /* —— Mobile-first / responsive (نسخة الموبايل) —— */
     .safe-area-pb { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)); }
@@ -569,78 +576,97 @@
       <!-- Module workarea (tabs: قيود، شجرة حسابات، كشف حساب، سندات، ...) -->
       <div id="module-content" class="hidden w-full"></div>
 
-      <!-- Unified Dashboard (Zero Hidden Features — مصدر واحد GET /dashboard/summary) -->
-      <section id="section-dashboard" data-section class="unified-dashboard active">
-        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div class="flex items-center gap-2">
-            <h2 class="page-title-h2">لوحة التحكم</h2>
-            <span class="page-desc font-medium">Vault AI</span>
-          </div>
+      <!-- Unified Dashboard — المخطط الملزم: grid-cols-2 gap-2.5 p-3، 9 كروت vault-card، خلفية #0b1220 -->
+      <section id="section-dashboard" data-section class="unified-dashboard active" style="background-color:#0b1220">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <h2 class="page-title-h2">لوحة التحكم</h2>
           <div class="flex flex-wrap items-center gap-2">
-            <button type="button" onclick="openDailySummary()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-medium text-sm hover:bg-emerald-500/30 transition-all duration-300" title="جردة المساء">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-              ملخص اليوم
-            </button>
-            <button type="button" onclick="startOfDayNewSale()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-medium text-sm hover:bg-amber-500/30 transition-all duration-300" title="بداية يوم جديد">
-              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-              بداية يوم جديد
-            </button>
-            <button type="button" onclick="loadUnifiedDashboard()" class="tap-haptic flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-sm hover:bg-white/10 transition-all duration-300" title="تحديث البيانات">
-              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
-              تحديث
-            </button>
+            <button type="button" onclick="openDailySummary()" class="tap-haptic flex items-center gap-2 px-3 py-2 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-xs font-medium">ملخص اليوم</button>
+            <button type="button" onclick="startOfDayNewSale()" class="tap-haptic flex items-center gap-2 px-3 py-2 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 text-xs font-medium">بداية يوم جديد</button>
+            <button type="button" onclick="loadUnifiedDashboard()" class="tap-haptic flex items-center gap-2 px-2 py-1.5 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-xs" title="تحديث">تحديث</button>
           </div>
         </div>
-        <p class="page-desc mb-4">نظرة شاملة — مصدر واحد للبيانات. انقر على أي بطاقة للتفاصيل.</p>
-        <div id="unified-dashboard-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 transition-all duration-300">
-          <!-- 1. حالة الميزان (Trial Balance) -->
-          <div id="unified-widget-tb" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('trial-balance','ميزان المراجعة')" title="فتح ميزان المراجعة">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">حالة الميزان</h3>
-            <div id="ud-tb-status" class="font-mono text-lg font-semibold text-white mb-0.5">—</div>
-            <div id="ud-tb-totals" class="text-slate-500 text-xs font-mono">مدين / دائن</div>
-            <p class="text-slate-500 text-xs mt-2">إجمالي القيود: <span id="ud-tb-count" class="font-mono text-slate-300">—</span></p>
-          </div>
-          <!-- 2. إدارة العملات (FX + إعادة التقييم) -->
-          <div id="unified-widget-fx" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-amber-500/30 transition-all duration-300">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">سعر الصرف</h3>
-            <div id="ud-fx-rate" class="font-mono text-lg font-semibold text-amber-400">1 USD = — ل.س</div>
-            <div class="flex flex-wrap gap-2 mt-3">
-              <button type="button" onclick="syncExchangeRate()" class="tap-haptic px-2 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-medium hover:bg-amber-500/20 hover:text-amber-400 transition-all duration-300">تحديث الصرف</button>
-              <button type="button" onclick="runRevalueDebts()" class="tap-haptic px-2 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-medium hover:bg-emerald-500/20 hover:text-emerald-400 transition-all duration-300">إعادة التقييم</button>
+        <div id="unified-dashboard-grid" class="grid grid-cols-2 gap-2.5 p-3">
+          <!-- 1. الميزان -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openModule('trial-balance','ميزان المراجعة')" title="ميزان المراجعة">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">الميزان</span>
+              <span class="glow-icon emerald"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M9 7l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M21 6l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0M15 7l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0"/></svg></span>
             </div>
+            <div id="ud-tb-status" class="font-mono text-lg font-semibold text-emerald-400 mt-1">—</div>
+            <p id="ud-tb-sub" class="text-[10px] text-slate-500 mt-auto pt-1">إجمالي القيود: <span id="ud-tb-count">—</span></p>
           </div>
-          <!-- 3. المخزون والتحذيرات -->
-          <div id="unified-widget-stock" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-rose-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="showSection('inventory')" title="المخزون">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">أصناف منخفضة المخزون</h3>
-            <div id="ud-stock-count" class="font-mono text-lg font-semibold text-white">—</div>
-            <div id="ud-stock-preview" class="text-slate-500 text-xs mt-1 truncate">—</div>
-          </div>
-          <!-- 4. الديون والسيولة (ذمم مدينة/دائنة) -->
-          <div id="unified-widget-debts" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-blue-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('statement-of-account','كشف الحساب')" title="كشف الحساب">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">الذمم المدينة / الدائنة</h3>
-            <div class="space-y-1">
-              <div class="flex justify-between items-baseline"><span class="text-slate-500 text-xs">مدينة</span><span id="ud-receivables" class="font-mono text-sm font-semibold text-amber-400">— ل.س</span></div>
-              <div class="flex justify-between items-baseline"><span class="text-slate-500 text-xs">دائنة</span><span id="ud-payables" class="font-mono text-sm font-semibold text-blue-400">— ل.س</span></div>
+          <!-- 2. الصرف -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between" onclick="event.stopPropagation()">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">الصرف</span>
+              <span class="glow-icon amber"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
             </div>
+            <div id="ud-fx-rate" class="font-mono text-lg font-semibold text-emerald-400 mt-1">— ل.س</div>
+            <p class="text-[10px] text-slate-500 mt-auto pt-1">تحديث: <button type="button" onclick="syncExchangeRate()" class="tap-haptic underline hover:text-amber-400">صرف</button> · <button type="button" onclick="runRevalueDebts()" class="tap-haptic underline hover:text-emerald-400">تقييم</button></p>
           </div>
-          <!-- 5. الأداء المالي (P&L) -->
-          <div id="unified-widget-pl" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('reports','مركز التقارير')" title="الأرباح والخسائر">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">الأرباح والخسائر</h3>
-            <div id="ud-pl-true" class="font-mono text-lg font-semibold text-white">— ل.س</div>
-            <div class="text-slate-500 text-xs mt-1">الربح الحقيقي (بعد الصرف)</div>
-            <div class="flex justify-between text-xs mt-1.5 font-mono"><span id="ud-pl-revenue" class="text-emerald-400/80">إيرادات —</span><span id="ud-pl-expenses" class="text-rose-400/80">مصروفات —</span></div>
+          <!-- 3. فروقات العملة -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openModule('reports','مركز التقارير')" title="فروقات العملة">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">فروقات العملة</span>
+              <span class="glow-icon violet"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></span>
+            </div>
+            <div id="ud-fx-diff" class="font-mono text-lg font-semibold text-emerald-400 mt-1">— ل.س</div>
+            <p id="ud-fx-diff-sub" class="text-[10px] text-slate-500 mt-auto pt-1">ربح/خسارة الصرف (الشهر)</p>
           </div>
-          <!-- 6. السيولة (رصيد الصندوق) -->
-          <div id="unified-widget-cash" class="unified-widget glass-card rounded-xl p-4 border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-300">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">رصيد الصندوق</h3>
-            <div id="ud-cash-total" class="font-mono text-xl font-bold text-emerald-400">— ل.س</div>
-            <p class="text-slate-500 text-xs mt-1">صندوق ل.س + دولار (مُحوّل ل.س)</p>
+          <!-- 4. الأرباح الحقيقية -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openModule('reports','مركز التقارير')" title="الأرباح والخسائر">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">الأرباح الحقيقية</span>
+              <span class="glow-icon emerald"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span>
+            </div>
+            <div id="ud-true-profit" class="font-mono text-lg font-semibold text-emerald-400 mt-1">— ل.س</div>
+            <p id="ud-true-profit-sub" class="text-[10px] text-slate-500 mt-auto pt-1">الربح الحقيقي (بعد الصرف)</p>
           </div>
-          <!-- الفواتير المعلقة -->
-          <div id="unified-widget-pending" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-amber-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openPendingInvoicesModal()" title="الفواتير المعلقة">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">الفواتير المعلقة</h3>
-            <p id="ud-pending-count" class="font-mono text-2xl font-bold text-amber-400">0</p>
-            <p class="text-slate-500 text-xs mt-1">انقر للاستكمال</p>
+          <!-- 5. المخزون -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="showSection('inventory')" title="المخزون">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">المخزون</span>
+              <span class="glow-icon rose"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg></span>
+            </div>
+            <div id="ud-stock-count" class="font-mono text-lg font-semibold text-emerald-400 mt-1">0</div>
+            <p id="ud-stock-sub" class="text-[10px] text-slate-500 mt-auto pt-1 truncate">—</p>
+          </div>
+          <!-- 6. الديون -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openModule('statement-of-account','كشف الحساب')" title="كشف الحساب">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">الديون</span>
+              <span class="glow-icon blue"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2m0 4v6a2 2 0 002 2h10a2 2 0 002-2v-6m0 4V7"/></svg></span>
+            </div>
+            <div id="ud-debts-main" class="font-mono text-lg font-semibold text-emerald-400 mt-1">— ل.س</div>
+            <p id="ud-debts-sub" class="text-[10px] text-slate-500 mt-auto pt-1">مدينون · مدينون لنا</p>
+          </div>
+          <!-- 7. السيولة -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openModule('reports','مركز التقارير')" title="رصيد الصندوق">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">السيولة</span>
+              <span class="glow-icon emerald"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v2m0 4v6a2 2 0 002 2h10a2 2 0 002-2v-6m0 4V7"/></svg></span>
+            </div>
+            <div id="ud-cash-total" class="font-mono text-lg font-semibold text-emerald-400 mt-1">— ل.س</div>
+            <p id="ud-cash-sub" class="text-[10px] text-slate-500 mt-auto pt-1">رصيد الصندوق (ل.س)</p>
+          </div>
+          <!-- 8. المقايضة -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="showSection('barter')" title="المقايضة">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">المقايضة</span>
+              <span class="glow-icon amber"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg></span>
+            </div>
+            <div id="ud-barter-count" class="font-mono text-lg font-semibold text-emerald-400 mt-1">0</div>
+            <p id="ud-barter-sub" class="text-[10px] text-slate-500 mt-auto pt-1">صفقات · فائض · احتياجات</p>
+          </div>
+          <!-- 9. الكاميرا -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="showSection('vision'); setMobileNav('scan'); var v=document.getElementById('vision-file'); if(v) v.click();" title="مسح / الكاميرا">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">الكاميرا</span>
+              <span class="glow-icon blue"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z"/></svg></span>
+            </div>
+            <div class="font-mono text-lg font-semibold text-emerald-400 mt-1">مسح</div>
+            <p class="text-[10px] text-slate-500 mt-auto pt-1">فتح الكاميرا أو رفع صورة</p>
           </div>
         </div>
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1925,10 +1951,10 @@
       }).catch(function() {});
     }
 
-    /** Unified Dashboard: Single Source of Truth — GET /dashboard/summary. Stores in window._dashboardSummary and fills all widgets. */
+    /** Unified Dashboard: Single Source of Truth — GET /dashboard/summary. Stores in window._dashboardSummary and fills all Premium Grid widgets. */
     function loadUnifiedDashboard() {
       var grid = document.getElementById('unified-dashboard-grid');
-      if (grid) grid.style.opacity = '0.7';
+      if (grid) grid.style.opacity = '0.85';
       fetchJson('/dashboard/summary').then(function(r) {
         if (grid) grid.style.opacity = '1';
         if (!r.success || !r.data) {
@@ -1940,36 +1966,50 @@
         function fmt(n) { return (n != null && !isNaN(n)) ? Number(n).toLocaleString('ar-SY') : '—'; }
         var tb = d.trialBalance || {};
         var elTbStatus = document.getElementById('ud-tb-status');
-        var elTbTotals = document.getElementById('ud-tb-totals');
         var elTbCount = document.getElementById('ud-tb-count');
-        if (elTbStatus) elTbStatus.textContent = tb.balanced ? 'متوازن' : 'غير متوازن';
-        if (elTbStatus) elTbStatus.className = 'font-mono text-lg font-semibold ' + (tb.balanced ? 'text-emerald-400' : 'text-rose-400');
-        if (elTbTotals) elTbTotals.textContent = (fmt(tb.totalDebit) || '—') + ' / ' + (fmt(tb.totalCredit) || '—') + ' ل.س';
+        var elTbSub = document.getElementById('ud-tb-sub');
+        if (elTbStatus) { elTbStatus.textContent = tb.balanced ? 'متوازن' : 'غير متوازن'; elTbStatus.className = 'font-mono text-lg font-semibold mt-1 ' + (tb.balanced ? 'text-emerald-400' : 'text-rose-400'); }
         if (elTbCount) elTbCount.textContent = d.journalEntryCount != null ? d.journalEntryCount : '—';
+        if (elTbSub) elTbSub.textContent = 'إجمالي القيود: ' + (d.journalEntryCount != null ? d.journalEntryCount : '—');
         var ex = d.exchangeRate || {};
         var oneUsd = ex.oneUsdInSYP != null ? Number(ex.oneUsdInSYP) : null;
         var elFx = document.getElementById('ud-fx-rate');
         if (elFx) elFx.textContent = oneUsd != null ? '1 USD = ' + fmt(oneUsd) + ' ل.س' : '—';
-        var lowStock = d.lowStock || [];
-        var elStockCount = document.getElementById('ud-stock-count');
-        var elStockPreview = document.getElementById('ud-stock-preview');
-        if (elStockCount) { elStockCount.textContent = lowStock.length; elStockCount.className = 'font-mono text-lg font-semibold ' + (lowStock.length > 0 ? 'text-rose-400' : 'text-emerald-400'); }
-        if (elStockPreview) elStockPreview.textContent = lowStock.length > 0 ? (lowStock.slice(0, 2).map(function(i) { return i.name || i.id; }).join(' · ')) : 'كل الأصناف فوق الحد';
-        var elRec = document.getElementById('ud-receivables');
-        var elPay = document.getElementById('ud-payables');
-        if (elRec) elRec.textContent = fmt(d.receivables) + ' ل.س';
-        if (elPay) elPay.textContent = fmt(d.payables) + ' ل.س';
+        var fxGain = d.fxGainLossSYP != null ? Number(d.fxGainLossSYP) : null;
+        var elFxDiff = document.getElementById('ud-fx-diff');
+        var elFxDiffSub = document.getElementById('ud-fx-diff-sub');
+        if (elFxDiff) { elFxDiff.textContent = fmt(fxGain) + ' ل.س'; elFxDiff.className = 'font-mono text-lg font-semibold mt-1 ' + (fxGain != null && fxGain >= 0 ? 'text-emerald-400' : 'text-rose-400'); }
+        if (elFxDiffSub) elFxDiffSub.textContent = (fxGain != null && fxGain >= 0 ? 'ربح' : 'خسارة') + ' الصرف (الشهر)';
         var pl = d.pl || {};
         var trueProfit = pl.trueProfit != null ? Number(pl.trueProfit) : null;
-        var elPlTrue = document.getElementById('ud-pl-true');
-        var elPlRev = document.getElementById('ud-pl-revenue');
-        var elPlExp = document.getElementById('ud-pl-expenses');
-        if (elPlTrue) { elPlTrue.textContent = fmt(trueProfit) + ' ل.س'; elPlTrue.className = 'font-mono text-lg font-semibold ' + (trueProfit != null && trueProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'); }
-        if (elPlRev) elPlRev.textContent = 'إيرادات ' + fmt(pl.revenue);
-        if (elPlExp) elPlExp.textContent = 'مصروفات ' + fmt(pl.expenses);
+        var elTrueProfit = document.getElementById('ud-true-profit');
+        var elTrueProfitSub = document.getElementById('ud-true-profit-sub');
+        if (elTrueProfit) { elTrueProfit.textContent = fmt(trueProfit) + ' ل.س'; elTrueProfit.className = 'font-mono text-lg font-semibold mt-1 ' + (trueProfit != null && trueProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'); }
+        if (elTrueProfitSub) elTrueProfitSub.textContent = 'الربح الحقيقي (بعد الصرف)';
+        var lowStock = d.lowStock || [];
+        var elStockCount = document.getElementById('ud-stock-count');
+        var elStockSub = document.getElementById('ud-stock-sub');
+        if (elStockCount) { elStockCount.textContent = lowStock.length; elStockCount.className = 'font-mono text-lg font-semibold mt-1 ' + (lowStock.length > 0 ? 'text-rose-400' : 'text-emerald-400'); }
+        if (elStockSub) elStockSub.textContent = lowStock.length > 0 ? (lowStock.slice(0, 2).map(function(i) { return i.name || i.id; }).join(' · ')) : 'كل الأصناف فوق الحد';
+        var rec = (d.receivables != null && !isNaN(d.receivables)) ? Number(d.receivables) : 0;
+        var pay = (d.payables != null && !isNaN(d.payables)) ? Number(d.payables) : 0;
+        var elDebtsMain = document.getElementById('ud-debts-main');
+        var elDebtsSub = document.getElementById('ud-debts-sub');
+        if (elDebtsMain) elDebtsMain.textContent = fmt(rec) + ' ل.س';
+        if (elDebtsSub) elDebtsSub.textContent = 'مدينون ' + fmt(rec) + ' · مدينون لنا ' + fmt(pay);
         var cashSYP = (d.cash && d.cash.syp != null) ? d.cash.syp : (d.cash != null && typeof d.cash === 'number' ? d.cash : null);
         var elCash = document.getElementById('ud-cash-total');
+        var elCashSub = document.getElementById('ud-cash-sub');
         if (elCash) elCash.textContent = fmt(cashSYP) + ' ل.س';
+        if (elCashSub) elCashSub.textContent = 'رصيد الصندوق (ل.س)';
+        var barter = d.barter || {};
+        var barterTrades = barter.totalTrades != null ? Number(barter.totalTrades) : 0;
+        var surplus = barter.surplusCount != null ? barter.surplusCount : 0;
+        var needs = barter.needsCount != null ? barter.needsCount : 0;
+        var elBarterCount = document.getElementById('ud-barter-count');
+        var elBarterSub = document.getElementById('ud-barter-sub');
+        if (elBarterCount) elBarterCount.textContent = barterTrades;
+        if (elBarterSub) elBarterSub.textContent = 'صفقات ' + barterTrades + ' · فائض ' + surplus + ' · احتياجات ' + needs;
       }).catch(function() {
         if (grid) grid.style.opacity = '1';
         window._dashboardSummary = null;
