@@ -888,9 +888,9 @@
   <div id="pending-invoices-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePendingInvoicesModal()">
     <div class="glass-card rounded-2xl p-5 max-w-lg w-full max-h-[85vh] overflow-auto" onclick="event.stopPropagation()">
       <h3 class="text-lg font-semibold text-white mb-2">الفواتير المعلقة</h3>
-      <p class="text-slate-400 text-sm mb-4">انقر استكمال لتحميل الفاتورة وإكمالها.</p>
+      <p id="pending-invoices-desc" class="text-slate-400 text-sm mb-4">انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.</p>
       <ul id="pending-invoices-list" class="space-y-2 text-sm text-slate-300"></ul>
-      <p id="pending-invoices-empty" class="text-slate-500 py-4 text-center hidden">لا توجد فواتير معلقة.</p>
+      <p id="pending-invoices-empty" class="text-slate-500 py-4 text-center hidden">لا توجد فواتير معلقة حالياً.</p>
       <button type="button" onclick="closePendingInvoicesModal()" class="tap-haptic mt-4 w-full py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button>
     </div>
   </div>
@@ -1873,9 +1873,11 @@
     function openPendingInvoicesModal() {
       var list = document.getElementById('pending-invoices-list');
       var empty = document.getElementById('pending-invoices-empty');
+      var desc = document.getElementById('pending-invoices-desc');
       var modal = document.getElementById('pending-invoices-modal');
       if (!modal || !list) return;
       var holds = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
+      if (desc) desc.textContent = holds.length ? 'انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.' : 'لا توجد فواتير معلقة حالياً.';
       if (!holds.length) {
         list.innerHTML = '';
         if (empty) { empty.classList.remove('hidden'); }
