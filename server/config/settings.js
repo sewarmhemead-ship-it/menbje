@@ -1,7 +1,10 @@
 /**
  * Global config store for white-label SaaS.
  * branding, localization, features. Persisted in-memory; replace with DB for production.
+ * أي تغيير في الهوية (branding) يُسجّل في actionLog لمراقبة الإعدادات.
  */
+
+import { logEntityEdit } from '../audit/actionLog.js';
 
 const defaultSettings = {
   branding: {
@@ -33,9 +36,11 @@ export function getSettings() {
   return JSON.parse(JSON.stringify(currentSettings));
 }
 
-export function updateSettings(patch) {
+export function updateSettings(patch, userId = 'system') {
   if (patch.branding && typeof patch.branding === 'object') {
+    const oldBranding = JSON.parse(JSON.stringify(currentSettings.branding));
     currentSettings.branding = { ...currentSettings.branding, ...patch.branding };
+    logEntityEdit('SETTINGS_EDIT', 'Settings', 'branding', oldBranding, currentSettings.branding, userId);
   }
   if (patch.localization && typeof patch.localization === 'object') {
     currentSettings.localization = { ...currentSettings.localization, ...patch.localization };

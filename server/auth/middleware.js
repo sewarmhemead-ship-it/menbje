@@ -77,6 +77,24 @@ export function requireSuperAdmin(req, res, next) {
   next();
 }
 
+/**
+ * يسمح فقط للمستخدمين بأحد الأدوار المحددة. يُستخدم بعد requireAuth.
+ * @param {...string} allowedRoles - أدوار مسموحة (مثل 'ADMIN', 'SUPER_ADMIN'). CASHIER غير مسموح إلا إذا ذُكر صراحة.
+ */
+export function authorize(...allowedRoles) {
+  const set = new Set(allowedRoles.map((r) => (r || '').toUpperCase()));
+  return function (req, res, next) {
+    if (!req.user) {
+      return res.status(401).json({ success: false, error: 'غير مصرح', code: 'UNAUTHORIZED' });
+    }
+    const role = (req.user.role || '').toUpperCase();
+    if (!set.has(role)) {
+      return res.status(403).json({ success: false, error: 'صلاحيات غير كافية لهذا الإجراء', code: 'FORBIDDEN' });
+    }
+    next();
+  };
+}
+
 export function hasTierFeature(tier, feature) {
   const list = TIER_FEATURES[tier] || TIER_FEATURES.basic;
   return list.includes(feature);

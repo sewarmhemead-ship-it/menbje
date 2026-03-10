@@ -15,6 +15,7 @@ export const REASON_CODES = {
   BARTER_CONFIRM: 'BARTER_CONFIRM',
   MANUAL_JOURNAL: 'MANUAL_JOURNAL',
   USER_EDIT: 'USER_EDIT',
+  REVALUATION: 'REVALUATION',
   SYSTEM: 'SYSTEM',
 };
 
@@ -95,6 +96,7 @@ export function listActionLog(filters = {}) {
   let list = [...(store.actionLog || [])].reverse();
   if (filters.action) list = list.filter((e) => e.action === filters.action);
   if (filters.entityType) list = list.filter((e) => e.entityType === filters.entityType);
+  if (filters.userId) list = list.filter((e) => e.userId === filters.userId);
   if (filters.fromDate) list = list.filter((e) => e.at >= filters.fromDate);
   return list.slice(0, filters.limit ?? 200);
 }

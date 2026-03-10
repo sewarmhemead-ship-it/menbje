@@ -101,6 +101,69 @@
     .barter-swipe { touch-action: pan-y; }
     .barter-swipe.swipe-right { animation: swipeRight 0.3s ease forwards; }
     .barter-swipe.swipe-left { animation: swipeLeft 0.3s ease forwards; }
+    .financial-dashboard { --fd-primary: #10b981; }
+    .financial-dashboard .fd-input:focus { outline: none; border-color: var(--fd-primary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
+    .financial-dashboard .fd-card { transition: border-color 0.2s; }
+    /* —— Mobile-first / responsive (نسخة الموبايل) —— */
+    .safe-area-pb { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)); }
+    .safe-area-pt { padding-top: env(safe-area-inset-top, 0); }
+    @media (max-width: 767px) {
+      main { padding-left: 0.75rem; padding-right: 0.75rem; padding-bottom: 5.5rem; }
+      #module-content { padding-bottom: 0.5rem; min-height: 0; }
+      .card-standard { padding: 1rem; border-radius: 0.75rem; }
+      .page-title-h2 { font-size: 1.125rem; }
+      .page-title-h3 { font-size: 0.9375rem; }
+      .detail-table-wrap { max-height: 16rem; -webkit-overflow-scrolling: touch; overflow-x: auto; overflow-y: auto; }
+      .table-glass { font-size: 0.8125rem; min-width: 480px; }
+      .table-glass th, .table-glass td { padding: 0.5rem 0.375rem; }
+      .table-cell-ellipsis { max-width: 72px; }
+      /* كشف الحساب: فلتر وعرض و PDF */
+      #stmt-account, #stmt-from, #stmt-to { width: 100%; min-width: 0; }
+      #stmt-export-pdf-btn, #stmt-customer-print-btn { width: 100%; }
+      .financial-dashboard .fd-header { flex-direction: column; align-items: stretch; gap: 0.75rem; }
+      .financial-dashboard .fd-header .flex { flex-wrap: wrap; }
+      .financial-dashboard #fd-start, .financial-dashboard #fd-end { flex: 1 1 auto; min-width: 0; }
+      .financial-dashboard #fd-display-usd + span { font-size: 0.8125rem; }
+      .financial-dashboard #fd-apply { width: 100%; }
+      .financial-dashboard #fd-kpis { grid-template-columns: 1fr; gap: 0.75rem; }
+      .financial-dashboard .fd-card .flex { gap: 0.75rem; }
+      .financial-dashboard .fd-card p.text-xl { font-size: 1.125rem; }
+      .financial-dashboard #fd-chart { max-height: 220px; }
+      /* شجرة الحسابات: لمس مريح */
+      .coa-node .coa-toggle { min-width: 2rem; min-height: 2rem; display: inline-flex; align-items: center; justify-content: center; }
+      .coa-node > div { min-height: 2.5rem; padding: 0.5rem 0.75rem; }
+      .coa-children { margin-right: 0.5rem; }
+      /* العملاء/الموردين: عمود الرصيد */
+      .balance-cell { white-space: nowrap; font-size: 0.8125rem; }
+      /* Modals: ملء العرض على الموبايل */
+      #audit-entry-modal > div { width: 100%; max-width: 100%; margin: 0; border-radius: 1rem 1rem 0 0; max-height: 85vh; }
+      #audit-entry-modal { align-items: flex-end; padding: 0; }
+      #contact-profile-modal .glass-card { max-width: 100%; margin: 0.5rem; }
+      .print-preview-modal .glass-card { max-width: 100%; margin: 0.5rem; }
+      /* Toast فوق الشريط السفلي */
+      #toast-container { top: auto; bottom: 5rem; right: 0.5rem; left: 0.5rem; max-width: none; }
+    }
+    @media (max-width: 480px) {
+      .table-glass { min-width: 360px; font-size: 0.75rem; }
+      .table-glass th, .table-glass td { padding: 0.375rem 0.25rem; }
+    }
+    /* شريط التبويبات والزر على الموبايل */
+    @media (max-width: 767px) {
+      #tab-strip { min-height: 40px; -webkit-overflow-scrolling: touch; padding: 0.5rem; }
+      #tab-strip button { min-height: 2rem; padding: 0.35rem 0.6rem; font-size: 0.8125rem; }
+      #module-content button:not(.mobile-nav-btn) { min-height: 2.5rem; padding: 0.5rem 0.75rem; }
+      #module-content .tap-haptic { min-height: 2.5rem; }
+    }
+    /* Toast stack: top-right, high z-index, enter/exit animation */
+    #toast-container { position: fixed; top: 1rem; right: 1rem; z-index: 9999; display: flex; flex-direction: column; gap: 0.5rem; max-width: 22rem; pointer-events: none; }
+    #toast-container .toast-item { pointer-events: auto; font-family: Cairo, Tajawal, sans-serif; background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); border-radius: 0.75rem; padding: 0.75rem 1rem; box-shadow: 0 10px 40px -10px rgba(0,0,0,0.4); border: 1px solid transparent; animation: toast-enter 0.3s ease forwards; }
+    #toast-container .toast-item.toast-success { border-color: rgba(52, 211, 153, 0.5); }
+    #toast-container .toast-item.toast-error { border-color: rgba(248, 113, 113, 0.6); }
+    #toast-container .toast-item.toast-warning { border-color: rgba(251, 191, 36, 0.6); }
+    #toast-container .toast-item.toast-info { border-color: rgba(96, 165, 250, 0.5); }
+    #toast-container .toast-item.toast-exit { animation: toast-exit 0.25s ease forwards; }
+    @keyframes toast-enter { from { transform: translateX(120%); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+    @keyframes toast-exit { to { transform: translateX(120%); opacity: 0; pointer-events: none; } }
     @keyframes swipeRight { to { transform: translateX(120%); opacity: 0; } }
     @keyframes swipeLeft { to { transform: translateX(-120%); opacity: 0; } }
     /* 3D tilt + glow for Bento cards */
@@ -260,11 +323,11 @@
       body * { visibility: hidden !important; }
       .print-area, .print-area *, .vault-print-only, .vault-print-only * { visibility: visible !important; }
       .print-area, .vault-print-only { position: absolute !important; left: 0; top: 0; width: 100%; max-width: 100%; background: #fff !important; color: #111 !important; }
-      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast { display: none !important; visibility: hidden !important; }
+      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast, #toast-container { display: none !important; visibility: hidden !important; }
     }
   </style>
 </head>
-<body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen antialiased">
+<body class="bg-[#0b1220] text-slate-200 font-sans min-h-screen antialiased safe-area-pt">
   <!-- Animated mesh gradient (deep blues / purples) -->
   <div class="mesh-bg" aria-hidden="true"></div>
 
@@ -297,7 +360,9 @@
     عمل دون اتصال · سيتم مزامنة البيانات عند الاتصال
   </div>
 
-  <!-- Toast (Success / Error) -->
+  <!-- Toast stack (ذكي: أعلى يمين، حركة دخول/خروج، دعم زر إجراء) -->
+  <div id="toast-container" role="region" aria-label="تنبيهات"></div>
+  <!-- Toast (Success / Error) - legacy single toast, kept for print hide -->
   <div id="export-generating-overlay" class="hidden fixed inset-0 z-[70] flex items-center justify-center bg-black/40 backdrop-blur-sm">
     <div class="glass-card rounded-2xl px-8 py-6 flex items-center gap-3 border border-emerald-500/30">
       <div class="w-10 h-10 rounded-full bg-emerald-500/20 flex items-center justify-center"><svg class="w-5 h-5 text-emerald-400 animate-spin" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"/><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"/></svg></div>
@@ -410,6 +475,7 @@
             <button type="button" onclick="openModule('statement-of-account','كشف الحساب')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">كشف الحساب</button>
             <button type="button" onclick="openModule('expenses','المصاريف')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">المصاريف</button>
             <button type="button" onclick="openModule('reports','مركز التقارير')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">مركز التقارير</button>
+            <button type="button" onclick="openModule('financial-dashboard','لوحة التحكم المالية')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">لوحة التحكم المالية</button>
             <button type="button" onclick="showSection('accounting')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">تقارير محاسبية</button>
           </div>
         </div>
@@ -901,6 +967,20 @@
     </div>
   </div>
 
+  <!-- Audit drill-down: تفاصيل القيد المحاسبي -->
+  <div id="audit-entry-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) document.getElementById('audit-entry-modal').classList.add('hidden')">
+    <div class="bg-[#1a1c23] border border-white/10 rounded-2xl shadow-2xl max-w-lg w-full max-h-[85vh] overflow-hidden flex flex-col" onclick="event.stopPropagation()">
+      <div class="p-4 border-b border-white/10 flex justify-between items-center">
+        <h3 class="text-lg font-bold text-white">تفاصيل القيد المحاسبي</h3>
+        <button type="button" onclick="document.getElementById('audit-entry-modal').classList.add('hidden')" class="text-slate-400 hover:text-white p-1">✕</button>
+      </div>
+      <div id="audit-entry-modal-body" class="p-4 overflow-y-auto text-sm text-slate-300 space-y-2">جاري التحميل…</div>
+      <div class="p-4 border-t border-white/5">
+        <button type="button" onclick="document.getElementById('audit-entry-modal').classList.add('hidden')" class="w-full py-2 rounded-lg bg-white/10 text-slate-300 font-medium">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
   <script>
     (function() {
       try {
@@ -1174,8 +1254,70 @@
       return t ? { 'Authorization': 'Bearer ' + t } : {};
     }
     var toastTimeout = null;
+    var _toastId = 0;
+    var _toastQueue = [];
+    var _toastTimeouts = {};
+    function playToastSound(type) {
+      try {
+        if (typeof window.AudioContext === 'undefined' && typeof window.webkitAudioContext === 'undefined') return;
+        var ctx = new (window.AudioContext || window.webkitAudioContext)();
+        var osc = ctx.createOscillator();
+        var gain = ctx.createGain();
+        osc.connect(gain);
+        gain.connect(ctx.destination);
+        if (type === 'error') { osc.frequency.value = 400; gain.gain.setValueAtTime(0.08, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.15); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.15); }
+        else if (type === 'warning') { osc.frequency.value = 350; gain.gain.setValueAtTime(0.06, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.12); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.12); }
+        else if (type === 'info') { osc.frequency.value = 520; gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.1); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.1); }
+        else { osc.frequency.value = 660; gain.gain.setValueAtTime(0.05, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.08); osc.start(ctx.currentTime); osc.stop(ctx.currentTime + 0.08); }
+      } catch (e) {}
+    }
+    function renderToastStack() {
+      var container = document.getElementById('toast-container');
+      if (!container) return;
+      container.innerHTML = _toastQueue.map(function(t) {
+        var title = (t.title || '').replace(/</g, '&lt;');
+        var msg = (t.message || '').replace(/</g, '&lt;');
+        var btn = t.action ? '<button type="button" class="mt-2 w-full py-1.5 rounded-lg text-sm font-medium ' + (t.type === 'info' ? 'bg-sky-500/30 text-sky-300 hover:bg-sky-500/40' : 'bg-white/10 text-slate-300 hover:bg-white/20') + ' tap-haptic" data-toast-id="' + t.id + '">' + (t.action.label || 'تنفيذ') + '</button>' : '';
+        return '<div class="toast-item toast-' + t.type + '" data-toast-id="' + t.id + '" role="alert">' +
+          '<p class="font-semibold text-white text-sm">' + title + '</p>' +
+          '<p class="text-slate-400 text-xs mt-0.5">' + msg + '</p>' + btn + '</div>';
+      }).join('');
+      container.querySelectorAll('.toast-item button[data-toast-id]').forEach(function(btn) {
+        var id = btn.getAttribute('data-toast-id');
+        var t = _toastQueue.find(function(x) { return String(x.id) === id; });
+        if (t && t.action && t.action.onClick) btn.addEventListener('click', function() { t.action.onClick(); removeToast(id); });
+      });
+    }
+    function removeToast(id) {
+      var el = document.querySelector('#toast-container .toast-item[data-toast-id="' + id + '"]');
+      if (el) el.classList.add('toast-exit');
+      if (_toastTimeouts[id]) { clearTimeout(_toastTimeouts[id]); delete _toastTimeouts[id]; }
+      setTimeout(function() {
+        _toastQueue = _toastQueue.filter(function(t) { return String(t.id) !== String(id); });
+        renderToastStack();
+      }, 260);
+    }
+    function addToast(options) {
+      var type = options.type || 'success';
+      var id = 'toast-' + (++_toastId);
+      var duration = options.duration != null ? options.duration : (options.action ? 0 : 4000);
+      var playSound = options.sound !== false;
+      if (playSound) playToastSound(type);
+      var t = { id: id, title: options.title || (type === 'success' ? 'تم' : (type === 'warning' ? 'تنبيه' : (type === 'info' ? 'معلومة' : 'خطأ'))), message: options.message || '', type: type, action: options.action || null };
+      _toastQueue.push(t);
+      renderToastStack();
+      if (duration > 0) _toastTimeouts[id] = setTimeout(function() { removeToast(id); }, duration);
+      return id;
+    }
+    window.toast = {
+      success: function(message, opts) { return addToast(Object.assign({ type: 'success', message: message || '' }, opts || {})); },
+      error: function(message, opts) { return addToast(Object.assign({ type: 'error', message: message || '' }, opts || {})); },
+      warning: function(message, opts) { return addToast(Object.assign({ type: 'warning', message: message || '' }, opts || {})); },
+      info: function(message, opts) { return addToast(Object.assign({ type: 'info', message: message || '' }, opts || {})); },
+    };
     function showToast(title, message, type) {
       type = type || 'success';
+      addToast({ title: title || '', message: message || '', type: type, duration: 4000 });
       var el = document.getElementById('toast');
       var inner = document.getElementById('toast-inner');
       var icon = document.getElementById('toast-icon');
@@ -1312,6 +1454,7 @@
         if (moduleId === 'manufacturing-build') { await renderManufacturingBuild(mc); return; }
         if (moduleId === 'expenses') { await renderExpenses(mc); return; }
         if (moduleId === 'reports') { await renderReportsHub(mc); return; }
+        if (moduleId === 'financial-dashboard') { await renderFinancialDashboard(mc); return; }
         if (moduleId === 'company-settings') { await renderCompanySettings(mc); return; }
         if (moduleId === 'system-settings') { await renderSystemSettings(mc); return; }
         if (moduleId === 'user-management') { await renderUserManagement(mc); return; }
@@ -2371,10 +2514,14 @@
           auditInner.innerHTML = detailEmptyState('لا توجد إدخالات تدقيق لعرضها');
         } else {
           var auditRows = list.slice(0, 25).map(function(e) {
-            var date = (e.timestamp || e.date || '').toString().slice(0, 10);
+            var date = (e.at || e.timestamp || e.date || '').toString().slice(0, 10);
             var action = (e.action || '—').toString().replace(/</g, '&lt;');
             var entity = (e.entityType || e.entity || '—').toString().replace(/</g, '&lt;');
-            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + date + '</td><td class="p-2 table-cell-ellipsis">' + action + '</td><td class="p-2 table-cell-ellipsis">' + entity + '</td></tr>';
+            var et = (e.entityType || '').toString();
+            var eid = (e.entityId || '').toString();
+            var clickable = et === 'JournalEntry' && eid ? ' cursor-pointer hover:bg-white/10' : '';
+            var attrs = clickable ? ' data-entity-type="' + et.replace(/"/g, '&quot;') + '" data-entity-id="' + eid.replace(/"/g, '&quot;') + '" onclick="openAuditEntryModal(' + JSON.stringify(eid) + ')"' : '';
+            return '<tr class="border-b border-white/5' + clickable + '"' + attrs + '><td class="p-2">' + date + '</td><td class="p-2 table-cell-ellipsis">' + action + '</td><td class="p-2 table-cell-ellipsis">' + entity + '</td></tr>';
           });
           auditInner.innerHTML = '<table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">الإجراء</th><th class="p-2">الكيان</th></tr></thead><tbody>' + auditRows.join('') + '</tbody></table>';
         }
@@ -2384,14 +2531,83 @@
     async function renderChartOfAccounts(container) {
       const r = await fetchJson('/accounts');
       const accounts = r.data || [];
-      const byType = {};
-      accounts.forEach(a => { if (!byType[a.type]) byType[a.type] = []; byType[a.type].push(a); });
+      const byId = {};
+      accounts.forEach(a => { byId[a.id] = a; });
+      function buildTree(typeFilter) {
+        const list = accounts.filter(a => a.type === typeFilter);
+        const roots = list.filter(a => !a.parentId || !byId[a.parentId]);
+        const childrenOf = {};
+        list.forEach(a => {
+          const pid = a.parentId && byId[a.parentId] ? a.parentId : null;
+          if (!childrenOf[pid]) childrenOf[pid] = [];
+          childrenOf[pid].push(a);
+        });
+        function sortByCode(arr) { return arr.slice().sort((x, y) => (x.code || '').localeCompare(y.code || '')); }
+        function renderNode(acc, depth) {
+          const id = 'coa-' + (acc.id || '').replace(/\s/g, '_');
+          const kids = sortByCode(childrenOf[acc.id] || []);
+          const hasChildren = kids.length > 0;
+          const isOpen = window._coaOpen && window._coaOpen[id] !== false;
+          var html = '<div class="coa-node" data-id="' + id + '">';
+          html += '<div class="flex items-center gap-2 py-1.5 px-3 rounded bg-white/5 hover:bg-white/10 cursor-pointer" style="padding-right: ' + (12 + depth * 16) + 'px" onclick="toggleCoaNode(\'' + id + '\')">';
+          if (hasChildren) html += '<span class="coa-toggle text-slate-400 w-5">' + (isOpen ? '▼' : '▶') + '</span>';
+          else html += '<span class="w-5 inline-block"></span>';
+          html += '<span class="text-slate-300">' + (acc.code || '') + ' · ' + (acc.name || '') + '</span></div>';
+          if (hasChildren && isOpen) {
+            html += '<div class="coa-children ml-2 border-r border-white/10">';
+            kids.forEach(child => { html += renderNode(child, depth + 1); });
+            html += '</div>';
+          }
+          html += '</div>';
+          return html;
+        }
+        return roots.map(acc => renderNode(acc, 0)).join('');
+      }
+      window._coaOpen = window._coaOpen || {};
       const types = ['asset','liability','equity','revenue','expense'];
       const typeNames = { asset: 'أصول', liability: 'خصوم', equity: 'حقوق ملكية', revenue: 'إيرادات', expense: 'مصروفات' };
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">شجرة الحسابات</h3><div class="space-y-4">' +
-        types.map(t => '<div><h4 class="text-sm font-medium text-emerald-400 mb-2">' + (typeNames[t] || t) + '</h4><ul class="space-y-1">' +
-          (byType[t] || []).map(a => '<li class="flex justify-between items-center py-1 px-3 rounded bg-white/5"><span class="text-slate-300">' + (a.code || '') + ' · ' + (a.name || '') + '</span></li>').join('') + '</ul></div>').join('') +
+      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">شجرة الحسابات</h3><p class="page-desc mb-3">انقر على الحساب الرئيسي للطي/الفرد.</p><div class="space-y-4">' +
+        types.map(t => '<div><h4 class="text-sm font-medium text-emerald-400 mb-2">' + (typeNames[t] || t) + '</h4><div class="coa-tree">' + buildTree(t) + '</div></div>').join('') +
         '</div></div>';
+    }
+    function toggleCoaNode(id) {
+      if (!window._coaOpen) window._coaOpen = {};
+      window._coaOpen[id] = !window._coaOpen[id];
+      var mc = document.getElementById('module-content');
+      if (mc) renderChartOfAccounts(mc);
+    }
+
+    async function openAuditEntryModal(entryId) {
+      if (!entryId) return;
+      var modal = document.getElementById('audit-entry-modal');
+      var body = document.getElementById('audit-entry-modal-body');
+      if (!modal || !body) return;
+      body.textContent = 'جاري التحميل…';
+      modal.classList.remove('hidden');
+      try {
+        var res = await fetch(API + '/journal/' + encodeURIComponent(entryId), { headers: getAuthHeaders() });
+        var json = await res.json();
+        if (!json.success || !json.data) { body.innerHTML = '<p class="text-rose-400">' + (json.error || 'قيد غير موجود') + '</p>'; return; }
+        var e = json.data;
+        var html = '<p><span class="text-slate-500">التاريخ:</span> ' + (e.date || '').slice(0, 19) + '</p>';
+        html += '<p><span class="text-slate-500">البيان:</span> ' + (e.memo || '—').replace(/</g, '&lt;') + '</p>';
+        if (e.deleted) html += '<p class="text-rose-400 font-medium">هذا القيد معطّل (محذوف)</p>';
+        if (e.compoundLines && e.compoundLines.length) {
+          html += '<table class="table-glass w-full text-right mt-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>';
+          e.compoundLines.forEach(function(l) {
+            html += '<tr class="border-b border-white/5"><td class="p-2">' + (l.accountId || '—') + '</td><td class="p-2 text-emerald-400">' + formatNum(l.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(l.credit || 0) + '</td></tr>';
+          });
+          html += '</tbody></table>';
+        } else {
+          html += '<p><span class="text-slate-500">مدين:</span> ' + (e.debitAccountId || '—') + ' · <span class="text-slate-500">دائن:</span> ' + (e.creditAccountId || '—') + '</p>';
+          html += '<p><span class="text-slate-500">المبلغ ل.س:</span> ' + formatNum(e.amountSYP || 0) + '</p>';
+          if (e.amountUSDAtTx != null) html += '<p><span class="text-slate-500">USD وقت القيد:</span> ' + Number(e.amountUSDAtTx).toFixed(4) + '</p>';
+        }
+        if (e.refType || e.refId) html += '<p class="text-slate-500 text-xs mt-2">المرجع: ' + (e.refType || '') + ' — ' + (e.refId || '') + '</p>';
+        body.innerHTML = html;
+      } catch (err) {
+        body.innerHTML = '<p class="text-rose-400">' + (err.message || 'فشل تحميل التفاصيل') + '</p>';
+      }
     }
 
     async function renderJournalGrid(container) {
@@ -2486,8 +2702,11 @@
     async function renderStatementOfAccount(container) {
       const accR = await fetchJson('/accounts');
       const accounts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>').join('');
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">كشف الحساب</h3><div class="flex flex-wrap gap-4 mb-4"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>';
+      container.innerHTML =
+        '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">كشف الحساب (حسب الحساب)</h3><div class="flex flex-wrap gap-4 mb-4 items-center"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" id="stmt-export-pdf-btn" onclick="exportStatementPdf()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>تصدير PDF</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>' +
+        '<div class="card-standard" id="stmt-customer-card"><h3 class="page-title-h3 mb-4">كشف حساب عميل (مدينون)</h3><p class="page-desc mb-3">أدخل معرّف العميل (مثل معرف الحساب 1200 أو اسم العميل حسب النظام) ثم اختر الفترة.</p><div class="flex flex-wrap gap-4 mb-4 align-middle"><input type="text" id="stmt-customer-id" placeholder="معرّف العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[180px]"/><input type="date" id="stmt-cust-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-cust-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadCustomerStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" id="stmt-customer-print-btn" onclick="printCustomerStatement()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button></div><div id="stmt-customer-result" class="overflow-x-auto"></div></div>';
       document.getElementById('stmt-result').innerHTML = '<p class="text-slate-500">اختر الحساب واضغط عرض.</p>';
+      window._customerStatementData = null;
     }
 
     async function loadStatement() {
@@ -2501,7 +2720,10 @@
       if (!el) return;
       if (!json.success || json.error) { el.innerHTML = '<p class="text-rose-400">' + (json.error || 'خطأ') + '</p>'; return; }
       const d = json.data;
+      window._lastStatementData = { data: d, accountId: accountId };
       var rows = d.rows || [];
+      var pdfBtn = document.getElementById('stmt-export-pdf-btn');
+      if (pdfBtn) pdfBtn.classList.toggle('hidden', !rows.length);
       if (!rows.length) {
         el.innerHTML = '<div class="state-empty-box"><span class="state-empty-icon" aria-hidden="true">📋</span><p>لا توجد بيانات لهذا الحساب حالياً</p></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(d.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(d.closingBalance || 0) + '</p>';
         return;
@@ -2510,7 +2732,176 @@
         var memo = (r.memo || '').toString().replace(/</g, '&lt;');
         return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + (r.date || '').slice(0, 10) + '</td><td class="p-2 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + memo + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit || 0) + '</td><td class="p-2 font-medium text-white">' + formatNum(r.balance || 0) + '</td></tr>';
       }).join('');
-      el.innerHTML = '<div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th><th class="p-2">الرصيد</th></tr></thead><tbody>' + bodyRows + '</tbody></table></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(d.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(d.closingBalance || 0) + '</p>';
+      el.innerHTML = '<div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th><th class="p-2">الرصيد التراكمي</th></tr></thead><tbody>' + bodyRows + '</tbody></table></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(d.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(d.closingBalance || 0) + '</p>';
+    }
+
+    window._customerStatementData = null;
+    async function loadCustomerStatement() {
+      var customerId = (document.getElementById('stmt-customer-id')?.value || '').trim();
+      if (!customerId) { showToast('تنبيه', 'أدخل معرّف العميل', 'warning'); return; }
+      var from = document.getElementById('stmt-cust-from')?.value || '';
+      var to = document.getElementById('stmt-cust-to')?.value || '';
+      var el = document.getElementById('stmt-customer-result');
+      var btn = document.getElementById('stmt-customer-print-btn');
+      if (!el) return;
+      el.innerHTML = '<p class="text-slate-500">جاري التحميل…</p>';
+      if (btn) btn.classList.add('hidden');
+      try {
+        var url = API + '/reports/statement/' + encodeURIComponent(customerId) + (from ? '?fromDate=' + encodeURIComponent(from) : '') + (to ? (from ? '&' : '?') + 'toDate=' + encodeURIComponent(to) : '');
+        var res = await fetch(url, { headers: getAuthHeaders() });
+        var json = await res.json();
+        if (!json.success || json.error) { el.innerHTML = '<p class="text-rose-400">' + (json.error || 'خطأ') + '</p>'; return; }
+        var header = json.header || {};
+        var data = json.data || {};
+        var movements = data.movements || [];
+        window._customerStatementData = { header: header, data: data, customerId: customerId };
+        if (data.message) {
+          el.innerHTML = '<p class="text-slate-500">' + (data.message || '') + '</p><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(data.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(data.closingBalance || 0) + '</p>';
+        } else if (!movements.length) {
+          el.innerHTML = '<div class="state-empty-box"><span class="state-empty-icon">📋</span><p>لا توجد حركات لهذا العميل في الفترة المحددة</p></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(data.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(data.closingBalance || 0) + '</p>';
+        } else {
+          var bodyRows = movements.map(function(r) {
+            var memo = (r.memo || '').toString().replace(/</g, '&lt;');
+            var ref = (r.refId || '').toString().replace(/</g, '&lt;');
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + (r.date || '').slice(0, 10) + '</td><td class="p-2 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + memo + '</td><td class="p-2">' + ref + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit || 0) + '</td><td class="p-2 font-medium text-white">' + formatNum(r.balance || 0) + '</td></tr>';
+          }).join('');
+          el.innerHTML = '<div class="detail-table-wrap"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">البيان</th><th class="p-2">المرجع</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">الرصيد</th></tr></thead><tbody>' + bodyRows + '</tbody></table></div><p class="text-slate-400 mt-2">رصيد افتتاحي: ' + formatNum(data.openingBalance || 0) + ' · رصيد إغلاق: ' + formatNum(data.closingBalance || 0) + '</p>';
+          if (btn) btn.classList.remove('hidden');
+        }
+      } catch (e) {
+        el.innerHTML = '<p class="text-rose-400">' + (e.message || 'فشل التحميل') + '</p>';
+      }
+    }
+
+    /** قالب ترويسة طباعة من بيانات API (header: companyName, logoBase64, address, phone, primaryColor). */
+    function getPrintHeaderTemplateFromApi(header, reportTitle, printDate, options) {
+      var opt = options || {};
+      var showPage = opt.showPageNumber !== false;
+      var companyName = ((header && header.companyName) || 'الشركة').replace(/</g, '&lt;');
+      var companyPhone = ((header && header.phone) || '').replace(/</g, '&lt;');
+      var companyAddress = ((header && header.address) || '').replace(/</g, '&lt;');
+      var logoBase64 = (header && header.logoBase64) ? (header.logoBase64 + '').replace(/"/g, '&quot;') : '';
+      var logoImg = logoBase64 ? '<img src="' + logoBase64 + '" alt="" class="print-logo"/>' : '<div class="print-logo-placeholder"></div>';
+      var primaryColor = (header && header.primaryColor) ? (header.primaryColor + '').replace(/[<>"\'\\]/g, '') : '#10b981';
+      var storeInfoLeft = (companyPhone ? '<div class="print-store-phone">' + companyPhone + '</div>' : '') + (companyAddress ? '<div class="print-store-address">' + companyAddress + '</div>' : '') + (printDate ? '<div class="print-date">' + printDate + '</div>' : '') + (showPage ? ' <span class="print-page">| صفحة <span class="page-number"></span></span>' : '');
+      var headerHTML = '<header class="print-header">' +
+        '<div class="print-header-right">' + logoImg + '<span class="print-store-name">' + companyName + '</span></div>' +
+        '<div class="print-header-center">' + (reportTitle || '') + '</div>' +
+        '<div class="print-header-left">' + storeInfoLeft + '</div>' +
+        '</header>';
+      var css = '<style>:root{--print-primary:' + primaryColor + '}' +
+        'body { margin: 0; font-family: Cairo, Tajawal, sans-serif; color: #111; background: #fff; }' +
+        '.print-header, .print-footer { display: none; }' +
+        '.print-statement-controls{ display: block; }' +
+        '@media print {' +
+        'body { -webkit-print-color-adjust: exact; print-color-adjust: exact; background: #fff; size: A4; }' +
+        '.print-statement-controls { display: none !important; }' +
+        '.print-header { display: flex !important; position: fixed; top: 0; left: 0; right: 0; height: auto; min-height: 56px; align-items: center; justify-content: space-between; padding: 10px 16px; border-bottom: 2px solid var(--print-primary); background: #fff; font-size: 12px; z-index: 9999; }' +
+        '.print-header-right { display: flex; align-items: center; gap: 10px; }' +
+        '.print-logo { height: 40px; width: auto; max-width: 80px; object-fit: contain; }' +
+        '.print-logo-placeholder { width: 40px; height: 40px; background: #e2e8f0; border: 1px solid #cbd5e1; }' +
+        '.print-store-name { font-weight: 700; color: #000; font-size: 14px; }' +
+        '.print-header-center { font-weight: 700; color: #000; font-size: 16px; }' +
+        '.print-header-left { color: #333; font-size: 11px; text-align: left; line-height: 1.4; }' +
+        '.print-store-phone, .print-store-address { margin-bottom: 2px; }' +
+        '.print-body { padding: 72px 16px 56px; max-width: 800px; margin: 0 auto; background: #fff; color: #111; }' +
+        '.print-period { font-size: 12px; color: #333; margin-bottom: 12px; }' +
+        '.print-table { width: 100%; border-collapse: collapse; font-size: 12px; }' +
+        '.print-th, .print-td { border: 1px solid #333; padding: 8px; text-align: right; }' +
+        '.print-th { background: var(--print-primary) !important; color: #fff !important; font-weight: 700; }' +
+        '.print-td { color: #111; }' +
+        '}</style>';
+      return { css: css, headerHTML: headerHTML };
+    }
+
+    function printCustomerStatement() {
+      var d = window._customerStatementData;
+      if (!d || !d.header || !d.data) { showToast('تنبيه', 'اعرض كشف الحساب أولاً ثم اضغط طباعة', 'warning'); return; }
+      var movements = d.data.movements || [];
+      var header = d.header;
+      var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
+      var reportTitle = 'كشف حساب عميل - ' + (d.customerId || '').replace(/</g, '&lt;');
+      var t = getPrintHeaderTemplateFromApi(header, reportTitle, printDate, { showPageNumber: false });
+      var bodyRows = movements.map(function(r) {
+        var memo = (r.memo || '').toString().replace(/</g, '&lt;');
+        var ref = (r.refId || '').toString().replace(/</g, '&lt;');
+        return '<tr><td class="print-td">' + (r.date || '').slice(0, 10) + '</td><td class="print-td">' + memo + '</td><td class="print-td">' + ref + '</td><td class="print-td">' + formatNum(r.debit || 0) + '</td><td class="print-td">' + formatNum(r.credit || 0) + '</td><td class="print-td">' + formatNum(r.balance || 0) + '</td></tr>';
+      }).join('');
+      var tableHtml = '<table class="print-table"><thead><tr class="print-th"><th class="print-th">التاريخ</th><th class="print-th">البيان</th><th class="print-th">المرجع</th><th class="print-th">مدين</th><th class="print-th">دائن</th><th class="print-th">الرصيد</th></tr></thead><tbody>' + bodyRows + '</tbody></table>';
+      var footer = '<p class="print-period">رصيد افتتاحي: ' + formatNum(d.data.openingBalance || 0) + ' ل.س · رصيد إغلاق: ' + formatNum(d.data.closingBalance || 0) + ' ل.س</p>';
+      var bodyHtml = '<div class="print-body" dir="rtl" style="font-family:Cairo,Tajawal,sans-serif">' + '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:12px;">كشف حساب عميل - ' + (d.customerId || '').replace(/</g, '&lt;') + '</h2>' + tableHtml + footer + '</div>';
+      var win = window.open('', '_blank');
+      win.document.write('<html dir="rtl"><head><title>كشف حساب عميل</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body style="background:#fff;color:#111">' + t.headerHTML + bodyHtml + '</body></html>');
+      win.document.close();
+      win.focus();
+      win.onafterprint = function() { try { win.close(); } catch (e) {} };
+      win.print();
+      setTimeout(function() { try { if (win && !win.closed) win.close(); } catch (e) {} }, 10000);
+    }
+
+    async function exportStatementPdf() {
+      var d = window._lastStatementData;
+      if (!d || !d.data || !d.data.rows || !d.data.rows.length) { showToast('تنبيه', 'اعرض كشف الحساب أولاً ثم اضغط تصدير PDF', 'warning'); return; }
+      try {
+        var settingsRes = await fetch(API + '/settings', { headers: getAuthHeaders() });
+        var settingsJson = await settingsRes.json();
+        var branding = (settingsJson.data && settingsJson.data.branding) ? settingsJson.data.branding : {};
+        var companyName = (branding.companyName || 'الشركة').replace(/</g, '');
+        var logoBase64 = branding.logoBase64 || null;
+        var primaryColor = branding.primaryColor || '#10b981';
+        var JsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jspdf || null);
+        if (!JsPDF) { showToast('خطأ', 'مكتبة jsPDF غير متوفرة', 'error'); return; }
+        var doc = new JsPDF('p', 'mm', 'a4');
+        var pageW = doc.internal.pageSize.getWidth();
+        var y = 14;
+        if (logoBase64 && (logoBase64 + '').indexOf('base64') !== -1) {
+          try {
+            doc.addImage(logoBase64, 'PNG', pageW - 24, 8, 18, 18);
+          } catch (imgE) {}
+        }
+        doc.setFontSize(14);
+        doc.text(companyName, pageW - (logoBase64 ? 28 : 10), y);
+        y += 8;
+        doc.setFontSize(11);
+        doc.text('كشف الحساب — ' + (d.data.accountName || d.accountId || ''), pageW - 10, y);
+        y += 6;
+        doc.setFontSize(9);
+        doc.text('من ' + (d.data.fromDate || '—') + ' إلى ' + (d.data.toDate || '—'), pageW - 10, y);
+        y += 10;
+        var headers = ['التاريخ', 'البيان', 'مدين', 'دائن', 'الرصيد التراكمي'];
+        var colW = [22, 55, 28, 28, 32];
+        var x = pageW - 5;
+        doc.setFillColor(primaryColor.replace('#', '').length === 6 ? parseInt(primaryColor.slice(1), 16) : 0x10b981);
+        for (var c = 0; c < headers.length; c++) {
+          x -= colW[c];
+          doc.rect(x, y, colW[c], 8, 'F');
+          doc.setTextColor(255, 255, 255);
+          doc.text(headers[c], x + colW[c] - 2, y + 5.5);
+          doc.setTextColor(0, 0, 0);
+        }
+        y += 8;
+        var rows = d.data.rows;
+        doc.setFontSize(8);
+        for (var i = 0; i < rows.length; i++) {
+          if (y > 270) { doc.addPage(); y = 14; }
+          var r = rows[i];
+          x = pageW - 5;
+          var cells = [(r.date || '').slice(0, 10), (r.memo || '').slice(0, 30), formatNum(r.debit || 0), formatNum(r.credit || 0), formatNum(r.balance || 0)];
+          for (var c = 0; c < cells.length; c++) {
+            x -= colW[c];
+            doc.text(cells[c], x + colW[c] - 2, y + 4);
+          }
+          y += 6;
+        }
+        y += 6;
+        doc.setFontSize(9);
+        doc.text('رصيد افتتاحي: ' + formatNum(d.data.openingBalance || 0) + ' ل.س', pageW - 10, y);
+        doc.text('رصيد إغلاق: ' + formatNum(d.data.closingBalance || 0) + ' ل.س', pageW - 10, y + 6);
+        doc.save('كشف_الحساب_' + (d.data.accountCode || d.accountId) + '_' + (new Date().toISOString().slice(0, 10)) + '.pdf');
+        showToast('تم', 'تم تصدير PDF بنجاح', 'success');
+      } catch (e) {
+        showToast('خطأ', (e.message || 'فشل تصدير PDF'), 'error');
+      }
     }
 
     window._contactProfileData = null;
@@ -2526,18 +2917,34 @@
         suppliers = accounts.filter(function(a) { return a.type === 'liability'; });
       }
       window._contactsDirectoryList = [];
-      function contactRow(a, kind) {
+      async function contactRow(a, kind) {
         var id = (a.id || '').toString();
         var name = (a.name || a.code || a.id).toString().replace(/</g, '&lt;');
         var code = (a.code || '').toString().replace(/</g, '&lt;');
         var idx = window._contactsDirectoryList.length;
         window._contactsDirectoryList.push({ accountId: id, accountName: a.name || a.code || id, accountCode: a.code || '', type: kind });
-        return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2"><button type="button" onclick="openContactProfileByIndex(' + idx + ')" class="text-emerald-400 hover:text-emerald-300 text-right font-medium">' + name + '</button></td><td class="p-2 text-slate-400">' + code + '</td></tr>';
+        var balanceHtml = '<span class="text-slate-500">—</span>';
+        try {
+          var balRes = await fetch(API + '/accounts/' + encodeURIComponent(id) + '/balance', { headers: getAuthHeaders() });
+          var balJson = await balRes.json();
+          if (balJson.success && balJson.data) {
+            var bal = balJson.data.balance != null ? Number(balJson.data.balance) : 0;
+            var lastDate = balJson.data.lastActivityDate || null;
+            var daysSince = lastDate ? Math.floor((Date.now() - new Date(lastDate).getTime()) / (24 * 60 * 60 * 1000)) : 0;
+            var isStaleDebit = kind === 'customer' && bal > 0 && daysSince > 30;
+            balanceHtml = '<span class="' + (isStaleDebit ? 'text-rose-400 font-medium' : 'text-slate-300') + '" title="' + (lastDate ? 'آخر حركة: ' + lastDate.slice(0, 10) : '') + '">' + formatNum(bal) + ' ل.س</span>';
+          }
+        } catch (e) {}
+        return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2"><button type="button" onclick="openContactProfileByIndex(' + idx + ')" class="text-emerald-400 hover:text-emerald-300 text-right font-medium">' + name + '</button></td><td class="p-2 text-slate-400">' + code + '</td><td class="p-2 balance-cell">' + balanceHtml + '</td></tr>';
       }
-      var customerRows = customers.length ? customers.map(function(a) { return contactRow(a, 'customer'); }).join('') : '<tr><td colspan="2" class="p-4 text-slate-500 text-center">لا يوجد عملاء (حسابات أصول 12xx)</td></tr>';
-      var supplierRows = suppliers.length ? suppliers.map(function(a) { return contactRow(a, 'supplier'); }).join('') : '<tr><td colspan="2" class="p-4 text-slate-500 text-center">لا يوجد موردين (حسابات خصوم 21/22xx)</td></tr>';
-      container.innerHTML = '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">العملاء (ذمم مدينة)</h3><p class="page-desc mb-3">انقر على الاسم لفتح البطاقة والرصيد وسجل الحركات.</p><div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">الكود</th></tr></thead><tbody>' + customerRows + '</tbody></table></div></div>' +
-        '<div class="card-standard"><h3 class="page-title-h3 mb-4">الموردين (ذمم دائنة)</h3><p class="page-desc mb-3">انقر على الاسم لفتح البطاقة والرصيد وسجل الحركات.</p><div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">الكود</th></tr></thead><tbody>' + supplierRows + '</tbody></table></div></div>';
+      var customerRows = '';
+      for (var i = 0; i < customers.length; i++) customerRows += await contactRow(customers[i], 'customer');
+      if (!customers.length) customerRows = '<tr><td colspan="3" class="p-4 text-slate-500 text-center">لا يوجد عملاء (حسابات أصول 12xx)</td></tr>';
+      var supplierRows = '';
+      for (var j = 0; j < suppliers.length; j++) supplierRows += await contactRow(suppliers[j], 'supplier');
+      if (!suppliers.length) supplierRows = '<tr><td colspan="3" class="p-4 text-slate-500 text-center">لا يوجد موردين (حسابات خصوم 21/22xx)</td></tr>';
+      container.innerHTML = '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">العملاء (ذمم مدينة)</h3><p class="page-desc mb-3">انقر على الاسم لفتح البطاقة. الرصيد بلون أحمر إذا مدين وأكثر من 30 يوم دون حركة.</p><div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">الكود</th><th class="p-2">الرصيد الحالي</th></tr></thead><tbody>' + customerRows + '</tbody></table></div></div>' +
+        '<div class="card-standard"><h3 class="page-title-h3 mb-4">الموردين (ذمم دائنة)</h3><p class="page-desc mb-3">انقر على الاسم لفتح البطاقة والرصيد وسجل الحركات.</p><div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الاسم</th><th class="p-2">الكود</th><th class="p-2">الرصيد الحالي</th></tr></thead><tbody>' + supplierRows + '</tbody></table></div></div>';
     }
 
     function openContactProfileByIndex(idx) {
@@ -3617,6 +4024,10 @@
           if (j.productId != null && j.available != null && j.required != null) errMsg = 'نقص في المخزون: المطلوب ' + j.required + '، المتوفر ' + j.available + (j.productId ? ' (صنف: ' + j.productId + ')' : '');
           throw new Error(errMsg);
         }
+        if (j.data && j.data.creditLimitExceeded) {
+          if (typeof toast !== 'undefined') toast.error('تجاوز العميل حد الائتمان المسموح بعد هذه العملية.', { title: 'تنبيه ائتمان' });
+          else showToast('تنبيه ائتمان', 'تجاوز العميل حد الائتمان المسموح بعد هذه العملية.', 'error');
+        }
         var invoiceId = (j.data && j.data.invoiceId) ? j.data.invoiceId : '';
         window._invoiceLines = [];
         renderInvoiceLinesTable();
@@ -3624,6 +4035,13 @@
         renderResumableList();
         showToast('Success', invoiceId ? ('رقم الفاتورة: ' + invoiceId) : 'تم حفظ الفاتورة', 'success');
         refreshAll();
+        try {
+          var lowRes = await fetch(API + '/dashboard/low-stock', { headers: getAuthHeaders() });
+          var lowJson = await lowRes.json();
+          if (lowJson.success && lowJson.data && lowJson.data.length > 0 && typeof toast !== 'undefined') {
+            toast.warning('صنف أو أكثر أصبح تحت الحد الأدنى للمخزون بعد البيع.', { title: 'نقص بضاعة' });
+          }
+        } catch (e) {}
         if (options && options.autoPrint && invoiceId) {
           setTimeout(function() { reprintSavedInvoice(invoiceId); }, 300);
         }
@@ -4089,6 +4507,128 @@
       } catch (e) {
         el.innerHTML = '<p class="text-rose-400">' + (e.message || 'خطأ') + '</p>';
       }
+    }
+
+    var _financialDashboardChart = null;
+    async function renderFinancialDashboard(container) {
+      var today = new Date().toISOString().slice(0, 10);
+      var firstDay = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+      container.innerHTML =
+        '<div id="financial-dashboard-root" class="financial-dashboard font-sans" dir="rtl">' +
+        '<div class="fd-header flex flex-wrap items-center justify-between gap-4 pb-4 mb-4 border-b border-white/10">' +
+        '<div class="flex items-center gap-3">' +
+        '<div id="fd-logo" class="fd-logo w-12 h-12 rounded-lg overflow-hidden bg-white/5 border border-white/10 flex-shrink-0"></div>' +
+        '<div><h2 class="text-lg font-bold text-white">لوحة التحكم المالية</h2><p id="fd-company-name" class="text-slate-400 text-sm">—</p></div>' +
+        '</div>' +
+        '<div class="flex flex-wrap items-center gap-3">' +
+        '<label class="text-slate-400 text-sm">من</label><input type="date" id="fd-start" class="fd-input bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" value="' + firstDay + '"/>' +
+        '<label class="text-slate-400 text-sm">إلى</label><input type="date" id="fd-end" class="fd-input bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm" value="' + today + '"/>' +
+        '<label class="flex items-center gap-2 cursor-pointer"><input type="checkbox" id="fd-display-usd" class="rounded bg-white/5 border-white/20"/><span class="text-slate-400 text-sm">العرض بالدولار</span></label>' +
+        '<button type="button" id="fd-apply" class="fd-btn px-4 py-2 rounded-lg font-medium text-white text-sm">تحديث البيانات</button>' +
+        '</div></div>' +
+        '<div id="fd-kpis" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5"><div class="flex items-center gap-3"><span class="fd-icon w-10 h-10 rounded-lg flex items-center justify-center text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg></span><div><p class="text-slate-400 text-xs">الإيرادات</p><p id="fd-sales" class="text-xl font-bold text-white">0</p></div></div></div>' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5"><div class="flex items-center gap-3"><span class="fd-icon w-10 h-10 rounded-lg flex items-center justify-center text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8 4-8-4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg></span><div><p class="text-slate-400 text-xs">التكلفة (COGS)</p><p id="fd-cogs" class="text-xl font-bold text-white">0</p></div></div></div>' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5"><div class="flex items-center gap-3"><span class="fd-icon w-10 h-10 rounded-lg flex items-center justify-center text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg></span><div><p class="text-slate-400 text-xs">المصاريف</p><p id="fd-expenses" class="text-xl font-bold text-white">0</p></div></div></div>' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5"><div class="flex items-center gap-3"><span class="fd-icon w-10 h-10 rounded-lg flex items-center justify-center text-white"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg></span><div><p class="text-slate-400 text-xs">صافي الربح</p><p id="fd-net" class="text-xl font-bold text-white">0</p></div></div></div>' +
+        '</div>' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5 mb-6"><h3 class="text-slate-300 font-medium mb-3">توزيع المصاريف والأرباح</h3><div class="max-w-xs mx-auto"><canvas id="fd-chart" width="280" height="280"></canvas></div></div>' +
+        '<div class="fd-card rounded-xl p-4 border border-white/10 bg-white/5"><h3 class="text-slate-300 font-medium mb-3">تفاصيل فروقات الصرف (أول 10)</h3><div class="overflow-x-auto"><table class="w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">المبلغ ل.س</th><th class="p-2">USD وقت القيد</th><th class="p-2">الفرق ل.س</th></tr></thead><tbody id="fd-fx-tbody"></tbody></table></div><p id="fd-fx-empty" class="text-slate-500 text-sm py-2 hidden">لا توجد تفاصيل صرف في الفترة.</p></div>' +
+        '</div>';
+      document.getElementById('fd-apply').addEventListener('click', function() { loadFinancialDashboard(); });
+      var fdUsdCheck = document.getElementById('fd-display-usd');
+      if (fdUsdCheck) fdUsdCheck.addEventListener('change', function() { loadFinancialDashboard(); });
+      await loadFinancialDashboard();
+    }
+
+    async function loadFinancialDashboard() {
+      var root = document.getElementById('financial-dashboard-root');
+      if (!root) return;
+      var start = document.getElementById('fd-start')?.value || '';
+      var end = document.getElementById('fd-end')?.value || '';
+      var url = API + '/reports/dashboard-summary' + (start || end ? '?' + (start ? 'startDate=' + encodeURIComponent(start) : '') + (end ? (start ? '&' : '') + 'endDate=' + encodeURIComponent(end) : '') : '');
+      var kpiEl = document.getElementById('fd-kpis');
+      if (kpiEl) kpiEl.style.opacity = '0.6';
+      try {
+        var res = await fetch(url, { headers: getAuthHeaders() });
+        var json = await res.json();
+        if (!json.success) throw new Error(json.error || 'فشل التحميل');
+        var data = json.data || {};
+        var branding = json.branding || {};
+        var primary = (branding.primaryColor || '#10b981').replace(/"/g, '');
+        root.style.setProperty('--fd-primary', primary);
+        var logoEl = document.getElementById('fd-logo');
+        if (logoEl) {
+          if (branding.logoBase64) { logoEl.innerHTML = '<img src="' + (branding.logoBase64 + '').replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain"/>'; logoEl.classList.remove('hidden'); }
+          else { logoEl.innerHTML = ''; logoEl.classList.add('hidden'); }
+        }
+        var nameEl = document.getElementById('fd-company-name');
+        if (nameEl) nameEl.textContent = branding.companyName || '—';
+        var displayUSD = document.getElementById('fd-display-usd') && document.getElementById('fd-display-usd').checked;
+        var rate = data.currentExchangeRate != null && data.currentExchangeRate > 0 ? Number(data.currentExchangeRate) : 15000;
+        var toVal = function(syp) { return displayUSD ? (Number(syp) || 0) / rate : (Number(syp) || 0); };
+        var suffix = displayUSD ? ' USD' : ' ل.س';
+        var salesEl = document.getElementById('fd-sales');
+        var cogsEl = document.getElementById('fd-cogs');
+        var expensesEl = document.getElementById('fd-expenses');
+        var netEl = document.getElementById('fd-net');
+        if (salesEl) salesEl.textContent = formatNum(toVal(data.sales)) + suffix;
+        if (cogsEl) cogsEl.textContent = formatNum(toVal(data.cogs)) + suffix;
+        if (expensesEl) expensesEl.textContent = formatNum(toVal(data.expenses)) + suffix;
+        var net = displayUSD && data.netProfitUSD != null ? Number(data.netProfitUSD) : (data.netProfit != null ? Number(data.netProfit) : 0);
+        if (netEl) { netEl.textContent = formatNum(net) + suffix; netEl.className = 'text-xl font-bold ' + (net >= 0 ? 'text-emerald-400' : 'text-rose-400'); }
+        window._fdDisplayUSD = displayUSD;
+        window._fdRate = rate;
+        window._fdData = data;
+        var cards = root.querySelectorAll('.fd-card, .fd-btn, .fd-input');
+        cards.forEach(function(el) { el.style.borderColor = 'rgba(255,255,255,0.1)'; if (el.classList.contains('fd-btn')) { el.style.backgroundColor = primary; el.style.borderColor = primary; } });
+        var btn = document.getElementById('fd-apply');
+        if (btn) { btn.style.backgroundColor = primary; btn.style.borderColor = primary; }
+        var icons = root.querySelectorAll('.fd-icon');
+        icons.forEach(function(el) { el.style.backgroundColor = primary; });
+        if (_financialDashboardChart) { _financialDashboardChart.destroy(); _financialDashboardChart = null; }
+        var totalOut = (Number(data.cogs) || 0) + (Number(data.expenses) || 0) + (Number(data.inventoryLoss) || 0);
+        var netProfitVal = (window._fdDisplayUSD && data.netProfitUSD != null) ? Number(data.netProfitUSD) : (Number(data.netProfit) || 0);
+        var fxVal = (window._fdDisplayUSD && data.currentExchangeRate) ? (Number(data.fxGainsLoss) || 0) / Number(data.currentExchangeRate) : (Number(data.fxGainsLoss) || 0);
+        if (window._fdDisplayUSD) totalOut = totalOut / (data.currentExchangeRate || 1);
+        var labels = [];
+        var values = [];
+        var colors = [];
+        if (totalOut > 0) { labels.push('التكلفة والمصاريف'); values.push(totalOut); colors.push('rgba(248, 113, 113, 0.8)'); }
+        if (netProfitVal > 0) { labels.push('صافي الربح (ربح القوة الشرائية)'); values.push(netProfitVal); colors.push('rgba(52, 211, 153, 0.8)'); }
+        if (netProfitVal < 0) { labels.push('الخسارة'); values.push(Math.abs(netProfitVal)); colors.push('rgba(248, 113, 113, 0.8)'); }
+        if (fxVal !== 0) { labels.push('أرباح/خسائر الصرف'); values.push(Math.abs(fxVal)); colors.push(fxVal >= 0 ? 'rgba(34, 197, 94, 0.8)' : 'rgba(239, 68, 68, 0.8)'); }
+        if (values.length === 0) { labels = ['لا بيانات']; values = [1]; colors = ['rgba(100, 116, 139, 0.6)']; }
+        var canvas = document.getElementById('fd-chart');
+        if (canvas && typeof Chart !== 'undefined') {
+          var ctx = canvas.getContext('2d');
+          _financialDashboardChart = new Chart(ctx, {
+            type: 'pie',
+            data: { labels: labels, datasets: [{ data: values, backgroundColor: colors, borderColor: 'rgba(15, 23, 42, 0.9)', borderWidth: 1 }] },
+            options: {
+              responsive: true,
+              maintainAspectRatio: true,
+              plugins: { legend: { position: 'bottom', labels: { color: '#e2e8f0', padding: 12 } } }
+            }
+          });
+        }
+        var fxRows = (data.fxDetails || []).slice(0, 10);
+        var tbody = document.getElementById('fd-fx-tbody');
+        var emptyFx = document.getElementById('fd-fx-empty');
+        if (tbody) {
+          tbody.innerHTML = fxRows.map(function(r) {
+            var date = (r.date || '').toString().slice(0, 10);
+            var amt = formatNum(r.amountSYP);
+            var usd = r.amountUSDAtTx != null ? Number(r.amountUSDAtTx).toFixed(4) : '—';
+            var gain = r.gainLossSYP != null ? formatNum(r.gainLossSYP) : '—';
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 text-slate-300">' + date + '</td><td class="p-2 text-slate-300">' + amt + '</td><td class="p-2 text-slate-300">' + usd + '</td><td class="p-2 ' + (r.gainLossSYP >= 0 ? 'text-emerald-400' : 'text-rose-400') + '">' + gain + '</td></tr>';
+          }).join('');
+        }
+        if (emptyFx) { emptyFx.classList.toggle('hidden', fxRows.length > 0); }
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل تحميل لوحة التحكم المالية', 'error');
+      }
+      if (kpiEl) kpiEl.style.opacity = '1';
     }
 
     function escapeAttr(s) {
@@ -5387,11 +5927,25 @@
 
     async function syncSYP() {
       try {
-        await fetch(API + '/multi-currency/rates/sync', { method: 'GET' }).then(r => r.json());
+        await fetch(API + '/multi-currency/rates/sync', { method: 'GET', headers: getAuthHeaders() }).then(r => r.json());
         await refresh('multi-currency');
         await refresh('fractioning');
         await refresh('journal');
         await refresh('fx');
+        if (typeof toast !== 'undefined') {
+          toast.info('هل تريد تشغيل إعادة تقييم الديون الآن؟', {
+            title: 'سعر الصرف تم تحديثه',
+            duration: 15000,
+            action: {
+              label: 'تنفيذ',
+              onClick: function() {
+                postJson('/currency/revalue-debts', {}).then(function(r) {
+                  if (r && r.success && typeof showToast === 'function') showToast('تم', r.data && r.data.revalued ? 'تم إعادة تقييم الديون' : (r.data && r.data.message) || 'لا يوجد فرق', 'success');
+                }).catch(function(e) { showToast('خطأ', e.message || 'فشل إعادة التقييم', 'error'); });
+              },
+            },
+          });
+        }
       } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 

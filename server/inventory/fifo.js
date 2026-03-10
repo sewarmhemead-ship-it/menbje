@@ -72,9 +72,13 @@ export function addReturnLot(productId, unitId, quantity, unitCostSYP, opts = {}
 }
 
 /**
- * Consume quantity from oldest lots (FIFO). Returns { consumed, cogsSYP, lotsUsed }.
- * Lots are mutated (remaining reduced); lots with remaining=0 are left in array for audit.
- * صمام أمان: إذا كانت الكمية المطلوبة أكبر من المتاح، تُرجع خطأ دون تعديل أي دفعة (منع مخزون سالب).
+ * استهلاك كمية من أقدم الدفعات (FIFO). يُستخدم من محرك التجزئة عند البيع بالوحدة الكبرى أو عند كسر كرتونة.
+ * الربط مع التجزئة: sellInSubUnits تستدعي consumeFIFO عند الحاجة لكرتونات (bulkUnitId)؛ الناتج cogsSYP يُستخدم
+ * في القيد المحاسبي وتكلفة القطع المتبقية في "مخزن القطع المفتوحة".
+ * @param {string} productId
+ * @param {string} unitId - وحدة الدفعة (كرتون أو وحدة كبرى)
+ * @param {number} quantityNeeded
+ * @returns {{ consumed, cogsSYP, lotsUsed, error? }}
  */
 export function consumeFIFO(productId, unitId, quantityNeeded) {
   const qty = Number(quantityNeeded);

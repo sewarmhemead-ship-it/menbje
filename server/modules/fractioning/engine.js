@@ -177,8 +177,16 @@ function getFallbackCostPerSubUnit(productId, rule) {
 }
 
 /**
- * بيع بالوحدة الفرعية: يستهلك من "القطع المفتوحة" أولاً، ثم يكسر كرتونة جديدة عند الحاجة.
- * لا تُفقد الكميات المتبقية؛ تُضاف إلى مخزن الفرعي (productId:subUnitId).
+ * بيع بالوحدة الفرعية (مثل Piece): يستهلك من "القطع المفتوحة" أولاً، ثم يكسر كرتونة من FIFO عند الحاجة.
+ * الربط مع FIFO: عند نقص القطع المفتوحة تُستدعى fifo.consumeFIFO(productId, bulkUnitId, bulkNeeded) لاستهلاك
+ * كراتين كاملة؛ الباقي من الكرتونة المكسورة يُضاف إلى مخزن الفرعي (totalCostSYP) لاستهلاكه في مبيعات لاحقة.
+ * @param {string} productId
+ * @param {string} subUnitId - الوحدة الصغرى (مثل piece)
+ * @param {number} subQuantity
+ * @param {number} salePricePerSubUnit
+ * @param {string} [currencyId]
+ * @param {Object} [opts] - postJournal, refId للقيد المركب الاختياري
+ * @returns {{ success: boolean, revenue?, cogsSYP?, error? }}
  */
 export function sellInSubUnits(productId, subUnitId, subQuantity, salePricePerSubUnit, currencyId = 'default', opts = {}) {
   const rule = getFractioningRule(productId, subUnitId);
@@ -263,8 +271,16 @@ export function sellInSubUnits(productId, subUnitId, subQuantity, salePricePerSu
 }
 
 /**
- * Decrement bulk stock directly (sale in bulk units). Uses FIFO for COGS when lots exist.
- * عند استخدام التكلفة الافتراضية: تُضرب بـ rateAtTx إن كانت العملة USD. خيار postJournal يربط بالقيد المركب.
+ * بيع بالوحدة الكبرى (مثل Carton): يخصم مباشرة من مخزن الـ FIFO.
+ * الربط مع FIFO: استدعاء fifo.consumeFIFO(productId, bulkUnitId, bulkQuantity) لاستهلاك أقدم الدفعات أولاً
+ * وإرجاع تكلفة COGS الدقيقة؛ إن لم توجد دفعات كافية يُستخدم التكلفة الافتراضية مع rateAtTx إن لزم.
+ * @param {string} productId
+ * @param {string} bulkUnitId - الوحدة الكبرى (مثل carton)
+ * @param {number} bulkQuantity
+ * @param {number} salePricePerBulk
+ * @param {string} [currencyId]
+ * @param {Object} [opts] - postJournal, refId
+ * @returns {{ success: boolean, revenue?, cogsSYP?, error? }}
  */
 export function sellInBulk(productId, bulkUnitId, bulkQuantity, salePricePerBulk, currencyId = 'default', opts = {}) {
   const key = getInventoryKey(productId, bulkUnitId);

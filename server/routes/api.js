@@ -12,6 +12,7 @@ import * as vision from '../modules/vision/index.js';
 import * as draftOrdersApi from '../modules/whatsapp/draftOrders.js';
 import * as journal from '../accounting/journal.js';
 import * as valuation from '../currency/valuation.js';
+import * as debtRevaluation from '../currency/debtRevaluation.js';
 import * as audit from '../audit/actionLog.js';
 import * as statements from '../accounting/statements.js';
 import * as debtLedger from '../accounting/debtLedger.js';
@@ -20,17 +21,22 @@ import { postSaleJournal } from '../accounting/transactions.js';
 import { recordStockMovement } from '../inventory/stockMovement.js';
 import * as fifo from '../inventory/fifo.js';
 import * as returns from '../inventory/returns.js';
+import * as reconciliation from '../inventory/reconciliation.js';
+import * as reports from '../accounting/reports.js';
 import * as procurement from '../modules/procurement/index.js';
 import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
 import * as settings from '../config/settings.js';
-import { optionalAuth, requireAuth, requireSuperAdmin } from '../auth/middleware.js';
+import { optionalAuth, requireAuth, requireSuperAdmin, authorize } from '../auth/middleware.js';
 import { voucherReceiptSchema, voucherPaymentSchema, voucherJournalSchema, expenseSchema, validateBody } from '../validation/schemas.js';
 
 const router = Router();
 router.use(optionalAuth);
 const { products, units, draftOrders, accounts, stockMovements, salesInvoices, salesReturns, users, suppliers } = store;
+
+/** مستخدم "صمام الأمان" — لا يُحذف أبداً (حتى من قبله) لئلا يُقفل النظام على الجميع. */
+const SAFETY_ADMIN_USERNAME = 'admin';
 
 function getTenantId(req) {
   return (req.user && req.user.tenantId) || 'default';
@@ -43,6 +49,9 @@ function requireAdmin(req, res, next) {
   }
   next();
 }
+
+/** تقارير وأداء حساسة: لا يصل لها الكاشير (ADMIN و SUPER_ADMIN فقط). */
+const requireNoCashier = [requireAuth, authorize('ADMIN', 'SUPER_ADMIN')];
 
 // —— Global Search (البحث الموحد): أصناف، فواتير، عملاء ——
 router.get('/search', (req, res) => {
@@ -251,7 +260,8 @@ router.get('/settings', (req, res) => {
 
 router.post('/settings', requireAuth, requireAdmin, (req, res) => {
   try {
-    const updated = settings.updateSettings(req.body || {});
+    const userId = req.user?.id || req.user?.username || 'api';
+    const updated = settings.updateSettings(req.body || {}, userId);
     res.json({ success: true, data: updated });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -262,6 +272,23 @@ router.post('/settings', requireAuth, requireAdmin, (req, res) => {
 function getUsersForTenant(tenantId) {
   return Array.from(users.values()).filter((u) => (u.tenantId || 'default') === tenantId);
 }
+
+// —— سجل الرقابة (Audit Log) للمدير ——
+router.get('/admin/audit-log', requireAuth, requireAdmin, (req, res) => {
+  try {
+    const { userId, action, entityType, fromDate, limit } = req.query;
+    const list = audit.listActionLog({
+      userId: userId || undefined,
+      action: action || undefined,
+      entityType: entityType || undefined,
+      fromDate: fromDate || undefined,
+      limit: limit != null ? Math.min(Number(limit) || 200, 500) : 200,
+    });
+    res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 router.get('/users', requireAuth, requireAdmin, (req, res) => {
   try {
@@ -295,6 +322,9 @@ router.post('/users', requireAuth, requireAdmin, (req, res) => {
       return res.status(400).json({ success: false, error: 'اسم المستخدم وكلمة المرور مطلوبان' });
     }
     const un = String(username).trim().toLowerCase();
+    if (un === SAFETY_ADMIN_USERNAME) {
+      return res.status(403).json({ success: false, error: 'اسم المستخدم "admin" محجوز لصمام الأمان', code: 'SAFETY_ADMIN_PROTECTED' });
+    }
     const exists = Array.from(users.values()).some(
       (u) => ((u.username || '').toLowerCase() === un || (u.email || '').toLowerCase() === un) && (u.tenantId || 'default') === tenantId
     );
@@ -336,12 +366,18 @@ router.post('/users', requireAuth, requireAdmin, (req, res) => {
 router.delete('/users/:id', requireAuth, requireAdmin, (req, res) => {
   try {
     const targetId = req.params.id;
+    const u = users.get(targetId);
+    if (!u) {
+      return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+    }
+    if ((u.username || '').toLowerCase() === SAFETY_ADMIN_USERNAME) {
+      return res.status(403).json({ success: false, error: 'لا يمكن حذف مستخدم صمام الأمان (admin) أبداً', code: 'SAFETY_ADMIN_PROTECTED' });
+    }
     if (req.user.id === targetId) {
       return res.status(400).json({ success: false, error: 'لا يمكنك حذف حسابك' });
     }
     const tenantId = getTenantId(req);
-    const u = users.get(targetId);
-    if (!u || (u.tenantId || 'default') !== tenantId) {
+    if ((u.tenantId || 'default') !== tenantId) {
       return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
     }
     audit.log('USER_DELETE', { entityType: 'User', entityId: targetId, oldValue: { id: u.id, fullName: u.fullName, role: u.role }, newValue: null, userId: req.user?.id });
@@ -384,10 +420,14 @@ router.patch('/users/:id', requireAuth, (req, res) => {
     const oldSnapshot = { industryType: u.industryType, status: u.status, fullName: u.fullName };
     const role = (req.user && req.user.role || '').toUpperCase();
     const isSuperAdmin = role === 'SUPER_ADMIN';
+    const isSafetyAdmin = (u.username || '').toLowerCase() === SAFETY_ADMIN_USERNAME;
 
     if (industryType !== undefined || bodyStatus !== undefined) {
       if (!isSuperAdmin) {
         return res.status(403).json({ success: false, error: 'تعديل النشاط أو الحالة مسموح للمدير الأعلى فقط', code: 'FORBIDDEN' });
+      }
+      if (isSafetyAdmin && bodyStatus !== undefined && bodyStatus !== 'active') {
+        return res.status(403).json({ success: false, error: 'لا يمكن تعطيل أو إيقاف مستخدم صمام الأمان (admin)', code: 'SAFETY_ADMIN_PROTECTED' });
       }
       if (industryType !== undefined) {
         u.industryType = VALID_INDUSTRY.includes(industryType) ? industryType : 'GENERAL';
@@ -567,13 +607,35 @@ router.get('/accounts', (req, res) => {
   res.json({ success: true, data: Array.from(accounts.values()) });
 });
 
-router.get('/journal', (req, res) => {
+router.get('/journal', requireNoCashier, (req, res) => {
   const { refType, accountId, fromDate, toDate, limit } = req.query;
   const list = journal.listJournalEntries({ refType, accountId, fromDate, toDate, limit: limit ? Number(limit) : 100 });
   res.json({ success: true, data: list });
 });
 
-router.post('/journal', (req, res) => {
+router.get('/journal/:id', requireNoCashier, (req, res) => {
+  try {
+    const entry = journal.getJournalEntryById(req.params.id);
+    if (!entry) return res.status(404).json({ success: false, error: 'قيد غير موجود' });
+    res.json({ success: true, data: entry });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/accounts/:id/balance', (req, res) => {
+  try {
+    const accountId = req.params.id;
+    if (!accounts.has(accountId)) return res.status(404).json({ success: false, error: 'الحساب غير موجود' });
+    const balance = journal.getAccountBalance(accountId);
+    const lastActivityDate = journal.getAccountLastActivityDate(accountId);
+    res.json({ success: true, data: { balance: balance.balance, debit: balance.debit, credit: balance.credit, lastActivityDate } });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/journal', requireNoCashier, (req, res) => {
   try {
     const { date, lines, createdBy } = req.body;
     if (!lines || !Array.isArray(lines) || lines.length === 0)
@@ -586,7 +648,7 @@ router.post('/journal', (req, res) => {
   }
 });
 
-router.post('/journal/:id/void', (req, res) => {
+router.post('/journal/:id/void', requireNoCashier, (req, res) => {
   try {
     const { reasonCode, deletedBy } = req.body;
     if (!reasonCode) return res.status(400).json({ success: false, error: 'reasonCode required' });
@@ -610,7 +672,7 @@ router.get('/currency/exchange-gain-loss', (req, res) => {
 });
 
 // —— Financial Statements (ميزان مراجعة، قائمة الأرباح والخسائر، التدفقات النقدية، كشف الحساب) ——
-router.get('/statements/trial-balance', (req, res) => {
+router.get('/statements/trial-balance', requireNoCashier, (req, res) => {
   try {
     const { asOfDate } = req.query;
     const data = statements.getTrialBalance(asOfDate || null);
@@ -620,7 +682,7 @@ router.get('/statements/trial-balance', (req, res) => {
   }
 });
 
-router.get('/statements/account', (req, res) => {
+router.get('/statements/account', requireNoCashier, (req, res) => {
   try {
     const { accountId, fromDate, toDate } = req.query;
     if (!accountId) return res.status(400).json({ success: false, error: 'accountId required' });
@@ -632,7 +694,7 @@ router.get('/statements/account', (req, res) => {
   }
 });
 
-router.get('/reports/profit-loss', (req, res) => {
+router.get('/reports/profit-loss', requireNoCashier, (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
     const data = statements.getProfitAndLoss(fromDate || null, toDate || null);
@@ -641,7 +703,7 @@ router.get('/reports/profit-loss', (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
-router.get('/reports/balance-sheet', (req, res) => {
+router.get('/reports/balance-sheet', requireNoCashier, (req, res) => {
   try {
     const data = statements.getBalanceSheet(req.query.asOfDate || null);
     res.json({ success: true, data, titleAr: 'الميزانية العمومية' });
@@ -649,7 +711,7 @@ router.get('/reports/balance-sheet', (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
-router.get('/reports/warehouse-valuation', (req, res) => {
+router.get('/reports/warehouse-valuation', requireNoCashier, (req, res) => {
   try {
     const data = statements.getWarehouseValuation();
     res.json({ success: true, data, titleAr: 'جرد المستودع' });
@@ -657,7 +719,60 @@ router.get('/reports/warehouse-valuation', (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
-router.get('/statements/profit-loss', (req, res) => {
+
+router.get('/reports/dashboard-summary', requireNoCashier, (req, res) => {
+  try {
+    const { startDate, endDate } = req.query;
+    const data = reports.getFinancialSummary(startDate || null, endDate || null);
+    const appSettings = settings.getSettings();
+    const branding = appSettings.branding || {};
+    res.json({
+      success: true,
+      data,
+      branding: {
+        primaryColor: branding.primaryColor || '#10b981',
+        logoBase64: branding.logoBase64 || null,
+        companyName: branding.companyName || 'Vault AI',
+      },
+    });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/reports/aging', requireNoCashier, (req, res) => {
+  try {
+    const data = reports.getAgingReport(req.query.asOfDate || null);
+    res.json({ success: true, data, titleAr: 'تقرير أعمار الديون' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/reports/statement/:customerId', requireNoCashier, (req, res) => {
+  try {
+    const { customerId } = req.params;
+    const { fromDate, toDate } = req.query;
+    const result = reports.generateAccountStatement(customerId, fromDate || null, toDate || null);
+    res.json({ success: true, ...result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/reports/account-statement', requireNoCashier, (req, res) => {
+  try {
+    const { accountId, fromDate, toDate } = req.query;
+    if (!accountId) return res.status(400).json({ success: false, error: 'accountId required' });
+    const data = reports.getAccountStatement(accountId, fromDate || null, toDate || null);
+    if (data.error) return res.status(400).json({ success: false, error: data.error });
+    res.json({ success: true, data });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.get('/statements/profit-loss', requireNoCashier, (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
     const data = statements.getProfitAndLoss(fromDate || null, toDate || null);
@@ -667,7 +782,7 @@ router.get('/statements/profit-loss', (req, res) => {
   }
 });
 
-router.get('/statements/cash-flow', (req, res) => {
+router.get('/statements/cash-flow', requireNoCashier, (req, res) => {
   try {
     const { fromDate, toDate } = req.query;
     const data = statements.getCashFlowStatement(fromDate || null, toDate || null);
@@ -695,7 +810,7 @@ router.post('/debt', (req, res) => {
 });
 
 // —— Audit Trail ——
-router.get('/audit', (req, res) => {
+router.get('/audit', requireNoCashier, (req, res) => {
   try {
     const { action, entityType, fromDate, limit } = req.query;
     const list = audit.listActionLog({ action, entityType, fromDate, limit: limit ? Number(limit) : 200 });
@@ -774,17 +889,43 @@ function getNextSeqForYear(collection, prefix, year) {
   return max + 1;
 }
 
-// —— Sales Invoice (Logic Bridge): validate all → deduct stock → ONE journal entry → multiple stock movements ——
+// —— Sales Invoice: محرك التجزئة + FIFO + قيد مركب مع Rollback ودعم واجهة قديمة ——
+const CASH_SYP = '1010';
+const DEBTORS = '1200';
+const REVENUE = '4000';
+const COGS = '5000';
+const INVENTORY = '1100';
+
+function roundCostForResponse(value) {
+  if (value == null || Number.isNaN(value)) return 0;
+  return Number(Number(value).toFixed(2));
+}
+
+/**
+ * Rollback: إعادة الكميات المخصومة عند فشل صنف لاحق (استدعاء من محرك التجزئة/FIFO).
+ */
+function rollbackInvoiceLines(processedLines) {
+  for (let i = processedLines.length - 1; i >= 0; i--) {
+    const p = processedLines[i];
+    if (p.hadRule) {
+      fractioning.addReturnToOpenSub(p.productId, p.unitId, p.quantity, p.lineCostSYP);
+    } else {
+      fifo.addReturnLot(p.productId, p.unitId, p.quantity, p.costPerUnit, { isReturn: true });
+    }
+  }
+}
+
 router.post('/sales/invoice', requireAuth, (req, res) => {
   try {
-    const { items = [], customerId } = req.body;
+    const { items = [], customerId, paymentType = 'cash' } = req.body;
+    const isCash = paymentType !== 'credit' && paymentType !== 'ذمة';
     if (!Array.isArray(items) || items.length === 0) {
       return res.status(400).json({ success: false, error: 'items array required with at least one item' });
     }
 
     // 1) Validate stock for ALL items first
     for (const line of items) {
-      const { productId, unitId, quantity, unitPrice } = line;
+      const { productId, unitId, quantity } = line;
       if (!productId || quantity == null || quantity <= 0) {
         return res.status(400).json({ success: false, error: 'Each item must have productId and positive quantity' });
       }
@@ -808,9 +949,10 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
     const invoiceId = 'inv-' + year + '-' + String(seq).padStart(4, '0');
     let totalRevenue = 0;
     let totalCogsSYP = 0;
-    const movements = [];
+    const processedLines = [];
+    const seenKeys = new Set();
 
-    // 2) Execute sale per line (deduct stock), collect totals
+    // 2) Execute sale per line: وحدة فرعية (Piece) → sellInSubUnits؛ وحدة كبرى (Carton) → sellInBulk. عند الفشل: Rollback.
     for (const line of items) {
       const { productId, unitId, quantity, unitPrice } = line;
       const u = unitId || 'piece';
@@ -824,34 +966,90 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
         result = fractioning.sellInBulk(productId, u, quantity, price, 'SYP');
       }
       if (!result.success) {
-        return res.status(400).json({ success: false, error: result.error, productId, unitId: u });
+        rollbackInvoiceLines(processedLines);
+        return res.status(400).json({
+          success: false,
+          error: result.error || 'نقص مخزون',
+          productId,
+          unitId: u,
+          rollback: true,
+        });
       }
 
+      const lineCost = result.cogsSYP ?? result.cost ?? 0;
+      const costPerUnit = quantity > 0 ? lineCost / quantity : 0;
       totalRevenue += result.revenue ?? 0;
-      totalCogsSYP += result.cogsSYP ?? result.cost ?? 0;
+      totalCogsSYP += lineCost;
 
-      const mov = recordStockMovement(productId, u, quantity, 'out', 'invoice', invoiceId, result.cogsSYP ?? null);
+      processedLines.push({
+        productId,
+        unitId: u,
+        quantity,
+        lineCostSYP: lineCost,
+        costPerUnit: roundCostForResponse(costPerUnit),
+        hadRule: !!rule,
+      });
+      seenKeys.add(productId + ':' + u);
+    }
+
+    // 3) تسجيل حركات المخزون (بعد نجاح كل الأسطر) مع costAtMovement لدقة المرتجعات والتقييم التاريخي
+    const movements = [];
+    for (const p of processedLines) {
+      const mov = recordStockMovement(
+        p.productId,
+        p.unitId,
+        p.quantity,
+        'out',
+        'invoice',
+        invoiceId,
+        p.lineCostSYP
+      );
       movements.push(mov);
     }
 
-    // 3) One journal entry for the whole invoice (سعر الصرف وقت القيد = rateAtTx للتقارير لاحقاً)
+    // 4) قيد مركب: مدين صندوق/زبون، دائن إيرادات؛ مدين COGS، دائن مخزون. مرر amountUSDAtTx لـ valuation.
+    const debitAccountId = isCash ? CASH_SYP : DEBTORS;
     const rates = multiCurrency.getRates();
     const rateAtTx = rates.SYP != null && rates.SYP !== 0 ? rates.SYP : null;
     const amountUSDAtTx = rateAtTx != null ? totalRevenue * rateAtTx : null;
-    postSaleJournal(totalRevenue, totalCogsSYP, {
+
+    const compoundLines = [
+      { accountId: debitAccountId, debit: totalRevenue, credit: 0 },
+      { accountId: REVENUE, debit: 0, credit: totalRevenue },
+    ];
+    if (totalCogsSYP > 0) {
+      compoundLines.push({ accountId: COGS, debit: totalCogsSYP, credit: 0 });
+      compoundLines.push({ accountId: INVENTORY, debit: 0, credit: totalCogsSYP });
+    }
+
+    const createdBy = req.user ? (req.user.fullName || req.user.username || req.user.email || req.user.id) : 'user';
+    const journalResult = journal.postCompoundEntry(compoundLines, {
+      refType: 'sale',
       refId: invoiceId,
       memo: 'فاتورة بيع ' + invoiceId,
+      createdBy,
       amountUSDAtTx,
     });
 
+    if (!journalResult.success) {
+      rollbackInvoiceLines(processedLines);
+      const movIds = new Set(movements.map((m) => m.id));
+      if (stockMovements && stockMovements.length) {
+        for (let i = stockMovements.length - 1; i >= 0; i--) {
+          if (movIds.has(stockMovements[i].id)) stockMovements.splice(i, 1);
+        }
+      }
+      return res.status(400).json({ success: false, error: journalResult.error || 'فشل إنشاء القيد المحاسبي' });
+    }
+
     const tenantId = getTenantId(req);
-    const createdBy = req.user ? (req.user.fullName || req.user.username || req.user.email || req.user.id) : 'user';
     const invoiceDoc = {
       id: invoiceId,
       tenantId,
       createdBy,
       date: new Date().toISOString(),
       customerId: customerId || null,
+      paymentType: isCash ? 'cash' : 'credit',
       items: items.map((l) => ({
         productId: l.productId,
         unitId: l.unitId || 'piece',
@@ -866,14 +1064,36 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
     };
     salesInvoices.push(invoiceDoc);
 
+    // 5) أرصدة محدثة للأصناف (لتحديث الواجهة فوراً)
+    const stockUpdated = [];
+    for (const key of seenKeys) {
+      const [productId, unitId] = key.split(':');
+      const inv = fractioning.getEffectiveInventory(productId, unitId);
+      const available = inv?.quantity ?? 0;
+      stockUpdated.push({ productId, unitId, available });
+    }
+
+    // استجابة مع حقول جديدة + توافق قديم (total_price, stock_left) وجميع المبالغ مقرّبة
+    const total_price = roundCostForResponse(totalRevenue);
+    const totalCogsRounded = roundCostForResponse(totalCogsSYP);
+    const stock_left = stockUpdated.map((s) => ({
+      ...s,
+      available: roundCostForResponse(s.available),
+    }));
+
     res.status(201).json({
       success: true,
       data: {
         invoiceId,
-        totalRevenue,
-        totalCogsSYP,
+        totalRevenue: total_price,
+        totalCogsSYP: totalCogsRounded,
+        total_price,
+        stock_left,
+        stockUpdated,
         movements,
         customerId: customerId || null,
+        paymentType: isCash ? 'cash' : 'credit',
+        entryId: journalResult.entry?.id,
       },
     });
   } catch (e) {
@@ -1260,6 +1480,27 @@ router.post('/inventory/movements', (req, res) => {
   }
 });
 
+// —— تسوية الجرد (مطابقة الرصيد الفعلي مع النظامي) ——
+router.post('/inventory/reconcile', requireNoCashier, (req, res) => {
+  try {
+    const { productId, actualQty, unitId, reasonCode } = req.body;
+    if (!productId || actualQty == null) {
+      return res.status(400).json({ success: false, error: 'productId and actualQty required' });
+    }
+    const userId = req.user?.id || req.user?.username || 'api';
+    const result = reconciliation.reconcileStock(productId, Number(actualQty), unitId || 'piece', {
+      reasonCode: reasonCode || audit.REASON_CODES.INVENTORY_ADJUST,
+      userId,
+    });
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, data: result });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 // —— Smart Returns (مرتجعات مخزون بتكلفة أصلية وقيد مركب) ——
 router.post('/inventory/return', (req, res) => {
   try {
@@ -1295,12 +1536,39 @@ router.get('/multi-currency/rates', (req, res) => {
   res.json({ success: true, data: multiCurrency.getRates() });
 });
 
-router.post('/multi-currency/rates', (req, res) => {
+router.post('/multi-currency/rates', requireAuth, requireNoCashier, (req, res) => {
   try {
-    const { currency, rate } = req.body;
+    const { currency, rate, runRevaluation } = req.body;
     if (!currency || rate == null) return res.status(400).json({ success: false, error: 'currency and rate required' });
+    const role = (req.user && req.user.role || '').toUpperCase();
+    if (runRevaluation === true && role !== 'SUPER_ADMIN') {
+      return res.status(403).json({ success: false, error: 'إعادة تقييم الديون مسموحة لمدير النظام (SUPER_ADMIN) فقط', code: 'FORBIDDEN' });
+    }
+    const rates = multiCurrency.getRates();
+    const oldRate = rates[currency] ?? null;
     const data = multiCurrency.setRate(currency, rate);
-    res.json({ success: true, data });
+    const userId = req.user?.id || req.user?.username || 'api';
+    audit.logPriceChange('ExchangeRate', currency, oldRate, Number(rate), userId);
+    let revaluation = null;
+    if (runRevaluation === true && currency === 'SYP' && data.SYP != null && data.SYP !== 0) {
+      const oneUsdInSYP = 1 / data.SYP;
+      const revalResult = debtRevaluation.runDebtRevaluation(String(oneUsdInSYP), userId);
+      revaluation = revalResult.success ? { revalued: revalResult.revalued, adjustmentAmount: revalResult.adjustmentAmount, message: revalResult.message } : { error: revalResult.error };
+    }
+    res.json({ success: true, data, revaluation: revaluation || undefined });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/** إعادة تقييم الديون (دفعة واحدة). مسموح لـ SUPER_ADMIN فقط. */
+router.post('/currency/revalue-debts', requireAuth, requireSuperAdmin, (req, res) => {
+  try {
+    const { newRateOneUsdInSYP } = req.body || {};
+    const userId = req.user?.id || req.user?.username || 'api';
+    const result = debtRevaluation.runDebtRevaluation(newRateOneUsdInSYP != null ? String(newRateOneUsdInSYP) : null, userId);
+    if (!result.success) return res.status(400).json({ success: false, error: result.error });
+    res.json({ success: true, data: result });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
