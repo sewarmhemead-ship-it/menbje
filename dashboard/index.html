@@ -1871,28 +1871,35 @@
       if (el) el.textContent = count;
     }
     function openPendingInvoicesModal() {
-      var list = document.getElementById('pending-invoices-list');
-      var empty = document.getElementById('pending-invoices-empty');
-      var desc = document.getElementById('pending-invoices-desc');
       var modal = document.getElementById('pending-invoices-modal');
-      if (!modal || !list) return;
-      var holds = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
-      if (desc) desc.textContent = holds.length ? 'انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.' : 'لا توجد فواتير معلقة حالياً.';
-      if (!holds.length) {
-        list.innerHTML = '';
-        if (empty) { empty.classList.remove('hidden'); }
+      if (!modal) return;
+      var listContainer = document.getElementById('pending-invoices-list');
+      var statusText = document.getElementById('pending-invoices-desc');
+      var emptyEl = document.getElementById('pending-invoices-empty');
+      var holds = [];
+      try {
+        holds = typeof getResumableHolds === 'function' ? getResumableHolds() : [];
+        if (!Array.isArray(holds)) holds = [];
+      } catch (e) { holds = []; }
+      if (holds.length > 0) {
+        if (statusText) statusText.textContent = 'انقر استكمال بجانب الفاتورة لتحميلها وإكمالها.';
+        if (emptyEl) emptyEl.classList.add('hidden');
+        if (listContainer) {
+          listContainer.innerHTML = holds.map(function(h, i) {
+            var label = (h.date || '').slice(0, 10) + ' · ' + (h.customer || '—') + ' · ' + (h.lines || []).length + ' صنف';
+            return '<li class="flex justify-between items-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10"><span class="truncate">' + (label.replace(/</g, '&lt;')) + '</span><button type="button" onclick="resumePendingHoldAndClose(' + i + ')" class="tap-haptic px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm shrink-0">استكمال</button></li>';
+          }).join('');
+        }
       } else {
-        if (empty) empty.classList.add('hidden');
-        list.innerHTML = holds.map(function(h, i) {
-          var label = (h.date || '').slice(0, 10) + ' · ' + (h.customer || '—') + ' · ' + (h.lines || []).length + ' صنف';
-          return '<li class="flex justify-between items-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10"><span class="truncate">' + (label.replace(/</g, '&lt;')) + '</span><button type="button" onclick="resumePendingHoldAndClose(' + i + ')" class="tap-haptic px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm shrink-0">استكمال</button></li>';
-        }).join('');
+        if (statusText) statusText.textContent = 'لا توجد فواتير معلقة حالياً.';
+        if (listContainer) listContainer.innerHTML = '';
+        if (emptyEl) { emptyEl.classList.remove('hidden'); }
       }
       modal.classList.remove('hidden');
     }
     function closePendingInvoicesModal() {
-      var m = document.getElementById('pending-invoices-modal');
-      if (m) m.classList.add('hidden');
+      var modal = document.getElementById('pending-invoices-modal');
+      if (modal) modal.classList.add('hidden');
     }
     function resumePendingHoldAndClose(index) {
       closePendingInvoicesModal();
