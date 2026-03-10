@@ -18,10 +18,10 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@300;400;500;600;700&family=Tajawal:wght@400;500;700&display=swap" rel="stylesheet" />
-  <link href="/dist/tailwind.css" rel="stylesheet" />
-  <script src="https://cdn.jsdelivr.net/npm/chart.js?v=1.1"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js?v=1.1"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js?v=1.1"></script>
+  <link href="/dist/tailwind.css?v=2.1" rel="stylesheet" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js?v=2.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js?v=2.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js?v=2.1"></script>
   <style>
     :root {
       --primary-color: #10b981;
@@ -504,11 +504,11 @@
     <div class="flex items-center justify-between w-full">
       <div class="w-32 flex-shrink-0"></div>
       <nav class="flex-1 flex justify-center items-center gap-4 lg:gap-6">
-        <button onclick="showSection('dashboard')" data-nav="dashboard" class="topnav-item tap-haptic flex flex-col md:flex-row items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium">
+        <button onclick="showSection('dashboard')" data-nav="dashboard" class="topnav-item active tap-haptic flex flex-col md:flex-row items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
           <span>الرئيسية</span>
         </button>
-        <button onclick="showSection('accounting')" data-nav="accounting" class="topnav-item active tap-haptic flex flex-col md:flex-row items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium">
+        <button onclick="showSection('accounting')" data-nav="accounting" class="topnav-item tap-haptic flex flex-col md:flex-row items-center gap-1 px-3 py-2 rounded-lg text-sm font-medium">
           <svg class="w-5 h-5 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg>
           <span>المحاسبة</span>
         </button>
@@ -570,7 +570,7 @@
       <div id="module-content" class="hidden w-full"></div>
 
       <!-- Unified Dashboard (Zero Hidden Features — مصدر واحد GET /dashboard/summary) -->
-      <section id="section-dashboard" data-section class="unified-dashboard">
+      <section id="section-dashboard" data-section class="unified-dashboard active">
         <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex items-center gap-2">
             <h2 class="page-title-h2">لوحة التحكم</h2>
@@ -679,7 +679,7 @@
       </section>
 
       <!-- Accounting -->
-      <section id="section-accounting" data-section class="active">
+      <section id="section-accounting" data-section>
         <h2 class="page-title-h2 mb-1">المحاسبة</h2>
         <p class="page-desc mb-6">دفتر قيود مزدوج. كل بيع أو مقايضة يُسجّل مدين ودائن. ميزان مراجعة، أرباح وخسائر، تدفق نقدي.</p>
         <div class="bento grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-md:flex max-md:flex-col">
@@ -879,7 +879,7 @@
   <!-- Mobile Bottom Nav -->
   <nav class="flex md:hidden fixed bottom-0 left-0 right-0 z-40 bottom-nav safe-area-pb">
     <div class="flex-1 flex items-center justify-around py-2">
-      <button type="button" onclick="showSection('dashboard'); setMobileNav('dashboard');" data-mobile-nav="dashboard" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn">
+      <button type="button" onclick="showSection('dashboard'); setMobileNav('dashboard');" data-mobile-nav="dashboard" class="tap-haptic flex flex-col items-center gap-1 px-3 py-1 text-slate-400 mobile-nav-btn active">
         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6zM14 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2V6zM4 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2v-2zM14 16a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2h-2a2 2 0 01-2-2v-2z"/></svg>
         <span class="text-[10px]">الرئيسية</span>
       </button>
@@ -2191,6 +2191,8 @@
       forceCloseModal();
     }
     window.addEventListener('DOMContentLoaded', function() {
+      if (typeof setMobileNav === 'function') setMobileNav('dashboard');
+      if (typeof loadUnifiedDashboard === 'function') loadUnifiedDashboard();
       setTimeout(function() {
         var modal = document.getElementById('pending-invoices-modal');
         if (modal && !modal.classList.contains('hidden')) modal.classList.add('hidden');
