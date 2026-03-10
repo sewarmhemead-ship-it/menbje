@@ -18,7 +18,7 @@ const barterMatchAlerts = [];
 const accounts = new Map();         // Chart of Accounts
 const journalEntriesList = [];      // Double-entry lines
 const vouchers = [];                // سندات: { id, type, date, amountSYP, accountId, memo, entryIds, ... }
-const stockMovements = [];         // حركات مخزون: { id, productId, unitId, qty, type: 'in'|'out', refType, refId, date }
+const stockMovements = [];         // حركات مخزون: { id, productId, unitId, quantity, type, refType, refId, date, costAtMovement? }
 const debtLedger = [];              // { id, debtorId, amountSYP, amountGoldAtTx, dueDate, ... }
 const actionLog = [];               // Audit trail
 const exchangeRates = new Map();
@@ -29,7 +29,7 @@ const purchaseInvoices = [];
 const purchaseReturns = [];
 
 // Sales: invoices and returns (for lookup and reports)
-const salesInvoices = [];           // { id, date, customerId, items: [{ productId, unitId, quantity, unitPrice }], totalRevenue, totalCogsSYP }
+const salesInvoices = [];           // { id, date, customerId, items, totalRevenue, totalCogsSYP, rateAtTx?, amountUSDAtTx? } — rateAtTx = سعر الصرف وقت الفاتورة لأرباح/خسائر الصرف
 const salesReturns = [];            // { id, invoiceId, date, items: [...], totalAmount, refundToCash, reason?, notes?, rmaNumber? }
 
 // Manufacturing: BOMs and build orders

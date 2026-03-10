@@ -88,7 +88,7 @@
       err.classList.add('hidden');
       if (!email || !password) { err.textContent = 'أدخل البريد وكلمة المرور'; err.classList.remove('hidden'); return; }
       try {
-        const r = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: email || undefined, username: email || undefined, password }) });
+        const r = await fetch(API + '/auth/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, credentials: 'include', body: JSON.stringify({ email: email || undefined, username: email || undefined, password }) });
         const j = await r.json();
         if (!j.success) { err.textContent = j.error || 'فشل تسجيل الدخول'; err.classList.remove('hidden'); return; }
         localStorage.setItem('vault_token', j.data.token);

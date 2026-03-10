@@ -1,22 +1,33 @@
 /**
  * Auth routes: login, register, me.
  * Passwords stored in plain for demo; use bcrypt in production.
- * Login returns a JWT so the token works on serverless (Vercel) where in-memory sessions are not shared.
+ * Login sets vault_token in HttpOnly cookie (prevents XSS session theft) and returns JWT in body for legacy clients.
  */
 
 import { Router } from 'express';
+import rateLimit from 'express-rate-limit';
 import { store } from '../config/store.js';
 import { requireAuth } from '../auth/middleware.js';
 import { createJWT } from '../auth/jwt.js';
+import { loginSchema, validateBody } from '../validation/schemas.js';
 
 const router = Router();
 
-router.post('/login', (req, res) => {
-  const { email, username, password } = req.body || {};
-  const loginId = (email || username || '').toString().trim().toLowerCase();
-  if (!loginId || !password) {
-    return res.status(400).json({ success: false, error: 'معرف الدخول (بريد أو اسم مستخدم) وكلمة المرور مطلوبان' });
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  message: { success: false, error: 'محاولات دخول كثيرة من هذا العنوان. جرّب بعد 15 دقيقة.', code: 'TOO_MANY_REQUESTS' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+
+router.post('/login', loginLimiter, (req, res) => {
+  const validated = validateBody(loginSchema, req);
+  if (!validated.success) {
+    return res.status(400).json({ success: false, error: validated.error });
   }
+  const { email, username, password } = validated.data;
+  const loginId = (email || username || '').toString().trim().toLowerCase();
   const user = Array.from(store.users.values()).find(u =>
     (u.email || '').toLowerCase() === loginId || (u.username || '').toLowerCase() === loginId
   );
@@ -32,6 +43,12 @@ router.post('/login', (req, res) => {
   const token = createJWT(user);
   const expiresAt = user.expiresAt ? new Date(user.expiresAt) : null;
   const daysLeft = expiresAt ? Math.ceil((expiresAt - new Date()) / (24 * 60 * 60 * 1000)) : null;
+  res.cookie('vault_token', token, {
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict',
+    maxAge: 7 * 24 * 60 * 60 * 1000,
+  });
   res.json({
     success: true,
     data: {
@@ -108,8 +125,9 @@ router.get('/me', requireAuth, (req, res) => {
 });
 
 router.post('/logout', (req, res) => {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.body?.token;
+  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.body?.token || req.cookies?.vault_token;
   if (token) store.sessions.delete(token);
+  res.clearCookie('vault_token');
   res.json({ success: true, data: { message: 'تم تسجيل الخروج' } });
 });
 

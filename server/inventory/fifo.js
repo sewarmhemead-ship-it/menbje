@@ -37,12 +37,58 @@ export function receiveLot(productId, unitId, quantity, unitCostSYP) {
 }
 
 /**
+ * إضافة مرتجع كدفعة (Lot) جديدة بتكلفتها الأصلية لاستهلاكها لاحقاً وفق FIFO.
+ * يُستخدم عند استلام مرتجع مبيعات؛ التكلفة من costAtMovement في حركة الخروج الأصلية.
+ * @param {string} productId
+ * @param {string} unitId
+ * @param {number} quantity
+ * @param {number} unitCostSYP - التكلفة الأصلية للوحدة عند الخروج
+ * @param {{ isReturn?: boolean }} opts - isReturn: true (افتراضي) لتمييز الدفعة كمرتجع
+ * @returns {{ lot, success: boolean }}
+ */
+export function addReturnLot(productId, unitId, quantity, unitCostSYP, opts = {}) {
+  const isReturn = opts.isReturn !== false;
+  const id = getNextId('inventoryLots');
+  const qty = Number(quantity);
+  const cost = Number(unitCostSYP) || 0;
+  const lot = {
+    id,
+    productId,
+    unitId,
+    quantity: qty,
+    unitCostSYP: cost,
+    receivedAt: new Date().toISOString(),
+    remaining: qty,
+    isReturn: !!isReturn,
+  };
+  inventoryLots.push(lot);
+
+  const key = getInventoryKey(productId, unitId);
+  const agg = inventoryByProduct.get(key) || { productId, unitId, quantity: 0, reserved: 0 };
+  agg.quantity = (agg.quantity || 0) + qty;
+  inventoryByProduct.set(key, agg);
+
+  return { success: true, lot };
+}
+
+/**
  * Consume quantity from oldest lots (FIFO). Returns { consumed, cogsSYP, lotsUsed }.
  * Lots are mutated (remaining reduced); lots with remaining=0 are left in array for audit.
+ * صمام أمان: إذا كانت الكمية المطلوبة أكبر من المتاح، تُرجع خطأ دون تعديل أي دفعة (منع مخزون سالب).
  */
 export function consumeFIFO(productId, unitId, quantityNeeded) {
   const qty = Number(quantityNeeded);
   if (qty <= 0) return { consumed: 0, cogsSYP: 0, lotsUsed: [] };
+
+  const available = getFIFOQuantity(productId, unitId);
+  if (qty > available) {
+    return {
+      consumed: 0,
+      cogsSYP: 0,
+      lotsUsed: [],
+      error: 'كمية غير كافية في المخزون: المطلوب ' + qty + '، المتاح ' + available,
+    };
+  }
 
   const eligible = inventoryLots
     .filter(
@@ -67,15 +113,6 @@ export function consumeFIFO(productId, unitId, quantityNeeded) {
   }
 
   const consumed = qty - remaining;
-  if (consumed < qty) {
-    return {
-      consumed,
-      cogsSYP,
-      lotsUsed,
-      error: 'Insufficient FIFO lots (short by ' + remaining + ')',
-    };
-  }
-
   const key = getInventoryKey(productId, unitId);
   const agg = inventoryByProduct.get(key);
   if (agg) {

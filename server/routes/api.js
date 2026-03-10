@@ -19,12 +19,14 @@ import * as vouchers from '../accounting/vouchers.js';
 import { postSaleJournal } from '../accounting/transactions.js';
 import { recordStockMovement } from '../inventory/stockMovement.js';
 import * as fifo from '../inventory/fifo.js';
+import * as returns from '../inventory/returns.js';
 import * as procurement from '../modules/procurement/index.js';
 import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
 import * as settings from '../config/settings.js';
 import { optionalAuth, requireAuth, requireSuperAdmin } from '../auth/middleware.js';
+import { voucherReceiptSchema, voucherPaymentSchema, voucherJournalSchema, expenseSchema, validateBody } from '../validation/schemas.js';
 
 const router = Router();
 router.use(optionalAuth);
@@ -155,10 +157,24 @@ router.get('/dashboard/summary', (req, res) => {
   }
 });
 
-// —— تنبيهات المخزون المنخفض (Low stock alerts) ——
+// —— تنبيهات المخزون المنخفض (Low stock alerts) + تاريخ نفاد المخزون (Stock Run-out Date) ——
 router.get('/dashboard/low-stock', (req, res) => {
   try {
     const tenantId = getTenantId(req);
+    const from30 = new Date();
+    from30.setDate(from30.getDate() - 30);
+    const from30Str = from30.toISOString().slice(0, 10);
+    const soldByProduct = {};
+    for (const inv of salesInvoices) {
+      if ((inv.tenantId || 'default') !== tenantId || !inv.date || (inv.date + '').slice(0, 10) < from30Str) continue;
+      const items = inv.items || inv.lines || [];
+      for (const line of items) {
+        const pid = line.productId || line.product_id;
+        if (!pid) continue;
+        const qty = Number(line.quantity) || 0;
+        soldByProduct[pid] = (soldByProduct[pid] || 0) + qty;
+      }
+    }
     const list = [];
     for (const p of products.values()) {
       if ((p.tenantId || 'default') !== tenantId || !p.active) continue;
@@ -168,6 +184,16 @@ router.get('/dashboard/low-stock', (req, res) => {
       const inv = fractioning.getEffectiveInventory(p.id, unitId);
       const current_stock = (inv && inv.quantity != null) ? Number(inv.quantity) : 0;
       if (current_stock > minLevel) continue;
+      const sold30 = soldByProduct[p.id] || 0;
+      const dailyConsumption = sold30 / 30;
+      let run_out_days = null;
+      let run_out_date_iso = null;
+      if (dailyConsumption > 0 && current_stock >= 0) {
+        run_out_days = Math.floor(current_stock / dailyConsumption);
+        const d = new Date();
+        d.setDate(d.getDate() + run_out_days);
+        run_out_date_iso = d.toISOString().slice(0, 10);
+      }
       const supplier = p.supplierId ? suppliers.get(p.supplierId) : null;
       list.push({
         id: p.id,
@@ -177,6 +203,9 @@ router.get('/dashboard/low-stock', (req, res) => {
         supplier_name: supplier ? supplier.name : null,
         supplier_phone: supplier ? supplier.phone : null,
         supplier_address: supplier ? supplier.address : null,
+        run_out_days,
+        run_out_date_iso,
+        sold_last_30_days: sold30,
       });
     }
     res.json({ success: true, data: list });
@@ -315,6 +344,7 @@ router.delete('/users/:id', requireAuth, requireAdmin, (req, res) => {
     if (!u || (u.tenantId || 'default') !== tenantId) {
       return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
     }
+    audit.log('USER_DELETE', { entityType: 'User', entityId: targetId, oldValue: { id: u.id, fullName: u.fullName, role: u.role }, newValue: null, userId: req.user?.id });
     users.delete(targetId);
     res.json({ success: true, data: { message: 'تم حذف المستخدم' } });
   } catch (e) {
@@ -333,6 +363,7 @@ router.patch('/users/:id/password', requireAuth, requireAdmin, (req, res) => {
     if (!u || (u.tenantId || 'default') !== tenantId) {
       return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
     }
+    audit.log('PASSWORD_CHANGE', { entityType: 'User', entityId: u.id, oldValue: null, newValue: null, userId: req.user?.id, reasonCode: 'USER_EDIT' });
     u.password = String(newPassword).trim();
     res.json({ success: true, data: { message: 'تم تغيير كلمة المرور' } });
   } catch (e) {
@@ -350,6 +381,7 @@ router.patch('/users/:id', requireAuth, (req, res) => {
     const u = users.get(targetId);
     if (!u) return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
 
+    const oldSnapshot = { industryType: u.industryType, status: u.status, fullName: u.fullName };
     const role = (req.user && req.user.role || '').toUpperCase();
     const isSuperAdmin = role === 'SUPER_ADMIN';
 
@@ -377,6 +409,7 @@ router.patch('/users/:id', requireAuth, (req, res) => {
       if (fullName !== undefined) u.fullName = String(fullName).trim() || null;
     }
 
+    audit.log('USER_EDIT', { entityType: 'User', entityId: targetId, oldValue: oldSnapshot, newValue: { industryType: u.industryType, status: u.status, fullName: u.fullName }, userId: req.user?.id });
     res.json({
       success: true,
       data: {
@@ -429,11 +462,13 @@ router.patch('/products/:id', (req, res) => {
   const tenantId = getTenantId(req);
   const p = products.get(req.params.id);
   if (!p || (p.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'Product not found' });
+  const userId = req.body.userId || req.user?.id || 'api';
   const { costPerDefaultUnit, salesPricePerUnit, barcode, name, min_stock_level, supplierId, base_currency, base_price } = req.body;
+  const oldSnapshot = { name: p.name, salesPricePerUnit: p.salesPricePerUnit, barcode: p.barcode, min_stock_level: p.min_stock_level };
   if (costPerDefaultUnit !== undefined) {
     const oldVal = p.costPerDefaultUnit;
     p.costPerDefaultUnit = Number(costPerDefaultUnit);
-    audit.logPriceChange('Product', p.id, oldVal, p.costPerDefaultUnit, req.body.userId || 'api');
+    audit.logPriceChange('Product', p.id, oldVal, p.costPerDefaultUnit, userId);
   }
   if (salesPricePerUnit !== undefined) p.salesPricePerUnit = Number(salesPricePerUnit);
   if (barcode !== undefined) p.barcode = barcode || null;
@@ -442,6 +477,9 @@ router.patch('/products/:id', (req, res) => {
   if (supplierId !== undefined) p.supplierId = supplierId || null;
   if (base_currency !== undefined) p.base_currency = (base_currency === 'USD' || base_currency === 'SYP') ? base_currency : 'SYP';
   if (base_price !== undefined) p.base_price = base_price == null ? null : Number(base_price);
+  if (name !== undefined || salesPricePerUnit !== undefined || barcode !== undefined) {
+    audit.logEntityEdit('USER_EDIT', 'Product', p.id, oldSnapshot, { name: p.name, salesPricePerUnit: p.salesPricePerUnit, barcode: p.barcode, min_stock_level: p.min_stock_level }, userId);
+  }
   res.json({ success: true, data: p });
 });
 
@@ -676,9 +714,10 @@ router.get('/vouchers', (req, res) => {
 
 router.post('/vouchers/receipt', (req, res) => {
   try {
-    const { cashAccountId, creditAccountId, amountSYP, memo, createdBy } = req.body;
-    if (!creditAccountId || amountSYP == null) return res.status(400).json({ success: false, error: 'creditAccountId and amountSYP required' });
-    const result = vouchers.postReceiptVoucher({ cashAccountId, creditAccountId, amountSYP: Number(amountSYP), memo, createdBy });
+    const validated = validateBody(voucherReceiptSchema, req);
+    if (!validated.success) return res.status(400).json({ success: false, error: validated.error });
+    const { cashAccountId, creditAccountId, amountSYP, memo } = validated.data;
+    const result = vouchers.postReceiptVoucher({ cashAccountId, creditAccountId, amountSYP, memo, createdBy: req.body?.createdBy });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
   } catch (e) {
@@ -688,9 +727,10 @@ router.post('/vouchers/receipt', (req, res) => {
 
 router.post('/vouchers/payment', (req, res) => {
   try {
-    const { creditAccountId, debitAccountId, amountSYP, memo, createdBy } = req.body;
-    if (!debitAccountId || amountSYP == null) return res.status(400).json({ success: false, error: 'debitAccountId and amountSYP required' });
-    const result = vouchers.postPaymentVoucher({ creditAccountId, debitAccountId, amountSYP: Number(amountSYP), memo, createdBy });
+    const validated = validateBody(voucherPaymentSchema, req);
+    if (!validated.success) return res.status(400).json({ success: false, error: validated.error });
+    const { creditAccountId, debitAccountId, amountSYP, memo } = validated.data;
+    const result = vouchers.postPaymentVoucher({ creditAccountId, debitAccountId, amountSYP, memo, createdBy: req.body?.createdBy });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
   } catch (e) {
@@ -700,8 +740,10 @@ router.post('/vouchers/payment', (req, res) => {
 
 router.post('/vouchers/journal', (req, res) => {
   try {
-    const { date, lines, createdBy } = req.body;
-    if (!lines || !Array.isArray(lines)) return res.status(400).json({ success: false, error: 'lines required' });
+    const validated = validateBody(voucherJournalSchema, req);
+    if (!validated.success) return res.status(400).json({ success: false, error: validated.error });
+    const { lines } = validated.data;
+    const { date, createdBy } = req.body || {};
     const result = vouchers.postJournalVoucher({ lines, date, createdBy });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
@@ -788,16 +830,18 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
       totalRevenue += result.revenue ?? 0;
       totalCogsSYP += result.cogsSYP ?? result.cost ?? 0;
 
-      const mov = recordStockMovement(productId, u, quantity, 'out', 'invoice', invoiceId);
+      const mov = recordStockMovement(productId, u, quantity, 'out', 'invoice', invoiceId, result.cogsSYP ?? null);
       movements.push(mov);
     }
 
-    // 3) One journal entry for the whole invoice
+    // 3) One journal entry for the whole invoice (سعر الصرف وقت القيد = rateAtTx للتقارير لاحقاً)
     const rates = multiCurrency.getRates();
+    const rateAtTx = rates.SYP != null && rates.SYP !== 0 ? rates.SYP : null;
+    const amountUSDAtTx = rateAtTx != null ? totalRevenue * rateAtTx : null;
     postSaleJournal(totalRevenue, totalCogsSYP, {
       refId: invoiceId,
       memo: 'فاتورة بيع ' + invoiceId,
-      amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? totalRevenue * rates.SYP : null,
+      amountUSDAtTx,
     });
 
     const tenantId = getTenantId(req);
@@ -813,9 +857,12 @@ router.post('/sales/invoice', requireAuth, (req, res) => {
         unitId: l.unitId || 'piece',
         quantity: l.quantity,
         unitPrice: l.unitPrice,
+        returnedQuantity: 0,
       })),
       totalRevenue,
       totalCogsSYP,
+      rateAtTx,
+      amountUSDAtTx,
     };
     salesInvoices.push(invoiceDoc);
 
@@ -923,7 +970,7 @@ router.post('/sales/return', (req, res) => {
           fractioning.addBulkInventory(productId, u, returnQty);
           fifo.receiveLot(productId, u, returnQty, 0);
         }
-        const mov = recordStockMovement(productId, u, returnQty, 'in', 'sales_return', returnId);
+        const mov = recordStockMovement(productId, u, returnQty, 'in', 'sales_return', returnId, null);
         movements.push(mov);
       }
     }
@@ -1056,10 +1103,12 @@ router.put('/suppliers/:id', requireAuth, (req, res) => {
     if (!s) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
     const tenantId = getTenantId(req);
     if ((s.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    const oldVal = { name: s.name, phone: s.phone, address: s.address };
     const { name, phone, address } = req.body || {};
     if (name !== undefined) s.name = String(name).trim();
     if (phone !== undefined) s.phone = phone ? String(phone).trim() : null;
     if (address !== undefined) s.address = address ? String(address).trim() : null;
+    audit.log('USER_EDIT', { entityType: 'Supplier', entityId: req.params.id, oldValue: oldVal, newValue: { name: s.name, phone: s.phone, address: s.address }, userId: req.user?.id });
     res.json({ success: true, data: s });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -1072,6 +1121,7 @@ router.delete('/suppliers/:id', requireAuth, (req, res) => {
     if (!s) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
     const tenantId = getTenantId(req);
     if ((s.tenantId || 'default') !== tenantId) return res.status(404).json({ success: false, error: 'المورد غير موجود' });
+    audit.log('ENTITY_DELETE', { entityType: 'Supplier', entityId: req.params.id, oldValue: { id: s.id, name: s.name }, newValue: null, userId: req.user?.id });
     suppliers.delete(req.params.id);
     res.json({ success: true, data: { message: 'تم حذف المورد' } });
   } catch (e) {
@@ -1100,8 +1150,10 @@ router.post('/manufacturing/boms', (req, res) => {
 });
 router.put('/manufacturing/boms/:id', (req, res) => {
   try {
+    const oldBom = manufacturing.getBOM(req.params.id) || null;
     const result = manufacturing.saveBOM({ ...req.body, id: req.params.id });
     if (!result.success) return res.status(400).json(result);
+    audit.log('USER_EDIT', { entityType: 'BOM', entityId: req.params.id, oldValue: oldBom ? { finishedProductId: oldBom.finishedProductId, components: oldBom.components } : null, newValue: result.bom ? { finishedProductId: result.bom.finishedProductId, components: result.bom.components } : null, userId: req.user?.id });
     res.json({ success: true, data: result.bom });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -1122,8 +1174,10 @@ router.post('/manufacturing/build', (req, res) => {
 // —— Expenses (المصاريف) ——
 router.post('/expenses', (req, res) => {
   try {
-    const { accountId, amountSYP, memo, date, createdBy } = req.body;
-    const result = expenses.recordExpense({ accountId, amountSYP, memo, date, createdBy });
+    const validated = validateBody(expenseSchema, req);
+    if (!validated.success) return res.status(400).json({ success: false, error: validated.error });
+    const { accountId, amountSYP, memo, date, createdBy } = validated.data;
+    const result = expenses.recordExpense({ accountId, amountSYP, memo, date, createdBy: createdBy || req.body?.createdBy });
     if (!result.success) return res.status(400).json(result);
     res.status(201).json({ success: true, data: result });
   } catch (e) {
@@ -1140,11 +1194,13 @@ router.get('/settings/company-profile', (req, res) => {
   res.json({ success: true, data: { ...store.companyProfile } });
 });
 router.put('/settings/company-profile', (req, res) => {
+  const oldProfile = { ...store.companyProfile };
   const { logoUrl, taxId, defaultCurrency, name } = req.body;
   if (logoUrl !== undefined) store.companyProfile.logoUrl = logoUrl;
   if (taxId !== undefined) store.companyProfile.taxId = taxId;
   if (defaultCurrency !== undefined) store.companyProfile.defaultCurrency = defaultCurrency;
   if (name !== undefined) store.companyProfile.name = name;
+  audit.log('USER_EDIT', { entityType: 'CompanyProfile', entityId: 'default', oldValue: oldProfile, newValue: { ...store.companyProfile }, userId: req.user?.id });
   res.json({ success: true, data: { ...store.companyProfile } });
 });
 
@@ -1199,6 +1255,36 @@ router.post('/inventory/movements', (req, res) => {
     };
     stockMovements.push(movement);
     res.status(201).json({ success: true, data: movement });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Smart Returns (مرتجعات مخزون بتكلفة أصلية وقيد مركب) ——
+router.post('/inventory/return', (req, res) => {
+  try {
+    const { saleRefId, itemsToReturn = [], refundToCash = true, memo, returnId, createdBy } = req.body;
+    const createdByUser = req.user ? (req.user.fullName || req.user.username || req.user.id) : (createdBy || 'api');
+    const result = returns.processReturn(saleRefId, itemsToReturn, {
+      refundToCash: !!refundToCash,
+      memo: memo != null ? String(memo) : '',
+      returnId: returnId || undefined,
+      createdBy: createdByUser,
+    });
+    if (!result.success) {
+      return res.status(400).json({ success: false, error: result.error });
+    }
+    res.status(201).json({
+      success: true,
+      data: {
+        returnId: result.returnId,
+        entry: result.entry,
+        movements: result.movements,
+        processedLines: result.processedLines,
+        totalRefundSYP: result.totalRefundSYP,
+        totalCostReversalSYP: result.totalCostReversalSYP,
+      },
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

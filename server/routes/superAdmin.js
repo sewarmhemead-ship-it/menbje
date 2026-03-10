@@ -6,6 +6,7 @@
 import { Router } from 'express';
 import { store } from '../config/store.js';
 import { requireMasterKey } from '../auth/middleware.js';
+import * as audit from '../audit/actionLog.js';
 
 const router = Router();
 
@@ -33,6 +34,7 @@ router.patch('/users/:id', (req, res) => {
   const { id } = req.params;
   const user = store.users.get(id);
   if (!user) return res.status(404).json({ success: false, error: 'المستخدم غير موجود' });
+  const oldVal = { tier: user.tier, status: user.status, expiresAt: user.expiresAt };
   const { tier, status, expiresAt } = req.body || {};
   if (tier !== undefined) {
     if (!['basic', 'pro', 'enterprise'].includes(tier)) return res.status(400).json({ success: false, error: 'الباقة غير صالحة' });
@@ -43,6 +45,7 @@ router.patch('/users/:id', (req, res) => {
     user.status = status;
   }
   if (expiresAt !== undefined) user.expiresAt = expiresAt || null;
+  audit.log('USER_EDIT', { entityType: 'User', entityId: id, oldValue: oldVal, newValue: { tier: user.tier, status: user.status, expiresAt: user.expiresAt }, userId: 'super-admin' });
   const days = daysRemaining(user.expiresAt);
   res.json({
     success: true,

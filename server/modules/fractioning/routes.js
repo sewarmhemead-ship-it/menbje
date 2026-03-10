@@ -58,26 +58,26 @@ router.get('/inventory/:productId/:unitId', (req, res) => {
 router.post('/sell-sub', (req, res) => {
   try {
     const { productId, subUnitId, subQuantity, salePricePerSubUnit, currencyId } = req.body;
+    const refId = productId + '-sub-' + Date.now();
     const result = engine.sellInSubUnits(
       productId,
       subUnitId,
       Number(subQuantity),
       Number(salePricePerSubUnit),
-      currencyId || 'SYP'
+      currencyId || 'SYP',
+      { postJournal: false, refId }
     );
     if (!result.success) return res.status(400).json(result);
 
     const rates = multiCurrency.getRates();
     const amountSYP = result.revenue;
     const cogsSYP = result.cogsSYP ?? result.cost ?? 0;
-    const refId = result.productId + '-sub-' + Date.now();
     postSaleJournal(amountSYP, cogsSYP, {
       refId,
       memo: `Sale sub ${result.subQuantity} ${result.subUnitId}`,
       amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? amountSYP * rates.SYP : null,
     });
-    // Logic Bridge: sync inventory with central stock movements
-    recordStockMovement(result.productId, result.subUnitId, result.subQuantity, 'out', 'sale', refId);
+    recordStockMovement(result.productId, result.subUnitId, result.subQuantity, 'out', 'sale', refId, result.cogsSYP ?? null);
 
     res.json(result);
   } catch (e) {
@@ -88,26 +88,26 @@ router.post('/sell-sub', (req, res) => {
 router.post('/sell-bulk', (req, res) => {
   try {
     const { productId, bulkUnitId, bulkQuantity, salePricePerBulk, currencyId } = req.body;
+    const refId = productId + '-bulk-' + Date.now();
     const result = engine.sellInBulk(
       productId,
       bulkUnitId,
       Number(bulkQuantity),
       Number(salePricePerBulk),
-      currencyId || 'SYP'
+      currencyId || 'SYP',
+      { postJournal: false, refId }
     );
     if (!result.success) return res.status(400).json(result);
 
     const rates = multiCurrency.getRates();
     const amountSYP = result.revenue;
     const cogsSYP = result.cogsSYP ?? result.cost ?? 0;
-    const refId = result.productId + '-bulk-' + Date.now();
     postSaleJournal(amountSYP, cogsSYP, {
       refId,
       memo: `Sale bulk ${result.bulkQuantity} ${result.bulkUnitId}`,
       amountUSDAtTx: rates.SYP != null && rates.SYP !== 0 ? amountSYP * rates.SYP : null,
     });
-    // Logic Bridge: sync inventory with central stock movements
-    recordStockMovement(result.productId, result.bulkUnitId, result.bulkQuantity, 'out', 'sale', refId);
+    recordStockMovement(result.productId, result.bulkUnitId, result.bulkQuantity, 'out', 'sale', refId, result.cogsSYP ?? null);
 
     res.json(result);
   } catch (e) {

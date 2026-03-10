@@ -1,11 +1,13 @@
 import 'dotenv/config';
 import express from 'express';
 import cors from 'cors';
+import cookieParser from 'cookie-parser';
 import path from 'path';
 import { fileURLToPath } from 'url';
 
 import fractioningRoutes from './modules/fractioning/routes.js';
 import whatsappRoutes from './modules/whatsapp/routes.js';
+import rateLimit from 'express-rate-limit';
 import apiRoutes from './routes/api.js';
 import authRoutes from './routes/auth.js';
 import superAdminRoutes from './routes/superAdmin.js';
@@ -17,7 +19,8 @@ const dashboardPath = path.join(__dirname, '../dashboard');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-app.use(cors());
+app.use(cors({ origin: true, credentials: true }));
+app.use(cookieParser());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -30,7 +33,15 @@ if (process.env.VERCEL) {
   });
 }
 
-// API
+// API — rate limit general API to mitigate abuse (100 req/15 min per IP)
+const apiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 200,
+  message: { success: false, error: 'عدد الطلبات كبير. انتظر قليلاً.', code: 'TOO_MANY_REQUESTS' },
+  standardHeaders: true,
+  legacyHeaders: false,
+});
+app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);
 app.use('/api/super-admin', superAdminRoutes);
 app.use('/api/import', importRoutes);

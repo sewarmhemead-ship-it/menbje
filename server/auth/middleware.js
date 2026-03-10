@@ -1,7 +1,7 @@
 /**
- * Auth middleware: resolve token from header/cookie/body and attach user to req.
- * Supports JWT (jwt_...) so tokens work on serverless (Vercel) without session store.
- * Super-admin routes use Master-Key header separately.
+ * Auth middleware: resolve token and attach user to req.
+ * Token resolution order: req.cookies.vault_token (HttpOnly, preferred for security) then header/query/body.
+ * Supports JWT (jwt_...) for serverless. Super-admin routes use Master-Key header separately.
  */
 
 import { store } from '../config/store.js';
@@ -26,7 +26,7 @@ function resolveUser(token) {
 }
 
 export function requireAuth(req, res, next) {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query?.token || req.body?.token;
+  const token = req.cookies?.vault_token || req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query?.token || req.body?.token;
   if (!token) {
     return res.status(401).json({ success: false, error: 'غير مصرح', code: 'UNAUTHORIZED' });
   }
@@ -47,7 +47,7 @@ export function requireAuth(req, res, next) {
 }
 
 export function optionalAuth(req, res, next) {
-  const token = req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query?.token || req.body?.token;
+  const token = req.cookies?.vault_token || req.headers.authorization?.replace(/^Bearer\s+/i, '') || req.query?.token || req.body?.token;
   if (!token) {
     req.user = null;
     req.tierFeatures = TIER_FEATURES.basic;

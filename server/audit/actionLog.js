@@ -64,13 +64,29 @@ export function logPriceChange(entityType, entityId, oldPrice, newPrice, userId,
 }
 
 /**
- * Log journal entry deletion/void.
+ * Log journal entry deletion/void. Stores deleted entry snapshot as oldValue for audit.
  */
-export function logEntryDelete(entryId, reasonCode, userId) {
+export function logEntryDelete(entryId, reasonCode, userId, oldEntrySnapshot = null) {
   return log('ENTRY_DELETE', {
     entityType: 'JournalEntry',
     entityId: entryId,
+    oldValue: oldEntrySnapshot,
+    newValue: null,
     reasonCode: reasonCode || REASON_CODES.ENTRY_DELETE,
+    userId,
+  });
+}
+
+/**
+ * Log any entity edit (who changed what: old vs new).
+ */
+export function logEntityEdit(action, entityType, entityId, oldValue, newValue, userId = 'system', reasonCode = null) {
+  return log(action || 'USER_EDIT', {
+    entityType,
+    entityId,
+    oldValue,
+    newValue,
+    reasonCode: reasonCode || REASON_CODES.USER_EDIT,
     userId,
   });
 }

@@ -44,6 +44,9 @@
     .page-title-h3 { font-size: var(--text-h3); font-weight: 500; color: #e2e8f0; }
     .page-desc { font-size: var(--text-desc); color: #94a3b8; }
     .state-empty, .state-loading { font-size: var(--text-desc); color: #94a3b8; text-align: center; padding: var(--space-6); }
+    .skeleton { background: linear-gradient(90deg, rgba(255,255,255,0.06) 25%, rgba(255,255,255,0.12) 50%, rgba(255,255,255,0.06) 75%); background-size: 200% 100%; animation: skeleton-shimmer 1.2s ease-in-out infinite; border-radius: 6px; }
+    .skeleton-line { height: 14px; margin-bottom: 10px; }
+    @keyframes skeleton-shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
     .state-error { font-size: var(--text-desc); color: #f87171; padding: var(--space-4); }
     .card-standard { background: rgb(15 23 42 / 0.5); border: 1px solid rgb(30 41 59); border-radius: 0.75rem; padding: 1.5rem; }
     .glass { background: rgba(11, 18, 32, 0.75); backdrop-filter: blur(20px); -webkit-backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
@@ -527,7 +530,7 @@
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-4">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
-            <div id="dashboard-tb" class="text-white text-sm state-loading">جاري التحميل…</div>
+            <div id="dashboard-tb" class="text-white text-sm"><div class="py-2 px-1" aria-busy="true"><div class="skeleton skeleton-line" style="width:85%"></div><div class="skeleton skeleton-line" style="width:70%"></div><div class="skeleton skeleton-line" style="width:55%"></div></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-4 flex flex-col items-center" data-rbac="admin">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ربح القوة الشرائية</h3>
@@ -592,7 +595,7 @@
         <div class="bento grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 max-md:flex max-md:flex-col">
           <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
-            <div id="trial-balance-content" class="text-white state-loading">جاري التحميل…</div>
+            <div id="trial-balance-content" class="text-white"><div class="py-4 px-2" aria-busy="true"><div class="skeleton skeleton-line" style="width:95%"></div><div class="skeleton skeleton-line" style="width:80%"></div><div class="skeleton skeleton-line" style="width:70%"></div><div class="skeleton skeleton-line" style="width:88%"></div><div class="skeleton skeleton-line" style="width:50%"></div></div></div>
             <button type="button" onclick="toggleDetail('tb-detail')" class="mt-3 text-xs text-emerald-400 hover:underline transition-opacity hover:opacity-80">عرض التفاصيل</button>
             <div id="tb-detail" class="detail-panel mt-2"><div id="tb-detail-inner" class="detail-table-wrap"></div></div>
           </div>
@@ -619,14 +622,14 @@
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5">
             <h3 class="text-sm font-medium text-slate-400 mb-2">التدفق النقدي</h3>
-            <div id="cashflow-content" class="text-white state-loading">جاري التحميل…</div>
+            <div id="cashflow-content" class="text-white"><div class="py-4 px-2" aria-busy="true"><div class="skeleton skeleton-line" style="width:90%"></div><div class="skeleton skeleton-line" style="width:70%"></div><div class="skeleton skeleton-line" style="width:95%"></div><div class="skeleton skeleton-line" style="width:65%"></div></div></div>
             <button type="button" onclick="toggleDetail('cf-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
             <div id="cf-detail" class="detail-panel"><div id="cf-detail-inner" class="detail-table-wrap"></div></div>
           </div>
           <div class="glass-card bento-tilt rounded-2xl p-5 lg:col-span-2">
             <h3 class="text-sm font-medium text-slate-400 mb-2">دفتر القيود</h3>
             <p class="text-xs text-slate-500 mb-1">كل بيع أو مقايضة → مدين ودائن</p>
-            <div id="journal-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
+            <div id="journal-content" class="text-slate-300 text-sm"><div class="py-4 px-2" aria-busy="true"><div class="skeleton skeleton-line" style="width:100%"></div><div class="skeleton skeleton-line" style="width:92%"></div><div class="skeleton skeleton-line" style="width:78%"></div><div class="skeleton skeleton-line" style="width:85%"></div><div class="skeleton skeleton-line" style="width:60%"></div></div></div>
             <button type="button" onclick="toggleDetail('j-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
             <div id="j-detail" class="detail-panel"><div id="j-detail-inner" class="detail-table-wrap"></div></div>
           </div>
@@ -1024,6 +1027,24 @@
           window.scrollTo(0, 0);
           var h = document.getElementById('header-search-input');
           if (h) { h.focus(); h.select && h.select(); }
+          return;
+        }
+        if (e.key === 'F2') {
+          var salesRoot = document.getElementById('sales-invoice-root');
+          if (salesRoot && salesRoot.contains(e.target)) return;
+          e.preventDefault();
+          showSection('accounting');
+          setMobileNav('wallet');
+          if (typeof openModule === 'function') openModule('sales-invoice', 'فاتورة مبيعات');
+          return;
+        }
+        if ((e.ctrlKey || e.metaKey) && e.key === 'p') {
+          e.preventDefault();
+          var dailyModal = document.getElementById('daily-summary-modal');
+          if (dailyModal && !dailyModal.classList.contains('hidden')) { if (typeof printDailySummary === 'function') printDailySummary(); return; }
+          var printPreview = document.getElementById('print-preview-modal');
+          if (printPreview && !printPreview.classList.contains('hidden')) { if (typeof doPrintInvoice === 'function') doPrintInvoice(false); return; }
+          showToast('تنبيه', 'افتح التقرير أو الفاتورة ثم استخدم Ctrl+P للطباعة', 'warning');
         }
       });
     }
@@ -1162,12 +1183,16 @@
       var msgEl = document.getElementById('toast-message');
       if (!el || !inner) return;
       if (toastTimeout) clearTimeout(toastTimeout);
-      titleEl.textContent = title || (type === 'success' ? 'تم' : 'تنبيه');
+      var defaultTitle = type === 'success' ? 'تم' : (type === 'warning' ? 'تنبيه' : 'خطأ');
+      titleEl.textContent = title || defaultTitle;
       msgEl.textContent = message || '';
       icon.className = 'shrink-0 w-10 h-10 rounded-full flex items-center justify-center';
       if (type === 'success') {
         icon.classList.add('bg-emerald-500/30', 'text-emerald-400');
         icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7"/></svg>';
+      } else if (type === 'warning') {
+        icon.classList.add('bg-amber-500/30', 'text-amber-400');
+        icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>';
       } else {
         icon.classList.add('bg-rose-500/30', 'text-rose-400');
         icon.innerHTML = '<svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>';
@@ -1262,7 +1287,7 @@
     async function renderModulePanel(moduleId) {
       const mc = document.getElementById('module-content');
       if (!mc) return;
-      mc.innerHTML = '<p class="state-loading p-4">جاري التحميل…</p>';
+      mc.innerHTML = '<div class="py-4 px-2" aria-busy="true"><div class="skeleton skeleton-line" style="width:90%"></div><div class="skeleton skeleton-line" style="width:75%"></div><div class="skeleton skeleton-line" style="width:60%"></div><div class="skeleton skeleton-line" style="width:85%"></div><div class="skeleton skeleton-line" style="width:40%"></div></div>';
       try {
         if (moduleId === 'dashboard') { showSection('dashboard'); mc.classList.add('hidden'); return; }
         if (moduleId === 'chart-of-accounts') { await renderChartOfAccounts(mc); return; }
@@ -1745,10 +1770,11 @@
           var supplierBtn = item.supplier_name
             ? '<button type="button" class="supplier-contact-btn tap-haptic mt-1 text-xs px-2 py-1 rounded-lg bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30" data-name="' + escapeAttr(item.supplier_name || '') + '" data-phone="' + escapeAttr(item.supplier_phone || '') + '" data-address="' + escapeAttr(item.supplier_address || '') + '">تواصل مع المورد: ' + escapeHtml(item.supplier_name || '—') + '</button>'
             : '<span class="text-slate-500 text-xs">— لا مورد</span>';
+          var runOut = (item.run_out_days != null && item.run_out_days >= 0) ? '<span class="text-amber-400/90 text-xs">سينفد خلال ' + item.run_out_days + ' يوم تقريباً</span>' : '';
           return '<div class="flex flex-wrap items-center gap-2 py-2 border-b border-white/5 last:border-0">' +
             '<span class="font-medium text-white">' + escapeHtml(item.name || item.id) + '</span>' +
             '<span class="px-2 py-0.5 rounded text-xs font-medium ' + badgeClass + '">' + (item.current_stock ?? 0) + ' / ' + (item.min_stock_level ?? 0) + '</span>' +
-            supplierBtn + '</div>';
+            runOut + supplierBtn + '</div>';
         }).join('');
         el.querySelectorAll('.supplier-contact-btn').forEach(function(btn) {
           btn.addEventListener('click', function() { showSupplierContact(this.getAttribute('data-name') || '', this.getAttribute('data-phone') || '', this.getAttribute('data-address') || ''); });
@@ -1826,7 +1852,8 @@
         } else {
           lowStockTbody.innerHTML = lowList.map(function(item) {
             var name = (item.name || item.id || '—').toString().replace(/</g, '&lt;');
-            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + name + '</td><td class="p-2 text-amber-400">' + formatNum(item.current_stock) + '</td><td class="p-2">' + formatNum(item.min_stock_level) + '</td></tr>';
+            var runOut = (item.run_out_days != null && item.run_out_days >= 0) ? '<br><span class="text-amber-400/90 text-xs">سينفد خلال ' + item.run_out_days + ' يوم</span>' : '';
+            return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2 table-cell-ellipsis">' + name + '</td><td class="p-2 text-amber-400">' + formatNum(item.current_stock) + '</td><td class="p-2">' + formatNum(item.min_stock_level) + runOut + '</td></tr>';
           }).join('');
           if (lowStockEmpty) lowStockEmpty.classList.add('hidden');
         }
@@ -1843,7 +1870,7 @@
     }
     function printDailySummary() {
       var d = window._dailySummaryData;
-      if (!d) { alert('لا يوجد بيانات للطباعة. افتح ملخص اليوم أولاً.'); return; }
+      if (!d) { showToast('تنبيه', 'لا يوجد بيانات للطباعة. افتح ملخص اليوم أولاً.', 'warning'); return; }
       var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
       var t = getPrintHeaderTemplate('تقرير الجرد اليومي', printDate, { showPageNumber: false });
       var lowRows = (d.lowStock || []).map(function(item) {
@@ -2259,7 +2286,7 @@
       const invInner = document.getElementById('inv-detail-inner');
       var productMap = window._inventoryProductMap || {};
       if (!data?.data) {
-        if (heatEl) heatEl.innerHTML = '<p class="state-loading col-span-full">جاري التحميل…</p>';
+        if (heatEl) heatEl.innerHTML = '<div class="col-span-full py-4 px-2" aria-busy="true"><div class="skeleton skeleton-line" style="width:100%"></div><div class="skeleton skeleton-line" style="width:90%"></div><div class="skeleton skeleton-line" style="width:80%"></div><div class="skeleton skeleton-line" style="width:70%"></div></div>';
         if (invInner) invInner.innerHTML = detailEmptyState();
         return;
       }
@@ -2467,7 +2494,7 @@
       const accountId = document.getElementById('stmt-account')?.value;
       const from = document.getElementById('stmt-from')?.value;
       const to = document.getElementById('stmt-to')?.value;
-      if (!accountId) { alert('اختر الحساب'); return; }
+      if (!accountId) { showToast('تنبيه', 'اختر الحساب', 'warning'); return; }
       const res = await fetch(API + '/statements/account?accountId=' + encodeURIComponent(accountId) + (from ? '&fromDate=' + from : '') + (to ? '&toDate=' + to : ''), { headers: getAuthHeaders() });
       const json = await res.json();
       const el = document.getElementById('stmt-result');
@@ -2522,7 +2549,7 @@
       if (!accountId) return;
       var res = await fetch(API + '/statements/account?accountId=' + encodeURIComponent(accountId), { headers: getAuthHeaders() });
       var json = await res.json();
-      if (!json.success || json.error) { alert(json.error || 'فشل تحميل كشف الحساب'); return; }
+      if (!json.success || json.error) { showToast('خطأ', json.error || 'فشل تحميل كشف الحساب', 'error'); return; }
       var d = json.data;
       var rows = d.rows || [];
       var closingBalance = d.closingBalance != null ? d.closingBalance : 0;
@@ -2557,7 +2584,7 @@
 
     function printContactStatement() {
       var d = window._contactProfileData;
-      if (!d || !d.rows) { alert('لا يوجد بيانات للطباعة'); return; }
+      if (!d || !d.rows) { showToast('تنبيه', 'لا يوجد بيانات للطباعة', 'warning'); return; }
       var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
       var t = getPrintHeaderTemplate('كشف حساب - ' + (d.accountName || ''), printDate, { showPageNumber: false });
       var isCustomer = d.type === 'customer';
@@ -2589,9 +2616,9 @@
       const creditId = document.getElementById('v-r-credit')?.value;
       const amount = Number(document.getElementById('v-r-amount')?.value);
       const memo = document.getElementById('v-r-memo')?.value || '';
-      if (!creditId || !amount || amount <= 0) { alert('أدخل الحساب الدائن والمبلغ'); return; }
+      if (!creditId || !amount || amount <= 0) { showToast('تنبيه', 'أدخل الحساب الدائن والمبلغ', 'warning'); return; }
       await postJson('/vouchers/receipt', { cashAccountId: cashId, creditAccountId: creditId, amountSYP: amount, memo });
-      alert('تم ترحيل سند القبض');
+      showToast('تم', 'تم ترحيل سند القبض', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
 
@@ -2606,9 +2633,9 @@
       const debitId = document.getElementById('v-p-debit')?.value;
       const amount = Number(document.getElementById('v-p-amount')?.value);
       const memo = document.getElementById('v-p-memo')?.value || '';
-      if (!debitId || !amount || amount <= 0) { alert('أدخل الحساب المدين والمبلغ'); return; }
+      if (!debitId || !amount || amount <= 0) { showToast('تنبيه', 'أدخل الحساب المدين والمبلغ', 'warning'); return; }
       await postJson('/vouchers/payment', { creditAccountId: creditId, debitAccountId: debitId, amountSYP: amount, memo });
-      alert('تم ترحيل سند الدفع');
+      showToast('تم', 'تم ترحيل سند الدفع', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
     function getVoucherPrintBody(title, date, line1Label, line1Value, line2Label, line2Value, amountSYP, memo) {
@@ -2632,7 +2659,7 @@
       var memo = document.getElementById('v-r-memo')?.value || '';
       var cashName = cashSel && cashSel.options[cashSel.selectedIndex] ? cashSel.options[cashSel.selectedIndex].text : '—';
       var creditName = creditSel && creditSel.options[creditSel.selectedIndex] ? creditSel.options[creditSel.selectedIndex].text : '—';
-      if (!amount || amount <= 0) { alert('أدخل المبلغ أولاً'); return; }
+      if (!amount || amount <= 0) { showToast('تنبيه', 'أدخل المبلغ أولاً', 'warning'); return; }
       var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
       var t = getPrintHeaderTemplate('سند قبض', printDate, { showPageNumber: false });
       var bodyHtml = getVoucherPrintBody('سند قبض', printDate, 'صندوق (مدين)', cashName, 'الحساب الدائن', creditName, amount, memo);
@@ -2651,7 +2678,7 @@
       var memo = document.getElementById('v-p-memo')?.value || '';
       var creditName = creditSel && creditSel.options[creditSel.selectedIndex] ? creditSel.options[creditSel.selectedIndex].text : '—';
       var debitName = debitSel && debitSel.options[debitSel.selectedIndex] ? debitSel.options[debitSel.selectedIndex].text : '—';
-      if (!amount || amount <= 0) { alert('أدخل المبلغ أولاً'); return; }
+      if (!amount || amount <= 0) { showToast('تنبيه', 'أدخل المبلغ أولاً', 'warning'); return; }
       var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
       var t = getPrintHeaderTemplate('سند دفع', printDate, { showPageNumber: false });
       var bodyHtml = getVoucherPrintBody('سند دفع', printDate, 'صندوق (دائن)', creditName, 'الحساب المدين', debitName, amount, memo);
@@ -2690,9 +2717,9 @@
         const credit = Number(document.querySelector('.vj-credit[data-id="' + id + '"]')?.value) || 0;
         if (sel.value && (debit > 0 || credit > 0)) lines.push({ accountId: sel.value, debit, credit, memo: document.querySelector('.vj-memo[data-id="' + id + '"]')?.value || '' });
       });
-      if (lines.length < 2) { alert('أضف سطرين على الأقل (مدين ودائن)'); return; }
+      if (lines.length < 2) { showToast('تنبيه', 'أضف سطرين على الأقل (مدين ودائن)', 'warning'); return; }
       await postJson('/vouchers/journal', { lines });
-      alert('تم ترحيل سند القيد');
+      showToast('تم', 'تم ترحيل سند القيد', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
 
@@ -2707,9 +2734,9 @@
       const toId = document.getElementById('v-t-to')?.value;
       const amount = Number(document.getElementById('v-t-amount')?.value);
       const rate = Number(document.getElementById('v-t-rate')?.value);
-      if (!fromId || !toId || !amount || amount <= 0 || !rate || rate <= 0) { alert('أكمل البيانات'); return; }
+      if (!fromId || !toId || !amount || amount <= 0 || !rate || rate <= 0) { showToast('تنبيه', 'أكمل البيانات', 'warning'); return; }
       await postJson('/vouchers/transfer', { fromAccountId: fromId, toAccountId: toId, amountInFromCurrency: amount, rateToSYP: rate });
-      alert('تم ترحيل سند التحويل');
+      showToast('تم', 'تم ترحيل سند التحويل', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
 
@@ -2723,9 +2750,9 @@
     }
     async function submitItemCard() {
       const name = document.getElementById('item-name')?.value?.trim();
-      if (!name) { alert('أدخل اسم المادة'); return; }
+      if (!name) { showToast('تنبيه', 'أدخل اسم المادة', 'warning'); return; }
       await postJson('/products', { name, barcode: document.getElementById('item-barcode')?.value || null, defaultUnitId: document.getElementById('item-unit')?.value || 'piece', costPerDefaultUnit: Number(document.getElementById('item-cost')?.value) || 0, salesPricePerUnit: document.getElementById('item-price')?.value ? Number(document.getElementById('item-price').value) : null, base_currency: document.getElementById('item-base-currency')?.value || 'SYP', base_price: document.getElementById('item-base-price')?.value ? Number(document.getElementById('item-base-price').value) : null, min_stock_level: document.getElementById('item-min-stock')?.value ? Number(document.getElementById('item-min-stock').value) : null });
-      alert('تم الحفظ');
+      showToast('تم', 'تم الحفظ', 'success');
       openModule('item-card', 'بطاقة مادة');
     }
 
@@ -3933,7 +3960,7 @@
       var productId = document.getElementById('bom-comp-product')?.value;
       var unitId = document.getElementById('bom-comp-unit')?.value || 'piece';
       var qty = Number(document.getElementById('bom-comp-qty')?.value) || 0;
-      if (!productId || qty <= 0) { alert('اختر مادة خام وكمية لكل وحدة'); return; }
+      if (!productId || qty <= 0) { showToast('تنبيه', 'اختر مادة خام وكمية لكل وحدة', 'warning'); return; }
       window._bomComponents = window._bomComponents || [];
       window._bomComponents.push({ productId, unitId, quantityPerUnit: qty });
       renderBOMComponentsTable();
@@ -3954,7 +3981,7 @@
       var finishedProductId = document.getElementById('bom-finished-product')?.value;
       var finishedUnitId = document.getElementById('bom-finished-unit')?.value || 'piece';
       var components = window._bomComponents || [];
-      if (!finishedProductId || !components.length) { alert('اختر المنتج النهائي وأضف مكوّناً واحداً على الأقل'); return; }
+      if (!finishedProductId || !components.length) { showToast('تنبيه', 'اختر المنتج النهائي وأضف مكوّناً واحداً على الأقل', 'warning'); return; }
       var msgEl = document.getElementById('bom-message');
       if (msgEl) { msgEl.classList.add('hidden'); }
       try {
@@ -3980,7 +4007,7 @@
       var bomId = document.getElementById('build-bom')?.value;
       var quantity = Number(document.getElementById('build-qty')?.value) || 0;
       var memo = document.getElementById('build-memo')?.value || '';
-      if (!bomId || quantity <= 0) { alert('اختر وصفة وأدخل كمية'); return; }
+      if (!bomId || quantity <= 0) { showToast('تنبيه', 'اختر وصفة وأدخل كمية', 'warning'); return; }
       var msgEl = document.getElementById('build-message');
       if (msgEl) { msgEl.classList.add('hidden'); }
       try {
@@ -4006,7 +4033,7 @@
       var accountId = document.getElementById('exp-account')?.value;
       var amountSYP = Number(document.getElementById('exp-amount')?.value) || 0;
       var memo = document.getElementById('exp-memo')?.value || '';
-      if (!accountId || amountSYP <= 0) { alert('اختر حساب مصروف وأدخل المبلغ'); return; }
+      if (!accountId || amountSYP <= 0) { showToast('تنبيه', 'اختر حساب مصروف وأدخل المبلغ', 'warning'); return; }
       var msgEl = document.getElementById('exp-message');
       if (msgEl) { msgEl.classList.add('hidden'); }
       try {
@@ -5341,12 +5368,12 @@
     async function addBarterSurplus() {
       const productId = document.getElementById('barter-surplus-product')?.value;
       const qty = document.getElementById('barter-surplus-qty')?.value || 1;
-      if (!productId) { alert('اختر منتجاً'); return; }
+      if (!productId) { showToast('تنبيه', 'اختر منتجاً', 'warning'); return; }
       try {
         await postJson('/barter/surplus', { productId, quantity: qty });
         await refresh('barter');
         await refresh('journal');
-      } catch (e) { alert(e.message); }
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
     async function confirmBarter(matchAlertId) {
@@ -5355,7 +5382,7 @@
         await refresh('barter');
         await refresh('journal');
         await refresh('trial-balance');
-      } catch (e) { alert(e.message); }
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
     async function syncSYP() {
@@ -5365,7 +5392,7 @@
         await refresh('fractioning');
         await refresh('journal');
         await refresh('fx');
-      } catch (e) { alert(e.message); }
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
     async function bulkUpdatePricesByRate() {
@@ -5373,17 +5400,17 @@
         var r = await postJson('/prices/update-by-rate', {});
         if (r && r.data && r.data.updated != null) {
           if (typeof showToast === 'function') showToast('تم تحديث أسعار البيع لـ ' + r.data.updated + ' صنف مرتبط بالدولار.');
-          else alert('تم تحديث أسعار البيع لـ ' + r.data.updated + ' صنف.');
+          else showToast('تم', 'تم تحديث أسعار البيع لـ ' + r.data.updated + ' صنف.', 'success');
         }
         var t = openTabs.find(function(x) { return x.moduleId === 'item-card'; });
         if (t) openModule('item-card', 'بطاقة مادة');
-      } catch (e) { alert(e.message || 'تعذر تحديث الأسعار'); }
+      } catch (e) { showToast('خطأ', e.message || 'تعذر تحديث الأسعار', 'error'); }
     }
 
     async function recordDebt() {
       const amountSYP = Number(document.getElementById('debt-amount')?.value) || 0;
       const debtorId = document.getElementById('debt-debtor')?.value?.trim() || null;
-      if (!amountSYP) { alert('أدخل المبلغ (ل.س)'); return; }
+      if (!amountSYP) { showToast('تنبيه', 'أدخل المبلغ (ل.س)', 'warning'); return; }
       try {
         await postJson('/debt', { amountSYP, debtorId });
         await refresh('journal');
@@ -5392,32 +5419,32 @@
         const el = document.getElementById('debt-list');
         if (el && r?.data?.length) el.innerHTML = r.data.slice(0, 5).map(d => d.amountSYP + ' ل.س').join('<br>');
         else if (el) el.innerHTML = 'تم التسجيل.';
-      } catch (e) { alert(e.message); }
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
     async function simulateWhatsApp() {
       const msg = document.getElementById('whatsapp-message')?.value?.trim() || 'هل عندكم حليب؟';
       try {
         const j = await postJson('/whatsapp/simulate', { message: msg });
-        if (j?.data?.draftId) alert('تم إنشاء مسودة: ' + j.data.draftId);
+        if (j?.data?.draftId) showToast('تم', 'تم إنشاء مسودة: ' + j.data.draftId, 'success');
         await refresh('drafts');
-      } catch (e) { alert(e.message); }
+      } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
     function uploadVision() {
       const input = document.getElementById('vision-file');
-      if (!input?.files?.length) { alert('اختر صورة أولاً'); return; }
+      if (!input?.files?.length) { showToast('تنبيه', 'اختر صورة أولاً', 'warning'); return; }
       const file = input.files[0];
       const reader = new FileReader();
       reader.onload = async () => {
         try {
           const j = await postJson('/vision/upload', { image: reader.result });
-          alert((j.data?.inventoryAdded?.length || 0) + ' سطر · ' + (j.data?.totalCostSYP || 0) + ' ل.س إلى الدفتر');
+          showToast('تم', (j.data?.inventoryAdded?.length || 0) + ' سطر · ' + (j.data?.totalCostSYP || 0) + ' ل.س إلى الدفتر', 'success');
           await refresh('vision');
           await refresh('fractioning');
           await refresh('journal');
           await refresh('trial-balance');
-        } catch (e) { alert(e.message); }
+        } catch (e) { showToast('خطأ', e.message, 'error'); }
       };
       reader.readAsDataURL(file);
     }
@@ -5425,7 +5452,7 @@
     var _importData = { rows: [], mapping: {}, totalRows: 0 };
     async function parseImport() {
       var content = document.getElementById('import-content').value.trim();
-      if (!content) { alert('الصق محتوى CSV'); return; }
+      if (!content) { showToast('تنبيه', 'الصق محتوى CSV', 'warning'); return; }
       try {
         var r = await fetch(API + '/import/parse', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ content }) });
         var j = await r.json();
@@ -5448,10 +5475,35 @@
         document.getElementById('import-preview').classList.remove('hidden');
         document.getElementById('import-result').classList.add('hidden');
       } catch (e) {
-        alert(e.message);
+        showToast('خطأ', e.message, 'error');
       }
     }
+    function validateImportRows(rows, mapping) {
+      var revMap = {};
+      for (var col in mapping) if (mapping.hasOwnProperty(col)) revMap[mapping[col]] = col;
+      for (var i = 0; i < (rows || []).length; i++) {
+        var row = rows[i];
+        if (revMap.quantity) {
+          var qtyVal = row[revMap.quantity];
+          var qty = parseFloat(qtyVal, 10);
+          if (qtyVal !== '' && qtyVal != null && (isNaN(qty) || qty < 0)) {
+            showToast('خطأ في البيانات', 'السطر ' + (i + 2) + ': الكمية يجب أن تكون رقماً موجباً (وجد: ' + String(qtyVal).slice(0, 20) + ')', 'error');
+            return false;
+          }
+        }
+        if (revMap.cost) {
+          var costVal = row[revMap.cost];
+          var cost = parseFloat(costVal, 10);
+          if (costVal !== '' && costVal != null && (isNaN(cost) || cost < 0)) {
+            showToast('خطأ في البيانات', 'السطر ' + (i + 2) + ': السعر/التكلفة يجب أن يكون رقماً موجباً (وجد: ' + String(costVal).slice(0, 20) + ')', 'error');
+            return false;
+          }
+        }
+      }
+      return true;
+    }
     async function executeImport() {
+      if (!validateImportRows(_importData.rows, _importData.mapping)) return;
       try {
         var r = await fetch(API + '/import/execute', { method: 'POST', headers: { 'Content-Type': 'application/json', ...getAuthHeaders() }, body: JSON.stringify({ rows: _importData.rows, mapping: _importData.mapping }) });
         var j = await r.json();

@@ -30,11 +30,21 @@ export function getTrialBalance(asOfDate = null) {
 
   for (const e of list) {
     if (asOfDate && e.date > asOfDate) continue;
-    const amt = e.amountSYP || 0;
-    const dr = byAccount.get(e.debitAccountId);
-    const cr = byAccount.get(e.creditAccountId);
-    if (dr) dr.debit += amt;
-    if (cr) cr.credit += amt;
+    if (e.compoundLines) {
+      for (const line of e.compoundLines) {
+        const row = byAccount.get(line.accountId);
+        if (row) {
+          row.debit += line.debit || 0;
+          row.credit += line.credit || 0;
+        }
+      }
+    } else {
+      const amt = e.amountSYP || 0;
+      const dr = byAccount.get(e.debitAccountId);
+      const cr = byAccount.get(e.creditAccountId);
+      if (dr) dr.debit += amt;
+      if (cr) cr.credit += amt;
+    }
   }
 
   const rows = Array.from(byAccount.values()).filter((r) => r.debit !== 0 || r.credit !== 0);
@@ -62,13 +72,22 @@ export function getProfitAndLoss(fromDate, toDate) {
   for (const e of list) {
     if (fromDate && e.date < fromDate) continue;
     if (toDate && e.date > toDate) continue;
-    const amt = e.amountSYP || 0;
-    const drAcc = accounts.get(e.debitAccountId);
-    const crAcc = accounts.get(e.creditAccountId);
-    if (drAcc?.type === ACCOUNT_TYPE.REVENUE) revenue -= amt;
-    if (crAcc?.type === ACCOUNT_TYPE.REVENUE) revenue += amt;
-    if (drAcc?.type === ACCOUNT_TYPE.EXPENSE) expenses += amt;
-    if (crAcc?.type === ACCOUNT_TYPE.EXPENSE) expenses -= amt;
+    if (e.compoundLines) {
+      for (const line of e.compoundLines) {
+        const amt = (line.debit || 0) - (line.credit || 0);
+        const acc = accounts.get(line.accountId);
+        if (acc?.type === ACCOUNT_TYPE.REVENUE) revenue += amt;
+        if (acc?.type === ACCOUNT_TYPE.EXPENSE) expenses -= amt;
+      }
+    } else {
+      const amt = e.amountSYP || 0;
+      const drAcc = accounts.get(e.debitAccountId);
+      const crAcc = accounts.get(e.creditAccountId);
+      if (drAcc?.type === ACCOUNT_TYPE.REVENUE) revenue -= amt;
+      if (crAcc?.type === ACCOUNT_TYPE.REVENUE) revenue += amt;
+      if (drAcc?.type === ACCOUNT_TYPE.EXPENSE) expenses += amt;
+      if (crAcc?.type === ACCOUNT_TYPE.EXPENSE) expenses -= amt;
+    }
   }
 
   const grossProfit = revenue - expenses;
@@ -99,9 +118,18 @@ export function getCashFlowStatement(fromDate, toDate) {
   for (const e of list) {
     if (fromDate && e.date < fromDate) continue;
     if (toDate && e.date > toDate) continue;
-    const amt = e.amountSYP || 0;
-    if (e.debitAccountId === CASH) operatingIn += amt;
-    if (e.creditAccountId === CASH) operatingOut += amt;
+    if (e.compoundLines) {
+      for (const line of e.compoundLines) {
+        if (line.accountId === CASH) {
+          operatingIn += line.debit || 0;
+          operatingOut += line.credit || 0;
+        }
+      }
+    } else {
+      const amt = e.amountSYP || 0;
+      if (e.debitAccountId === CASH) operatingIn += amt;
+      if (e.creditAccountId === CASH) operatingOut += amt;
+    }
   }
 
   const netOperating = operatingIn - operatingOut;
@@ -129,14 +157,21 @@ export function getAccountStatement(accountId, fromDate = null, toDate = null) {
     return { success: false, error: 'الحساب غير موجود' };
   const acc = accounts.get(accountId);
   const list = (journalEntriesList || []).filter((e) => !e.deleted);
-  const relevant = list.filter(
-    (e) => (e.debitAccountId === accountId || e.creditAccountId === accountId)
-  );
+  const relevant = list.filter((e) => {
+    if (e.compoundLines) return e.compoundLines.some((l) => l.accountId === accountId);
+    return e.debitAccountId === accountId || e.creditAccountId === accountId;
+  });
   const beforeFrom = fromDate ? relevant.filter((e) => e.date < fromDate) : [];
   let openingBalance = 0;
   for (const e of beforeFrom) {
-    if (e.debitAccountId === accountId) openingBalance += e.amountSYP || 0;
-    if (e.creditAccountId === accountId) openingBalance -= e.amountSYP || 0;
+    if (e.compoundLines) {
+      for (const line of e.compoundLines) {
+        if (line.accountId === accountId) openingBalance += (line.debit || 0) - (line.credit || 0);
+      }
+    } else {
+      if (e.debitAccountId === accountId) openingBalance += e.amountSYP || 0;
+      if (e.creditAccountId === accountId) openingBalance -= e.amountSYP || 0;
+    }
   }
   let filtered = relevant;
   if (fromDate) filtered = filtered.filter((e) => e.date >= fromDate);
@@ -146,8 +181,19 @@ export function getAccountStatement(accountId, fromDate = null, toDate = null) {
   const rows = [];
   let running = openingBalance;
   for (const e of filtered) {
-    const debit = e.debitAccountId === accountId ? (e.amountSYP || 0) : 0;
-    const credit = e.creditAccountId === accountId ? (e.amountSYP || 0) : 0;
+    let debit = 0;
+    let credit = 0;
+    if (e.compoundLines) {
+      for (const line of e.compoundLines) {
+        if (line.accountId === accountId) {
+          debit += line.debit || 0;
+          credit += line.credit || 0;
+        }
+      }
+    } else {
+      if (e.debitAccountId === accountId) debit = e.amountSYP || 0;
+      if (e.creditAccountId === accountId) credit = e.amountSYP || 0;
+    }
     running += debit - credit;
     rows.push({
       date: e.date,
