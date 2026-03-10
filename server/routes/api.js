@@ -142,25 +142,86 @@ router.get('/dashboard/cash-balance', (req, res) => {
   }
 });
 
-// —— Dashboard summary for profit report: Cash + Receivables + Inventory Value ——
-router.get('/dashboard/summary', (req, res) => {
+// —— Dashboard summary: Single Source of Truth (Unified Dashboard). Same payload as /dashboard/os. ——
+router.get('/dashboard/summary', async (req, res) => {
   try {
     const asOfDate = req.query.asOfDate || null;
+    const today = new Date().toISOString().slice(0, 10);
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+
+    const journalList = (store.journalEntriesList || []).filter((e) => !e.deleted);
+    const journalEntryCount = journalList.length;
+
+    const tb = statements.getTrialBalance(asOfDate || today);
+    const pl = statements.getProfitAndLoss(firstDayOfMonth, today);
+    const fxReport = valuation.getExchangeGainLossReport(firstDayOfMonth, today);
+    const rates = multiCurrency.getRates();
+    const rateSYP = rates.SYP != null && rates.SYP !== 0 ? Number(rates.SYP) : 1 / 15000;
+    const oneUsdInSYP = 1 / rateSYP;
+
     const b1010 = journal.getAccountBalance('1010', asOfDate);
     const b1020 = journal.getAccountBalance('1020', asOfDate);
-    const cash = (b1010.balance ?? 0) + (b1020.balance ?? 0);
-    const receivablesBalance = journal.getAccountBalance('1200', asOfDate);
-    const totalReceivables = receivablesBalance.balance ?? 0;
+    const cashSYP = (b1010.balance ?? 0) + (b1020.balance ?? 0);
+    const receivables = journal.getAccountBalance('1200', asOfDate);
+    const payables = journal.getAccountBalance('2010', asOfDate);
     const warehouse = statements.getWarehouseValuation();
-    const inventoryValue = warehouse.totalValueCostSYP ?? 0;
-    res.json({
-      success: true,
-      data: {
-        cash: Number(cash),
-        totalReceivables: Number(totalReceivables),
-        inventoryValue: Number(inventoryValue),
-      },
-    });
+    const inventoryValueSYP = warehouse.totalValueCostSYP ?? 0;
+
+    const barterSummary = barter.getBarterSummary();
+    const draftsList = store.draftOrders && typeof store.draftOrders.size === 'number' ? store.draftOrders.size : (Array.isArray(store.draftOrders) ? store.draftOrders.length : 0);
+    const vouchersList = (store.vouchers || []);
+    const voucherCount = Array.isArray(vouchersList) ? vouchersList.length : 0;
+
+    const lowStockRes = await Promise.resolve().then(() => {
+      const tenantId = getTenantId(req);
+      const from30 = new Date();
+      from30.setDate(from30.getDate() - 30);
+      const from30Str = from30.toISOString().slice(0, 10);
+      const soldByProduct = {};
+      for (const inv of salesInvoices) {
+        if ((inv.tenantId || 'default') !== tenantId || !inv.date || (inv.date + '').slice(0, 10) < from30Str) continue;
+        const items = inv.items || inv.lines || [];
+        for (const line of items) {
+          const pid = line.productId || line.product_id;
+          if (!pid) continue;
+          soldByProduct[pid] = (soldByProduct[pid] || 0) + (Number(line.quantity) || 0);
+        }
+      }
+      const list = [];
+      for (const p of products.values()) {
+        if ((p.tenantId || 'default') !== tenantId || !p.active) continue;
+        const minLevel = p.min_stock_level != null ? Number(p.min_stock_level) : null;
+        if (minLevel == null) continue;
+        const unitId = p.defaultUnitId || 'piece';
+        const inv = fractioning.getEffectiveInventory(p.id, unitId);
+        const current_stock = (inv && inv.quantity != null) ? Number(inv.quantity) : 0;
+        if (current_stock > minLevel) continue;
+        list.push({ id: p.id, name: p.name || p.id, current_stock, min_stock_level: minLevel });
+      }
+      return list;
+    }).catch(() => []);
+
+    const aging = reports.getAgingReport(asOfDate || today);
+    const cashFlow = statements.getCashFlowStatement(firstDayOfMonth, today);
+
+    const data = {
+      trialBalance: { balanced: tb.balanced, totalDebit: tb.totalDebit, totalCredit: tb.totalCredit, asOfDate: tb.asOfDate },
+      journalEntryCount,
+      exchangeRate: { oneUsdInSYP, rateSYP },
+      cash: { syp: cashSYP },
+      receivables: receivables.balance ?? 0,
+      payables: payables.balance ?? 0,
+      inventoryValueSYP,
+      pl: { revenue: pl.revenue, expenses: pl.expenses, grossProfit: pl.grossProfit, trueProfit: pl.trueProfit, exchangeGainLossSYP: pl.exchangeGainLossSYP },
+      fxGainLossSYP: fxReport.totalGainLossSYP ?? 0,
+      barter: { totalTrades: barterSummary.totalTrades, surplusCount: (barterSummary.surplus || []).length, needsCount: (barterSummary.needs || []).length, matchAlertsCount: (barterSummary.matchAlerts || []).length },
+      draftsCount: draftsList,
+      voucherCount,
+      lowStock: lowStockRes,
+      aging: { buckets: aging.buckets || {}, totalSYP: (aging.buckets && Object.values(aging.buckets).reduce((s, b) => s + (b.amountSYP || 0), 0)) || 0 },
+      cashFlow: { operating: cashFlow.operating, investing: cashFlow.investing, financing: cashFlow.financing },
+    };
+    res.json({ success: true, data });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }
@@ -218,6 +279,93 @@ router.get('/dashboard/low-stock', (req, res) => {
       });
     }
     res.json({ success: true, data: list });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+// —— Accounting OS: unified dashboard payload (Zero-Hidden — كل المزايا في واجهة واحدة) ——
+router.get('/dashboard/os', async (req, res) => {
+  try {
+    const asOfDate = req.query.asOfDate || null;
+    const today = new Date().toISOString().slice(0, 10);
+    const firstDayOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10);
+
+    const journalList = (store.journalEntriesList || []).filter((e) => !e.deleted);
+    const journalEntryCount = journalList.length;
+
+    const tb = statements.getTrialBalance(asOfDate || today);
+    const pl = statements.getProfitAndLoss(firstDayOfMonth, today);
+    const fxReport = valuation.getExchangeGainLossReport(firstDayOfMonth, today);
+    const rates = multiCurrency.getRates();
+    const rateSYP = rates.SYP != null && rates.SYP !== 0 ? Number(rates.SYP) : 1 / 15000;
+    const oneUsdInSYP = 1 / rateSYP;
+
+    const b1010 = journal.getAccountBalance('1010', asOfDate);
+    const b1020 = journal.getAccountBalance('1020', asOfDate);
+    const cashSYP = (b1010.balance ?? 0) + (b1020.balance ?? 0);
+    const receivables = journal.getAccountBalance('1200', asOfDate);
+    const payables = journal.getAccountBalance('2010', asOfDate);
+    const warehouse = statements.getWarehouseValuation();
+    const inventoryValueSYP = warehouse.totalValueCostSYP ?? 0;
+
+    const barterSummary = barter.getBarterSummary();
+    const draftsList = store.draftOrders && typeof store.draftOrders.size === 'number' ? store.draftOrders.size : (Array.isArray(store.draftOrders) ? store.draftOrders.length : 0);
+    const vouchersList = (store.vouchers || []);
+    const voucherCount = Array.isArray(vouchersList) ? vouchersList.length : 0;
+
+    const lowStockRes = await Promise.resolve().then(() => {
+      const tenantId = getTenantId(req);
+      const from30 = new Date();
+      from30.setDate(from30.getDate() - 30);
+      const from30Str = from30.toISOString().slice(0, 10);
+      const soldByProduct = {};
+      for (const inv of salesInvoices) {
+        if ((inv.tenantId || 'default') !== tenantId || !inv.date || (inv.date + '').slice(0, 10) < from30Str) continue;
+        const items = inv.items || inv.lines || [];
+        for (const line of items) {
+          const pid = line.productId || line.product_id;
+          if (!pid) continue;
+          soldByProduct[pid] = (soldByProduct[pid] || 0) + (Number(line.quantity) || 0);
+        }
+      }
+      const list = [];
+      for (const p of products.values()) {
+        if ((p.tenantId || 'default') !== tenantId || !p.active) continue;
+        const minLevel = p.min_stock_level != null ? Number(p.min_stock_level) : null;
+        if (minLevel == null) continue;
+        const unitId = p.defaultUnitId || 'piece';
+        const inv = fractioning.getEffectiveInventory(p.id, unitId);
+        const current_stock = (inv && inv.quantity != null) ? Number(inv.quantity) : 0;
+        if (current_stock > minLevel) continue;
+        list.push({ id: p.id, name: p.name || p.id, current_stock, min_stock_level: minLevel });
+      }
+      return list;
+    }).catch(() => []);
+
+    const aging = reports.getAgingReport(asOfDate || today);
+    const cashFlow = statements.getCashFlowStatement(firstDayOfMonth, today);
+
+    res.json({
+      success: true,
+      data: {
+        trialBalance: { balanced: tb.balanced, totalDebit: tb.totalDebit, totalCredit: tb.totalCredit, asOfDate: tb.asOfDate },
+        journalEntryCount,
+        exchangeRate: { oneUsdInSYP, rateSYP },
+        cash: { syp: cashSYP },
+        receivables: receivables.balance ?? 0,
+        payables: payables.balance ?? 0,
+        inventoryValueSYP,
+        pl: { revenue: pl.revenue, expenses: pl.expenses, grossProfit: pl.grossProfit, trueProfit: pl.trueProfit, exchangeGainLossSYP: pl.exchangeGainLossSYP },
+        fxGainLossSYP: fxReport.totalGainLossSYP ?? 0,
+        barter: { totalTrades: barterSummary.totalTrades, surplusCount: (barterSummary.surplus || []).length, needsCount: (barterSummary.needs || []).length, matchAlertsCount: (barterSummary.matchAlerts || []).length },
+        draftsCount: draftsList,
+        voucherCount,
+        lowStock: lowStockRes,
+        aging: { buckets: aging.buckets || {}, totalSYP: (aging.buckets && Object.values(aging.buckets).reduce((s, b) => s + (b.amountSYP || 0), 0)) || 0 },
+        cashFlow: { operating: cashFlow.operating, investing: cashFlow.investing, financing: cashFlow.financing },
+      },
+    });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
   }

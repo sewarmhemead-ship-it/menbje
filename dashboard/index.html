@@ -104,6 +104,9 @@
     .financial-dashboard { --fd-primary: #10b981; }
     .financial-dashboard .fd-input:focus { outline: none; border-color: var(--fd-primary); box-shadow: 0 0 0 2px rgba(16, 185, 129, 0.2); }
     .financial-dashboard .fd-card { transition: border-color 0.2s; }
+    .unified-dashboard .unified-widget { min-height: 7rem; transition: border-color 0.3s ease, transform 0.2s ease, box-shadow 0.2s ease; }
+    .unified-dashboard .unified-widget:hover { box-shadow: 0 4px 20px -4px rgba(0,0,0,0.25); }
+    .unified-dashboard .font-mono { font-variant-numeric: tabular-nums; }
     /* —— Mobile-first / responsive (نسخة الموبايل) —— */
     .safe-area-pb { padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0)); }
     .safe-area-pt { padding-top: env(safe-area-inset-top, 0); }
@@ -566,90 +569,111 @@
       <!-- Module workarea (tabs: قيود، شجرة حسابات، كشف حساب، سندات، ...) -->
       <div id="module-content" class="hidden w-full"></div>
 
-      <!-- Dashboard (mobile default / overview) -->
-      <section id="section-dashboard" data-section>
-        <div class="flex flex-wrap items-center justify-between gap-2 mb-4">
+      <!-- Unified Dashboard (Zero Hidden Features — مصدر واحد GET /dashboard/summary) -->
+      <section id="section-dashboard" data-section class="unified-dashboard">
+        <div class="flex flex-wrap items-center justify-between gap-3 mb-4">
           <div class="flex items-center gap-2">
             <h2 class="page-title-h2">لوحة التحكم</h2>
             <span class="page-desc font-medium">Vault AI</span>
           </div>
-          <button type="button" onclick="openDailySummary()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-medium text-sm hover:bg-emerald-500/30 transition-colors" title="جردة المساء">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
-            ملخص اليوم
-          </button>
-          <button type="button" onclick="startOfDayNewSale()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-medium text-sm hover:bg-amber-500/30 transition-colors" title="بداية يوم جديد">
-            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
-            بداية يوم جديد
-          </button>
+          <div class="flex flex-wrap items-center gap-2">
+            <button type="button" onclick="openDailySummary()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 font-medium text-sm hover:bg-emerald-500/30 transition-all duration-300" title="جردة المساء">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg>
+              ملخص اليوم
+            </button>
+            <button type="button" onclick="startOfDayNewSale()" class="tap-haptic flex items-center gap-2 px-4 py-2.5 rounded-xl bg-amber-500/20 border border-amber-500/40 text-amber-300 font-medium text-sm hover:bg-amber-500/30 transition-all duration-300" title="بداية يوم جديد">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z"/></svg>
+              بداية يوم جديد
+            </button>
+            <button type="button" onclick="loadUnifiedDashboard()" class="tap-haptic flex items-center gap-2 px-3 py-2 rounded-lg bg-white/5 border border-white/10 text-slate-400 text-sm hover:bg-white/10 transition-all duration-300" title="تحديث البيانات">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+              تحديث
+            </button>
+          </div>
         </div>
-        <p class="page-desc mb-4">نظرة عامة. اضغط على البطاقات للتفاصيل.</p>
-        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <div class="glass-card bento-tilt rounded-2xl p-8 border border-emerald-500/20 dashboard-hero-card md:col-span-2" id="dashboard-cash-card">
-            <h3 class="text-sm font-medium text-slate-400 mb-1">رصيد الصندوق</h3>
-            <p class="text-4xl font-extrabold text-emerald-400" id="dashboard-cash-total">— ل.س</p>
-            <p class="text-xs text-slate-500 mt-1" id="dashboard-cash-detail">صندوق ل.س + صندوق دولار (بالل.س)</p>
+        <p class="page-desc mb-4">نظرة شاملة — مصدر واحد للبيانات. انقر على أي بطاقة للتفاصيل.</p>
+        <div id="unified-dashboard-grid" class="grid grid-cols-2 lg:grid-cols-4 gap-3 transition-all duration-300">
+          <!-- 1. حالة الميزان (Trial Balance) -->
+          <div id="unified-widget-tb" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('trial-balance','ميزان المراجعة')" title="فتح ميزان المراجعة">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">حالة الميزان</h3>
+            <div id="ud-tb-status" class="font-mono text-lg font-semibold text-white mb-0.5">—</div>
+            <div id="ud-tb-totals" class="text-slate-500 text-xs font-mono">مدين / دائن</div>
+            <p class="text-slate-500 text-xs mt-2">إجمالي القيود: <span id="ud-tb-count" class="font-mono text-slate-300">—</span></p>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-4 cursor-pointer hover:border-amber-500/30 transition-colors" id="dashboard-pending-card" onclick="openPendingInvoicesModal()" title="الفواتير المعلقة">
+          <!-- 2. إدارة العملات (FX + إعادة التقييم) -->
+          <div id="unified-widget-fx" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-amber-500/30 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">سعر الصرف</h3>
+            <div id="ud-fx-rate" class="font-mono text-lg font-semibold text-amber-400">1 USD = — ل.س</div>
+            <div class="flex flex-wrap gap-2 mt-3">
+              <button type="button" onclick="syncExchangeRate()" class="tap-haptic px-2 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-medium hover:bg-amber-500/20 hover:text-amber-400 transition-all duration-300">تحديث الصرف</button>
+              <button type="button" onclick="runRevalueDebts()" class="tap-haptic px-2 py-1.5 rounded-lg bg-white/10 text-slate-300 text-xs font-medium hover:bg-emerald-500/20 hover:text-emerald-400 transition-all duration-300">إعادة التقييم</button>
+            </div>
+          </div>
+          <!-- 3. المخزون والتحذيرات -->
+          <div id="unified-widget-stock" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-rose-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="showSection('inventory')" title="المخزون">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">أصناف منخفضة المخزون</h3>
+            <div id="ud-stock-count" class="font-mono text-lg font-semibold text-white">—</div>
+            <div id="ud-stock-preview" class="text-slate-500 text-xs mt-1 truncate">—</div>
+          </div>
+          <!-- 4. الديون والسيولة (ذمم مدينة/دائنة) -->
+          <div id="unified-widget-debts" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-blue-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('statement-of-account','كشف الحساب')" title="كشف الحساب">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الذمم المدينة / الدائنة</h3>
+            <div class="space-y-1">
+              <div class="flex justify-between items-baseline"><span class="text-slate-500 text-xs">مدينة</span><span id="ud-receivables" class="font-mono text-sm font-semibold text-amber-400">— ل.س</span></div>
+              <div class="flex justify-between items-baseline"><span class="text-slate-500 text-xs">دائنة</span><span id="ud-payables" class="font-mono text-sm font-semibold text-blue-400">— ل.س</span></div>
+            </div>
+          </div>
+          <!-- 5. الأداء المالي (P&L) -->
+          <div id="unified-widget-pl" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-emerald-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openModule('reports','مركز التقارير')" title="الأرباح والخسائر">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الأرباح والخسائر</h3>
+            <div id="ud-pl-true" class="font-mono text-lg font-semibold text-white">— ل.س</div>
+            <div class="text-slate-500 text-xs mt-1">الربح الحقيقي (بعد الصرف)</div>
+            <div class="flex justify-between text-xs mt-1.5 font-mono"><span id="ud-pl-revenue" class="text-emerald-400/80">إيرادات —</span><span id="ud-pl-expenses" class="text-rose-400/80">مصروفات —</span></div>
+          </div>
+          <!-- 6. السيولة (رصيد الصندوق) -->
+          <div id="unified-widget-cash" class="unified-widget glass-card rounded-xl p-4 border border-emerald-500/20 hover:border-emerald-500/40 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">رصيد الصندوق</h3>
+            <div id="ud-cash-total" class="font-mono text-xl font-bold text-emerald-400">— ل.س</div>
+            <p class="text-slate-500 text-xs mt-1">صندوق ل.س + دولار (مُحوّل ل.س)</p>
+          </div>
+          <!-- الفواتير المعلقة -->
+          <div id="unified-widget-pending" class="unified-widget glass-card rounded-xl p-4 border border-white/10 hover:border-amber-500/30 cursor-pointer transition-all duration-300 tap-haptic" onclick="openPendingInvoicesModal()" title="الفواتير المعلقة">
             <h3 class="text-sm font-medium text-slate-400 mb-2">الفواتير المعلقة</h3>
-            <p class="text-2xl font-bold text-amber-400" id="dashboard-pending-count">0</p>
-            <p class="text-xs text-slate-500 mt-1">انقر للاستكمال</p>
+            <p id="ud-pending-count" class="font-mono text-2xl font-bold text-amber-400">0</p>
+            <p class="text-slate-500 text-xs mt-1">انقر للاستكمال</p>
           </div>
-          <div class="glass-card bento-tilt rounded-2xl p-4">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">ميزان المراجعة</h3>
-            <div id="dashboard-tb" class="text-white text-sm"><div class="py-2 px-1" aria-busy="true"><div class="skeleton skeleton-line" style="width:85%"></div><div class="skeleton skeleton-line" style="width:70%"></div><div class="skeleton skeleton-line" style="width:55%"></div></div></div>
-          </div>
-          <div class="glass-card bento-tilt rounded-2xl p-4 flex flex-col items-center" data-rbac="admin">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">ربح القوة الشرائية</h3>
-            <div class="flex items-baseline gap-2"><span id="dashboard-pl" class="text-2xl font-semibold text-emerald-400">—</span><span class="text-slate-500 text-sm">ل.س</span></div>
-            <div class="w-full mt-3 progress-track"><div id="dashboard-pl-bar" class="progress-fill" style="width: 0%"></div></div>
-          </div>
-          <div class="glass-card bento-tilt rounded-2xl p-4">
-            <h3 class="text-sm font-medium text-slate-400 mb-2">آخر النشاط</h3>
-            <div id="dashboard-journal" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
-          </div>
-          <div id="dashboard-low-stock-alerts" class="card-standard md:col-span-2">
-            <h3 class="page-title-h3 text-slate-400 mb-2">تنبيهات المخزون المنخفض</h3>
-            <p class="page-desc mb-3">أصناف تحت الحد الأدنى للمخزون.</p>
-            <div id="low-stock-alerts-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
-          </div>
-          <div id="dashboard-profit-report" class="card-standard md:col-span-2">
-            <h3 class="page-title-h3 text-slate-400 mb-2">تحليل أرباحك وسيولتك</h3>
-            <p class="page-desc mb-3">توزيع الأصول: نقدية، ذمم مدينة، مخزون.</p>
-            <div id="profit-report-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
-            <div id="profit-report-insight" class="mt-3 text-sm hidden"></div>
-          </div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-            <div class="glass-card chart-card rounded-2xl p-4">
-              <h3 class="text-sm font-medium text-slate-400 mb-2">الإيرادات vs المصروفات (آخر 30 يوم)</h3>
-              <div class="chart-inner h-48 relative">
-                <div id="chart-revenue-expenses-empty" class="chart-empty state-empty hidden">لا بيانات</div>
-                <canvas id="chart-revenue-expenses" class="w-full max-w-full"></canvas>
-              </div>
-            </div>
-            <div class="glass-card chart-card rounded-2xl p-4">
-              <h3 class="text-sm font-medium text-slate-400 mb-2">توزيع المصروفات</h3>
-              <div class="chart-inner h-48 relative">
-                <div id="chart-expense-pie-empty" class="chart-empty state-empty hidden">لا مصروفات</div>
-                <canvas id="chart-expense-pie" class="w-full max-w-full"></canvas>
-              </div>
+        </div>
+        <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-card chart-card rounded-2xl p-4 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الإيرادات vs المصروفات (آخر 30 يوم)</h3>
+            <div class="chart-inner h-48 relative">
+              <div id="chart-revenue-expenses-empty" class="chart-empty state-empty hidden">لا بيانات</div>
+              <canvas id="chart-revenue-expenses" class="w-full max-w-full"></canvas>
             </div>
           </div>
-          <div class="grid grid-cols-1 lg:grid-cols-2 gap-4 mt-2">
-            <div class="glass-card chart-card rounded-2xl p-4">
-              <h3 class="text-sm font-medium text-slate-400 mb-2">أكثر 5 منتجات مبيعاً</h3>
-              <div class="chart-inner h-48 relative">
-                <div id="chart-top-products-empty" class="chart-empty state-empty hidden">لا مبيعات بعد</div>
-                <canvas id="chart-top-products" class="w-full max-w-full"></canvas>
-              </div>
+          <div class="glass-card chart-card rounded-2xl p-4 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">توزيع المصروفات</h3>
+            <div class="chart-inner h-48 relative">
+              <div id="chart-expense-pie-empty" class="chart-empty state-empty hidden">لا مصروفات</div>
+              <canvas id="chart-expense-pie" class="w-full max-w-full"></canvas>
             </div>
-            <div class="glass-card chart-card rounded-2xl p-4">
-              <h3 class="text-sm font-medium text-slate-400 mb-2">الصحة المالية: نقدية / ذمم دائنة</h3>
-              <div class="flex items-center gap-3 mt-2">
-                <div class="flex-1 progress-track h-4 rounded-full min-w-0"><div id="gauge-cash-debt" class="progress-fill h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
-                <span id="gauge-cash-debt-label" class="text-white text-sm font-medium shrink-0">—</span>
-              </div>
-              <p id="gauge-cash-debt-detail" class="text-slate-500 text-xs mt-1 text-right state-loading">جاري التحميل…</p>
+          </div>
+        </div>
+        <div class="mt-4 grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <div class="glass-card chart-card rounded-2xl p-4 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">أكثر 5 منتجات مبيعاً</h3>
+            <div class="chart-inner h-48 relative">
+              <div id="chart-top-products-empty" class="chart-empty state-empty hidden">لا مبيعات بعد</div>
+              <canvas id="chart-top-products" class="w-full max-w-full"></canvas>
             </div>
+          </div>
+          <div class="glass-card chart-card rounded-2xl p-4 transition-all duration-300">
+            <h3 class="text-sm font-medium text-slate-400 mb-2">الصحة المالية: نقدية / ذمم دائنة</h3>
+            <div class="flex items-center gap-3 mt-2">
+              <div class="flex-1 progress-track h-4 rounded-full min-w-0"><div id="gauge-cash-debt" class="progress-fill h-4 rounded-full transition-all duration-500" style="width: 50%"></div></div>
+              <span id="gauge-cash-debt-label" class="text-white text-sm font-medium shrink-0 font-mono">—</span>
+            </div>
+            <p id="gauge-cash-debt-detail" class="text-slate-500 text-xs mt-1 text-right state-loading font-mono">جاري التحميل…</p>
           </div>
         </div>
       </section>
@@ -1901,6 +1925,70 @@
       }).catch(function() {});
     }
 
+    /** Unified Dashboard: Single Source of Truth — GET /dashboard/summary. Stores in window._dashboardSummary and fills all widgets. */
+    function loadUnifiedDashboard() {
+      var grid = document.getElementById('unified-dashboard-grid');
+      if (grid) grid.style.opacity = '0.7';
+      fetchJson('/dashboard/summary').then(function(r) {
+        if (grid) grid.style.opacity = '1';
+        if (!r.success || !r.data) {
+          window._dashboardSummary = null;
+          return;
+        }
+        window._dashboardSummary = r.data;
+        var d = r.data;
+        function fmt(n) { return (n != null && !isNaN(n)) ? Number(n).toLocaleString('ar-SY') : '—'; }
+        var tb = d.trialBalance || {};
+        var elTbStatus = document.getElementById('ud-tb-status');
+        var elTbTotals = document.getElementById('ud-tb-totals');
+        var elTbCount = document.getElementById('ud-tb-count');
+        if (elTbStatus) elTbStatus.textContent = tb.balanced ? 'متوازن' : 'غير متوازن';
+        if (elTbStatus) elTbStatus.className = 'font-mono text-lg font-semibold ' + (tb.balanced ? 'text-emerald-400' : 'text-rose-400');
+        if (elTbTotals) elTbTotals.textContent = (fmt(tb.totalDebit) || '—') + ' / ' + (fmt(tb.totalCredit) || '—') + ' ل.س';
+        if (elTbCount) elTbCount.textContent = d.journalEntryCount != null ? d.journalEntryCount : '—';
+        var ex = d.exchangeRate || {};
+        var oneUsd = ex.oneUsdInSYP != null ? Number(ex.oneUsdInSYP) : null;
+        var elFx = document.getElementById('ud-fx-rate');
+        if (elFx) elFx.textContent = oneUsd != null ? '1 USD = ' + fmt(oneUsd) + ' ل.س' : '—';
+        var lowStock = d.lowStock || [];
+        var elStockCount = document.getElementById('ud-stock-count');
+        var elStockPreview = document.getElementById('ud-stock-preview');
+        if (elStockCount) { elStockCount.textContent = lowStock.length; elStockCount.className = 'font-mono text-lg font-semibold ' + (lowStock.length > 0 ? 'text-rose-400' : 'text-emerald-400'); }
+        if (elStockPreview) elStockPreview.textContent = lowStock.length > 0 ? (lowStock.slice(0, 2).map(function(i) { return i.name || i.id; }).join(' · ')) : 'كل الأصناف فوق الحد';
+        var elRec = document.getElementById('ud-receivables');
+        var elPay = document.getElementById('ud-payables');
+        if (elRec) elRec.textContent = fmt(d.receivables) + ' ل.س';
+        if (elPay) elPay.textContent = fmt(d.payables) + ' ل.س';
+        var pl = d.pl || {};
+        var trueProfit = pl.trueProfit != null ? Number(pl.trueProfit) : null;
+        var elPlTrue = document.getElementById('ud-pl-true');
+        var elPlRev = document.getElementById('ud-pl-revenue');
+        var elPlExp = document.getElementById('ud-pl-expenses');
+        if (elPlTrue) { elPlTrue.textContent = fmt(trueProfit) + ' ل.س'; elPlTrue.className = 'font-mono text-lg font-semibold ' + (trueProfit != null && trueProfit >= 0 ? 'text-emerald-400' : 'text-rose-400'); }
+        if (elPlRev) elPlRev.textContent = 'إيرادات ' + fmt(pl.revenue);
+        if (elPlExp) elPlExp.textContent = 'مصروفات ' + fmt(pl.expenses);
+        var cashSYP = (d.cash && d.cash.syp != null) ? d.cash.syp : (d.cash != null && typeof d.cash === 'number' ? d.cash : null);
+        var elCash = document.getElementById('ud-cash-total');
+        if (elCash) elCash.textContent = fmt(cashSYP) + ' ل.س';
+      }).catch(function() {
+        if (grid) grid.style.opacity = '1';
+        window._dashboardSummary = null;
+      });
+      updatePendingInvoicesCard();
+    }
+    function syncExchangeRate() {
+      fetch(API + '/multi-currency/rates/sync', { headers: getAuthHeaders() }).then(function(res) { return res.json(); }).then(function(j) {
+        if (j.success) { loadUnifiedDashboard(); if (typeof showToast === 'function') showToast('تم', 'تم تحديث سعر الصرف', 'success'); }
+        else if (typeof showToast === 'function') showToast('تنبيه', j.error || 'فشل التحديث', 'warning');
+      }).catch(function(e) { if (typeof showToast === 'function') showToast('خطأ', e.message || 'فشل التحديث', 'error'); });
+    }
+    function runRevalueDebts() {
+      fetch(API + '/currency/revalue-debts', { method: 'POST', headers: getAuthHeaders(), body: JSON.stringify({}) }).then(function(res) { return res.json(); }).then(function(j) {
+        if (j.success) { loadUnifiedDashboard(); if (typeof showToast === 'function') showToast('تم', (j.data && j.data.message) || 'تمت إعادة التقييم', 'success'); }
+        else if (typeof showToast === 'function') showToast('تنبيه', j.error || 'فشل إعادة التقييم', 'warning');
+      }).catch(function(e) { if (typeof showToast === 'function') showToast('خطأ', e.message || 'فشل إعادة التقييم', 'error'); });
+    }
+
     function loadLowStockAlerts() {
       var el = document.getElementById('low-stock-alerts-content');
       if (!el) return;
@@ -2042,6 +2130,8 @@
       try { var holds = typeof getResumableHolds === 'function' ? getResumableHolds() : []; count = (holds && holds.length) || 0; } catch (e) {}
       var el = document.getElementById('dashboard-pending-count');
       if (el) el.textContent = count;
+      var udEl = document.getElementById('ud-pending-count');
+      if (udEl) udEl.textContent = count;
     }
     function forceCloseModal() {
       var modal = document.getElementById('pending-invoices-modal');
@@ -2122,9 +2212,10 @@
       if (!content) return;
       fetchJson('/dashboard/summary').then(function(r) {
         if (!r.success || !r.data) { content.innerHTML = '<p class="state-empty">لا بيانات</p>'; if (insightEl) insightEl.classList.add('hidden'); return; }
-        var cash = Number(r.data.cash) || 0;
-        var receivables = Number(r.data.totalReceivables) || 0;
-        var inventory = Number(r.data.inventoryValue) || 0;
+        var d = r.data;
+        var cash = (d.cash && d.cash.syp != null) ? Number(d.cash.syp) : (typeof d.cash === 'number' ? d.cash : 0);
+        var receivables = (d.receivables != null ? Number(d.receivables) : (d.totalReceivables != null ? Number(d.totalReceivables) : 0));
+        var inventory = (d.inventoryValueSYP != null ? Number(d.inventoryValueSYP) : (d.inventoryValue != null ? Number(d.inventoryValue) : 0));
         var total = cash + receivables + inventory;
         function pct(n) { return total > 0 ? Math.round((n / total) * 100) : 0; }
         function fmt(n) { return (n || 0).toLocaleString('ar-SY'); }
@@ -2159,10 +2250,8 @@
     }
 
     function refreshDashboardCharts() {
-      loadCashBalance();
-      loadLowStockAlerts();
+      loadUnifiedDashboard();
       loadProfitReport();
-      updatePendingInvoicesCard();
       var now = new Date();
       var toDate = now.toISOString().slice(0, 10);
       var from = new Date(now);
