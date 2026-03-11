@@ -709,7 +709,7 @@
       </nav>
       <div class="w-32 flex-shrink-0 flex justify-end">
         <div class="flex items-center gap-2">
-          <img id="global-brand-logo" alt="" class="h-9 w-9 object-contain rounded-xl shrink-0 hidden" data-branding="logo"/>
+          <img id="global-brand-logo" alt="" class="app-logo h-9 w-9 object-contain rounded-xl shrink-0 hidden" data-branding="logo"/>
           <div class="w-9 h-9 rounded-xl bg-emerald-500/20 flex items-center justify-center shrink-0 global-brand-fallback">
             <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
           </div>
@@ -1620,6 +1620,50 @@
       document.querySelectorAll('img[data-branding="logo"]').forEach(function(img) {
         try { if (safeLogo) { img.src = safeLogo; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } } catch (e2) {}
       });
+    }
+
+    var DEFAULT_APP_LOGO_PATH = 'mizan-logo.jpg';
+
+    /** جلب الشعار من companyLogo وتطبيقه فوراً على كل لوغو في الهيدر/السايدبار. إذا كان التخزين فارغاً يعرض اللوجو الافتراضي mizan-logo.jpg. إصلاح الكاش: إضافة timestamp لرابط الصورة عند الحاجة. */
+    function refreshAppLogo() {
+      var src = '';
+      try { src = localStorage.getItem('companyLogo') || ''; } catch (e) {}
+      src = (src && src.trim()) ? src.trim() : '';
+      var fallback = document.querySelector('.global-brand-fallback');
+      var isDefaultPath = false;
+      var sep;
+      if (!src) {
+        src = DEFAULT_APP_LOGO_PATH;
+        sep = src.indexOf('?') >= 0 ? '&' : '?';
+        src = src + sep + 't=' + Date.now();
+        isDefaultPath = true;
+      } else if (src.indexOf('data:') !== 0 && src.indexOf('http') === 0) {
+        sep = src.indexOf('?') >= 0 ? '&' : '?';
+        src = src + sep + 't=' + Date.now();
+      }
+      var selector = 'img.app-logo, img[data-branding="logo"], #global-brand-logo, header img.app-logo, header img[data-branding="logo"]';
+      document.querySelectorAll(selector).forEach(function(img) {
+        try {
+          img.src = src;
+          img.classList.remove('hidden');
+          img.onerror = isDefaultPath ? function() {
+            this.classList.add('hidden');
+            var fb = document.querySelector('.global-brand-fallback');
+            if (fb) fb.classList.remove('hidden');
+          } : null;
+          if (fallback) fallback.classList.add('hidden');
+        } catch (e2) {}
+      });
+      var logoEl = document.getElementById('global-brand-logo');
+      if (logoEl) {
+        logoEl.src = src;
+        logoEl.classList.remove('hidden');
+        if (isDefaultPath) {
+          logoEl.onerror = function() { this.classList.add('hidden'); if (fallback) fallback.classList.remove('hidden'); };
+        } else { logoEl.onerror = null; }
+        if (fallback) fallback.classList.add('hidden');
+      }
+      if (fallback && !isDefaultPath) fallback.classList.add('hidden');
     }
 
     function getAuthHeaders() {
@@ -2996,6 +3040,7 @@
       forceCloseModal();
     }
     window.addEventListener('DOMContentLoaded', function() {
+      if (typeof refreshAppLogo === 'function') refreshAppLogo();
       if (typeof renderNavigation === 'function') renderNavigation();
       var visionInput = document.getElementById('vision-file');
       if (visionInput) {
@@ -5886,6 +5931,7 @@
           invoiceNote: cur.invoiceNote != null ? cur.invoiceNote : ''
         }));
         updateAllLogoImagesInPage(base64);
+        if (typeof refreshAppLogo === 'function') refreshAppLogo();
         showToast('الشعار', 'تم تحديث الشعار وعرضه فوراً', 'success');
       } catch (e) {
         console.warn('[ميزان] تخزين الشعار فشل (ربما حجم كبير جداً):', e && e.message);
@@ -6051,6 +6097,7 @@
           localStorage.setItem('vault_branding', JSON.stringify({ companyName: storeName, logoBase64: logoBase64, phone: phone, address: address, invoiceNote: invoiceNote }));
           if (msgEl) { msgEl.textContent = 'تم حفظ الهوية محلياً'; msgEl.className = 'mt-2 text-sm text-emerald-400'; msgEl.classList.remove('hidden'); }
           applyBrandingToDOM();
+          if (typeof refreshAppLogo === 'function') refreshAppLogo();
         } catch (e) {
           if (msgEl) { msgEl.textContent = e.message || 'فشل الحفظ'; msgEl.className = 'mt-2 text-sm text-rose-400'; msgEl.classList.remove('hidden'); }
         }
