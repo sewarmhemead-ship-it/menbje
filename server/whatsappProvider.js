@@ -154,4 +154,28 @@ export function isConnected() {
   return !!connected;
 }
 
-export default { start, getQR, isConnected, sendMessage };
+/**
+ * Logout and clear session: unlink device, close socket, delete wa-session folder.
+ * Next start() will require a new QR scan.
+ */
+export async function logout() {
+  if (sock) {
+    try {
+      await sock.logout();
+    } catch (e) {
+      console.error('[Baileys] Logout error:', e.message);
+    }
+    try {
+      sock.end(undefined);
+    } catch (_) {}
+    sock = null;
+  }
+  connected = false;
+  currentQR = null;
+  if (fs.existsSync(SESSION_FOLDER)) {
+    fs.rmSync(SESSION_FOLDER, { recursive: true });
+  }
+  console.log('[Baileys] Logged out, session folder removed.');
+}
+
+export default { start, getQR, isConnected, sendMessage, logout };

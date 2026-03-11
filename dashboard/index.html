@@ -891,6 +891,9 @@
           <p class="text-amber-400/90 text-xs mb-3">يرجى عدم إرسال مئات الرسائل في دقيقة واحدة لتجنب حظر الرقم من قبل شركة واتساب. (نرد فقط على من يراسلنا، فنسبة الحظر شبه معدومة)</p>
           <p class="text-slate-400 text-sm mb-2">ربط واتساب برقمك (Baileys) — امسح الكود من تطبيق واتساب على جوالك:</p>
           <div id="whatsapp-qr-wrap" class="flex justify-center items-center min-h-[200px] bg-black/20 rounded-lg p-3">جاري جلب رمز QR…</div>
+          <div class="mt-3 flex justify-end">
+            <button type="button" onclick="whatsAppLogout()" class="tap-haptic px-3 py-1.5 rounded-lg bg-red-500/20 text-red-400 text-xs font-medium hover:bg-red-500/30 transition-colors">قطع الاتصال / تسجيل الخروج</button>
+          </div>
         </div>
         <div id="whatsapp-settings-row" class="mb-4 p-4 rounded-xl bg-white/5 border border-white/10">
           <h3 class="text-sm font-medium text-slate-400 mb-2">نص الرد التلقائي (دين/حساب)</h3>
@@ -916,6 +919,14 @@
         <h2 class="page-title-h2 mb-1">الإعدادات</h2>
         <p class="page-desc mb-6">المخزون، واتساب، التدقيق. عمل دون اتصال أولاً.</p>
         <div class="flex flex-col gap-4">
+          <div id="settings-wa-card" class="card-standard text-right flex flex-col gap-2">
+            <h3 class="text-sm font-medium text-slate-400">اتصال واتساب - Baileys</h3>
+            <div class="flex items-center gap-2">
+              <span class="text-2xl">💬</span>
+              <span id="settings-wa-status-text" class="text-slate-500">جاري التحقق...</span>
+            </div>
+            <button type="button" onclick="showSection('whatsapp')" class="tap-haptic mt-1 w-full sm:w-auto px-4 py-2 rounded-lg bg-amber-500/20 text-amber-400 text-sm font-medium hover:bg-amber-500/30 transition-colors">إدارة الاتصال والـ QR</button>
+          </div>
           <button type="button" onclick="showSection('inventory')" class="tap-haptic card-standard text-right flex items-center gap-3">
             <span class="text-2xl">📦</span>
             <span class="text-white font-medium">المخزون ونظام التجزئة</span>
@@ -1627,6 +1638,7 @@
       if (id === 'dashboard') setMobileNav('dashboard');
       else document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
       if (id === 'dashboard' && typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
+      if (id === 'settings' && typeof updateWhatsAppGlobalIndicator === 'function') updateWhatsAppGlobalIndicator();
       if (id === 'barter' && typeof refresh === 'function') refresh('barter');
       if (id === 'whatsapp') {
         if (typeof refresh === 'function') refresh('drafts');
@@ -6318,6 +6330,26 @@
       window._waQrInterval = setInterval(update, 3000);
     }
 
+    async function whatsAppLogout() {
+      if (!confirm('قطع الاتصال سيفك ربط الرقم الحالي. لربط رقم جديد ستحتاج لمسح رمز QR من جديد. متابعة؟')) return;
+      try {
+        const j = await fetch(API + '/whatsapp/logout', { method: 'POST', headers: getAuthHeaders() }).then(function(r) { return r.json(); });
+        if (j && j.success) {
+          if (window._waQrInterval) { clearInterval(window._waQrInterval); window._waQrInterval = null; }
+          var wrap = document.getElementById('whatsapp-qr-wrap');
+          if (wrap) wrap.innerHTML = '<p class="text-slate-500 text-sm">جاري جلب رمز QR…</p>';
+          if (typeof loadWhatsAppStatus === 'function') loadWhatsAppStatus();
+          if (typeof updateWhatsAppGlobalIndicator === 'function') updateWhatsAppGlobalIndicator();
+          if (typeof startWhatsAppQRPoll === 'function') startWhatsAppQRPoll();
+          showToast('تم', j.message || 'تم قطع الاتصال. امسح رمز QR الجديد لربط رقم آخر.', 'success');
+        } else {
+          showToast('خطأ', (j && j.error) || 'فشل قطع الاتصال', 'error');
+        }
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل قطع الاتصال', 'error');
+      }
+    }
+
     async function loadWhatsAppStatus() {
       const el = document.getElementById('whatsapp-status-row');
       if (!el) return;
@@ -6381,7 +6413,7 @@
     async function updateWhatsAppGlobalIndicator() {
       const dot = document.getElementById('wa-global-dot');
       const text = document.getElementById('wa-global-text');
-      if (!dot || !text) return;
+      const settingsStatus = document.getElementById('settings-wa-status-text');
       try {
         const r = await fetch(API + '/whatsapp/status', { headers: getAuthHeaders() });
         const j = await r.json();
@@ -6389,10 +6421,18 @@
         dot.className = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-400' : 'bg-red-400');
         text.textContent = connected ? 'واتساب متصل' : 'واتساب غير متصل';
         text.className = connected ? 'text-emerald-400' : 'text-red-400';
+        if (settingsStatus) {
+          settingsStatus.textContent = connected ? '(متصل)' : '(غير مرتبط)';
+          settingsStatus.className = connected ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium';
+        }
       } catch (_) {
         dot.className = 'w-2 h-2 rounded-full bg-slate-500';
         text.textContent = 'واتساب…';
         text.className = 'text-slate-500';
+        if (settingsStatus) {
+          settingsStatus.textContent = 'جاري التحقق...';
+          settingsStatus.className = 'text-slate-500';
+        }
       }
     }
 

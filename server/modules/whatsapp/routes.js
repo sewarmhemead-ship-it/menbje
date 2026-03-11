@@ -166,6 +166,19 @@ router.get('/status', async (req, res) => {
 });
 
 /**
+ * Logout Baileys: unlink device, delete wa-session, allow new QR.
+ */
+router.post('/logout', requireAuth, async (req, res) => {
+  try {
+    const provider = (await import('../../whatsappProvider.js')).default;
+    await provider.logout();
+    res.json({ success: true, message: 'تم قطع الاتصال. يمكنك مسح رمز QR جديد لربط رقم آخر.' });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
  * Normalize phone for WhatsApp: digits only; if starts with 0 strip and if 9 digits prepend 963 (Syria).
  * Returns clean digit string for Meta API or for building JID.
  */
