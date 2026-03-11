@@ -22,6 +22,8 @@
   <script src="https://cdn.jsdelivr.net/npm/chart.js?v=2.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js?v=2.1"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js?v=2.1"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
   <style>
     :root {
       --primary-color: #10b981;
@@ -481,6 +483,17 @@
     عمل دون اتصال · سيتم مزامنة البيانات عند الاتصال
   </div>
 
+  <!-- OCR Loader: يظهر أثناء قراءة الفاتورة ذكياً -->
+  <div id="ocr-loader-overlay" class="hidden fixed inset-0 z-[70] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm p-4">
+    <div class="bg-[var(--pro-card)] border border-[var(--pro-border)] rounded-2xl p-6 w-full max-w-sm text-center tap-haptic">
+      <p id="ocr-loader-status" class="text-white font-medium mb-2">جاري قراءة بيانات الفاتورة ذكياً...</p>
+      <div class="h-2 bg-white/10 rounded-full overflow-hidden">
+        <div id="ocr-loader-bar" class="h-full bg-emerald-500 rounded-full transition-all duration-300" style="width: 0%"></div>
+      </div>
+      <p id="ocr-loader-detail" class="text-slate-400 text-xs mt-2"></p>
+    </div>
+  </div>
+
   <!-- Toast stack (ذكي: أعلى يمين، حركة دخول/خروج، دعم زر إجراء) -->
   <div id="toast-container" role="region" aria-label="تنبيهات"></div>
   <!-- Toast (Success / Error) - legacy single toast, kept for print hide -->
@@ -630,7 +643,7 @@
     <!-- tab-strip نُقل إلى pro-header داخل main (ديسكتوب) -->
   </header>
 
-  <!-- Pro Sidebar (ديسكتوب فقط - يمين الشاشة) -->
+  <!-- Pro Sidebar (ديسكتوب فقط - يمين الشاشة) — يُملأ ديناميكياً من erpMenu -->
   <aside class="pro-sidebar" id="pro-sidebar" aria-label="القائمة الرئيسية">
     <div class="flex items-center gap-2 pb-4 border-b border-white/10 mb-2">
       <div class="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
@@ -638,58 +651,7 @@
       </div>
       <span class="font-semibold text-white text-lg">Vault AI</span>
     </div>
-    <nav class="flex-1 overflow-y-auto py-2">
-      <div class="pro-nav-group-title">ملف</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('dashboard','لوحة التحكم')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg><span>لوحة التحكم</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('company-settings','إعدادات الشركة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>إعدادات الشركة</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('system-settings','إعدادات النظام')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>إعدادات النظام</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('user-management','إدارة المستخدمين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span>إدارة المستخدمين</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full text-rose-400/90 hover:text-rose-400" onclick="logout()"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg><span>خروج</span></button>
-
-      <div class="pro-nav-group-title">المبيعات</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('sales-invoice','فاتورة بيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>فاتورة بيع</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('sales-return','مرتجع بيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع بيع</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('sales-reports','تقارير المبيعات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>تقارير المبيعات</span></button>
-
-      <div class="pro-nav-group-title">المشتريات</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('purchase-invoice','فاتورة مشتريات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>فاتورة مشتريات</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('purchase-return','مرتجع مشتريات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع مشتريات</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('suppliers','الموردين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>الموردين</span></button>
-
-      <div class="pro-nav-group-title">التصنيع</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('manufacturing-bom','وصفات BOM')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span>وصفات BOM</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('manufacturing-build','أمر تصنيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg><span>أمر تصنيع</span></button>
-
-      <div class="pro-nav-group-title">المستودع</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('item-card','بطاقة مادة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg><span>بطاقة مادة</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('stock-movements','حركات مخزون')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>حركات مخزون</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('inventory')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>جرد وتقارير</span></button>
-
-      <div class="pro-nav-group-title">السندات</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-receipt','سند قبض')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>سند قبض</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-payment','سند دفع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg><span>سند دفع</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-journal','سند قيد')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>سند قيد</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-transfer','سند تحويل عملات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>سند تحويل عملات</span></button>
-
-      <div class="pro-nav-group-title">المحاسبة</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('chart-of-accounts','شجرة الحسابات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><span>شجرة الحسابات</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('journal-entries','قيود اليومية')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>قيود اليومية</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('trial-balance','ميزان المراجعة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M9 7l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M21 6l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0M15 7l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0"/></svg><span>ميزان المراجعة</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('contacts-directory','العملاء والموردين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span>العملاء والموردين</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('statement-of-account','كشف الحساب')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>كشف الحساب</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('expenses','المصاريف')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>المصاريف</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('reports','مركز التقارير')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>مركز التقارير</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('financial-dashboard','لوحة التحكم المالية')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>لوحة التحكم المالية</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="showSection('accounting')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>تقارير محاسبية</span></button>
-
-      <div class="pro-nav-group-title">ملحق</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('currency-manager','العملات والذهب')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>العملات والذهب</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="showSection('barter')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>المقايضة</span></button>
-
-      <div class="pro-nav-group-title">واتساب</div>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('whatsapp')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg><span>صفحة واتساب</span></button>
-      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('settings')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>الإعدادات</span></button>
-    </nav>
+    <nav id="pro-sidebar-nav" class="flex-1 overflow-y-auto py-2"></nav>
   </aside>
 
   <!-- old nav removed - use menu bar above -->
@@ -873,6 +835,15 @@
             </div>
             <div class="font-mono text-lg font-semibold text-emerald-400 mt-1">مسح</div>
             <p class="text-[10px] text-slate-500 mt-auto pt-1">فتح الكاميرا أو رفع صورة</p>
+          </div>
+          <!-- 10. تنبيهات المتابعة -->
+          <div class="vault-card backdrop-blur-md bg-white/5 border border-white/10 rounded-2xl p-3 flex flex-col justify-between cursor-pointer tap-haptic" onclick="openTasksRemindersModal()" title="تنبيهات المتابعة">
+            <div class="flex items-center justify-between gap-2">
+              <span class="text-xs text-slate-400 truncate">تنبيهات المتابعة</span>
+              <span class="glow-icon amber"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 17h5l-1.405-1.405A2.032 2.032 0 0118 14.158V11a6.002 6.002 0 00-4-5.659V5a2 2 0 10-4 0v.341C7.67 6.165 6 8.388 6 11v3.159c0 .538-.214 1.055-.595 1.436L4 17h5m6 0v1a3 3 0 11-6 0v-1m6 0H9"/></svg></span>
+            </div>
+            <div id="ud-tasks-count" class="font-mono text-lg font-semibold text-amber-400 mt-1">0</div>
+            <p id="ud-tasks-sub" class="text-[10px] text-slate-500 mt-auto pt-1">سندات حان موعد تذكيرها</p>
           </div>
         </div>
         <div class="mt-6 grid grid-cols-1 lg:grid-cols-2 gap-4">
@@ -1152,7 +1123,7 @@
     </main>
   </div>
 
-  <!-- Navigation Drawer (القائمة المنسدلة) — SaaS-style side menu -->
+  <!-- Navigation Drawer (موبايل) — يُملأ ديناميكياً من erpMenu -->
   <div id="nav-drawer-overlay" class="md:hidden" onclick="closeNavDrawer()" aria-hidden="true"></div>
   <aside id="nav-drawer" class="md:hidden" aria-label="قائمة التنقل">
     <div class="drawer-header flex flex-col pt-6 pb-5 px-5 border-b border-white/5">
@@ -1165,51 +1136,7 @@
       </div>
       <p class="text-[11px] text-slate-400/80 mt-1.5">نظام Vault AI المحاسبي الذكي</p>
     </div>
-    <nav class="flex-1 overflow-auto py-2">
-      <div class="drawer-group-title">ملف</div>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('dashboard','لوحة التحكم'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg><span>لوحة التحكم</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('company-settings','إعدادات الشركة'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>إعدادات الشركة</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('system-settings','إعدادات النظام'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>إعدادات النظام</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('user-management','إدارة المستخدمين'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span>إدارة المستخدمين</span></button>
-
-      <div class="drawer-group-title">المبيعات</div>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="openModule('sales-invoice','فاتورة بيع'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>فاتورة بيع</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="openModule('sales-return','مرتجع بيع'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع بيع</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('sales-reports','تقارير المبيعات'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>تقارير المبيعات</span></button>
-
-      <div class="drawer-group-title">المشتريات</div>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="openModule('purchase-invoice','فاتورة مشتريات'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>فاتورة مشتريات</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="openModule('purchase-return','مرتجع مشتريات'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع مشتريات</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="openModule('suppliers','الموردين'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>الموردين</span></button>
-
-      <div class="drawer-group-title">المستودع</div>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('item-card','بطاقة مادة'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg><span>بطاقة مادة</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('stock-movements','حركات مخزون'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>حركات مخزون</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="showSection('inventory'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>جرد وتقارير</span></button>
-
-      <div class="drawer-group-title">السندات</div>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-receipt','سند قبض'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>سند قبض</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-payment','سند دفع'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg><span>سند دفع</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-journal','سند قيد'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>سند قيد</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-transfer','سند تحويل عملات'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>سند تحويل عملات</span></button>
-
-      <div class="drawer-group-title">المحاسبة</div>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('chart-of-accounts','شجرة الحسابات'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><span>شجرة الحسابات</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('journal-entries','قيود اليومية'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>قيود اليومية</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('trial-balance','ميزان المراجعة'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M9 7l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M21 6l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0M15 7l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0"/></svg><span>ميزان المراجعة</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('contacts-directory','العملاء والموردين'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span>العملاء والموردين</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('statement-of-account','كشف الحساب'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>كشف الحساب</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('reports','مركز التقارير'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>مركز التقارير</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="showSection('accounting'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>تقارير محاسبية</span></button>
-
-      <div class="drawer-group-title">ملحق</div>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="openModule('currency-manager','العملات والذهب'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>العملات والذهب</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" data-rbac="admin" onclick="showSection('barter'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>المقايضة</span></button>
-
-      <div class="drawer-group-title">واتساب</div>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="showSection('whatsapp'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg><span>صفحة واتساب</span></button>
-      <button type="button" class="drawer-item tap-haptic w-full" onclick="showSection('settings'); closeNavDrawer();"><svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>الإعدادات</span></button>
-    </nav>
+    <nav id="nav-drawer-nav" class="flex-1 overflow-auto py-2"></nav>
     <div class="drawer-footer border-t border-white/5 p-4 pt-3">
       <button type="button" onclick="logout(); closeNavDrawer();" class="drawer-item tap-haptic w-full justify-center text-rose-400/80 hover:text-rose-400 hover:bg-rose-500/5">
         <svg class="w-5 h-5 lucide-thin shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg>
@@ -1349,6 +1276,33 @@
       </div>
     </div>
   </div>
+
+  <!-- تنبيهات المتابعة (سندات مرتبطة بتذكير) -->
+  <div id="tasks-reminders-modal" class="hidden fixed inset-0 z-[9998] flex items-center justify-center bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) document.getElementById('tasks-reminders-modal').classList.add('hidden')">
+    <div class="bg-[#1a1c23] border border-white/10 p-6 rounded-2xl shadow-2xl max-w-md w-full m-4" onclick="event.stopPropagation()">
+      <h3 class="text-xl font-bold text-white mb-2">تنبيهات المتابعة</h3>
+      <p class="text-slate-400 text-sm mb-4">سندات حان موعد تذكيرها. اضغط «تم التواصل» بعد المتابعة.</p>
+      <ul id="tasks-reminders-list" class="space-y-3 mb-4 max-h-60 overflow-y-auto text-sm text-slate-300"></ul>
+      <p id="tasks-reminders-empty" class="text-slate-500 py-4 text-center hidden">لا توجد تنبيهات حالياً.</p>
+      <div class="flex justify-end border-t border-white/5 pt-4">
+        <button type="button" onclick="document.getElementById('tasks-reminders-modal').classList.add('hidden')" class="px-6 py-2 rounded-lg bg-white/10 hover:bg-white/15 text-slate-300 font-medium">إغلاق</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- دردشة البيانات (Mizan Query) - زاوية الشاشة -->
+  <div id="mizan-query-panel" class="fixed bottom-4 left-4 z-[100] flex flex-col w-80 max-w-[calc(100vw-2rem)] bg-[#1e293b] border border-white/10 rounded-2xl shadow-2xl overflow-hidden hidden">
+    <div class="flex items-center justify-between px-3 py-2 border-b border-white/10 bg-white/5">
+      <span class="text-sm font-medium text-emerald-400">دردشة البيانات</span>
+      <button type="button" id="mizan-query-close" onclick="toggleMizanQuery()" class="text-slate-400 hover:text-white p-1">✕</button>
+    </div>
+    <div id="mizan-query-messages" class="p-3 overflow-y-auto min-h-[120px] max-h-64 text-sm text-slate-300 space-y-2"></div>
+    <div class="p-2 border-t border-white/10 flex gap-2">
+      <input type="text" id="mizan-query-input" placeholder="مثال: مبيعات اليوم، رصيد، ديون الشهر" class="flex-1 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm placeholder-slate-500 focus:ring-1 focus:ring-emerald-500/50 outline-none" />
+      <button type="button" onclick="sendMizanQuery()" class="px-3 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium text-sm">إرسال</button>
+    </div>
+  </div>
+  <button type="button" id="mizan-query-toggle" onclick="toggleMizanQuery()" class="fixed bottom-4 left-4 z-[99] w-12 h-12 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 shadow-lg flex items-center justify-center tap-haptic" title="دردشة البيانات"><svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg></button>
 
   <!-- Audit drill-down: تفاصيل القيد المحاسبي -->
   <div id="audit-entry-modal" class="hidden fixed inset-0 z-[60] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm" onclick="if(event.target===this) document.getElementById('audit-entry-modal').classList.add('hidden')">
@@ -1788,8 +1742,130 @@
     }
     var sectionLabels = { dashboard: 'لوحة التحكم', accounting: 'المحاسبة', barter: 'المقايضة', vision: 'الكاميرا', inventory: 'المخزون', currency: 'العملات', whatsapp: 'واتساب', settings: 'الإعدادات', import: 'استيراد البيانات' };
 
+    /* —— مصفوفة القائمة المركزية (ERP Menu) —— */
+    var NAV_ICONS = {
+      dashboard: '<path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/>',
+      company: '<path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>',
+      settings: '<path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>',
+      users: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/>',
+      logout: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/>',
+      invoice: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>',
+      return: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/>',
+      report: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>',
+      purchase: '<path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>',
+      supplier: '<path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/>',
+      bom: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/>',
+      build: '<path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/>',
+      item: '<path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/>',
+      stock: '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>',
+      inventory: '<path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>',
+      voucherR: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+      voucherP: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/>',
+      voucherJ: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>',
+      voucherT: '<path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>',
+      chart: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/>',
+      journal: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>',
+      balance: '<path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M9 7l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M21 6l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0M15 7l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0"/>',
+      contacts: '<path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>',
+      statement: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>',
+      expenses: '<path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/>',
+      financial: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/>',
+      accounting: '<path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/>',
+      currency: '<path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/>',
+      barter: '<path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/>',
+      whatsapp: '<path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/>'
+    };
+    var erpMenu = [
+      { groupTitle: 'ملف', items: [
+        { title: 'لوحة التحكم', type: 'module', id: 'dashboard', icon: 'dashboard', rbac: 'admin' },
+        { title: 'إعدادات الشركة', type: 'module', id: 'company-settings', icon: 'company', rbac: 'admin' },
+        { title: 'إعدادات النظام', type: 'module', id: 'system-settings', icon: 'settings', rbac: 'admin' },
+        { title: 'إدارة المستخدمين', type: 'module', id: 'user-management', icon: 'users', rbac: 'admin' },
+        { title: 'خروج', type: 'logout', id: 'logout', icon: 'logout' }
+      ]},
+      { groupTitle: 'الإدارة والمالية', items: [
+        { title: 'سند قبض', type: 'module', id: 'voucher-receipt', icon: 'voucherR', rbac: 'admin' },
+        { title: 'سند دفع', type: 'module', id: 'voucher-payment', icon: 'voucherP', rbac: 'admin' },
+        { title: 'سند قيد', type: 'module', id: 'voucher-journal', icon: 'voucherJ', rbac: 'admin' },
+        { title: 'سند تحويل عملات', type: 'module', id: 'voucher-transfer', icon: 'voucherT', rbac: 'admin' },
+        { title: 'شجرة الحسابات', type: 'module', id: 'chart-of-accounts', icon: 'chart', rbac: 'admin' },
+        { title: 'قيود اليومية', type: 'module', id: 'journal-entries', icon: 'journal', rbac: 'admin' },
+        { title: 'ميزان المراجعة', type: 'module', id: 'trial-balance', icon: 'balance', rbac: 'admin' },
+        { title: 'العملاء والموردين', type: 'module', id: 'contacts-directory', icon: 'contacts', rbac: 'admin' },
+        { title: 'كشف الحساب', type: 'module', id: 'statement-of-account', icon: 'statement', rbac: 'admin' },
+        { title: 'المصاريف', type: 'module', id: 'expenses', icon: 'expenses', rbac: 'admin' },
+        { title: 'مركز التقارير', type: 'module', id: 'reports', icon: 'report', rbac: 'admin' },
+        { title: 'لوحة التحكم المالية', type: 'module', id: 'financial-dashboard', icon: 'financial', rbac: 'admin' },
+        { title: 'تقارير محاسبية', type: 'section', id: 'accounting', icon: 'accounting', rbac: 'admin' }
+      ]},
+      { groupTitle: 'التجارة', items: [
+        { title: 'فاتورة بيع', type: 'module', id: 'sales-invoice', icon: 'invoice' },
+        { title: 'مرتجع بيع', type: 'module', id: 'sales-return', icon: 'return' },
+        { title: 'تقارير المبيعات', type: 'module', id: 'sales-reports', icon: 'report', rbac: 'admin' },
+        { title: 'فاتورة مشتريات', type: 'module', id: 'purchase-invoice', icon: 'purchase' },
+        { title: 'مرتجع مشتريات', type: 'module', id: 'purchase-return', icon: 'return' },
+        { title: 'الموردين', type: 'module', id: 'suppliers', icon: 'supplier' }
+      ]},
+      { groupTitle: 'المخزون والعمليات', items: [
+        { title: 'بطاقة مادة', type: 'module', id: 'item-card', icon: 'item', rbac: 'admin' },
+        { title: 'حركات مخزون', type: 'module', id: 'stock-movements', icon: 'stock', rbac: 'admin' },
+        { title: 'جرد وتقارير', type: 'section', id: 'inventory', icon: 'inventory' },
+        { title: 'وصفات BOM', type: 'module', id: 'manufacturing-bom', icon: 'bom', rbac: 'admin', hiddenIf: ['mobile'] },
+        { title: 'أمر تصنيع', type: 'module', id: 'manufacturing-build', icon: 'build', rbac: 'admin', hiddenIf: ['mobile'] }
+      ]},
+      { groupTitle: 'ملحق', items: [
+        { title: 'العملات والذهب', type: 'module', id: 'currency-manager', icon: 'currency', rbac: 'admin' },
+        { title: 'المقايضة', type: 'section', id: 'barter', icon: 'barter', rbac: 'admin' }
+      ]},
+      { groupTitle: 'واتساب', items: [
+        { title: 'صفحة واتساب', type: 'section', id: 'whatsapp', icon: 'whatsapp' },
+        { title: 'الإعدادات', type: 'section', id: 'settings', icon: 'settings' }
+      ]}
+    ];
+    function renderNavigation() {
+      function iconSvgHtml(key, className) {
+        var path = NAV_ICONS[key];
+        if (!path) return '';
+        var cls = className || 'pro-icon';
+        return '<svg class="' + cls + '" fill="none" stroke="currentColor" viewBox="0 0 24 24">' + path + '</svg>';
+      }
+      function buildItemHtml(item, forDrawer) {
+        var icon = iconSvgHtml(item.icon, forDrawer ? 'w-5 h-5 lucide-thin shrink-0' : 'pro-icon');
+        var rbac = item.rbac ? ' data-rbac="' + item.rbac + '"' : '';
+        var extraClass = item.type === 'logout' ? ' text-rose-400/90 hover:text-rose-400' : '';
+        var btnClass = forDrawer ? 'drawer-item tap-haptic w-full' + extraClass : 'pro-nav-link tap-haptic w-full' + extraClass;
+        var click = '';
+        if (item.type === 'logout') click = 'logout()';
+        else if (item.type === 'module') click = "openModule('" + item.id + "','" + (item.title || '').replace(/'/g, "\\'") + "')";
+        else if (item.type === 'section') click = "showSection('" + item.id + "')";
+        if (forDrawer && click) click += '; closeNavDrawer()';
+        return '<button type="button" class="' + btnClass + '"' + rbac + ' onclick="' + click + '">' + icon + '<span>' + (item.title || '') + '</span></button>';
+      }
+      var menu = (typeof IndustryManager !== 'undefined' && IndustryManager.getVisibleMenu) ? IndustryManager.getVisibleMenu(erpMenu) : erpMenu;
+      var sidebarNav = document.getElementById('pro-sidebar-nav');
+      var drawerNav = document.getElementById('nav-drawer-nav');
+      if (sidebarNav) {
+        var html = '';
+        menu.forEach(function(g) {
+          html += '<div class="pro-nav-group-title">' + (g.groupTitle || '') + '</div>';
+          (g.items || []).forEach(function(it) { html += buildItemHtml(it, false); });
+        });
+        sidebarNav.innerHTML = html;
+      }
+      if (drawerNav) {
+        var html2 = '';
+        menu.forEach(function(g) {
+          html2 += '<div class="drawer-group-title">' + (g.groupTitle || '') + '</div>';
+          (g.items || []).forEach(function(it) { html2 += buildItemHtml(it, true); });
+        });
+        drawerNav.innerHTML = html2;
+      }
+      if (typeof applyRBAC === 'function') applyRBAC();
+    }
+
     function openModule(moduleId, title) {
       if (!moduleId || !title) return;
+      if (typeof IndustryManager !== 'undefined' && IndustryManager.applySeedDataForModule) IndustryManager.applySeedDataForModule(moduleId);
       let tab = openTabs.find(t => t.moduleId === moduleId);
       if (!tab) {
         tab = { id: 'tab-' + Date.now(), moduleId, title };
@@ -2450,6 +2526,7 @@
         window._dashboardSummary = null;
       });
       updatePendingInvoicesCard();
+      if (typeof updateTasksCount === 'function') updateTasksCount();
     }
     function syncExchangeRate() {
       fetch(API + '/multi-currency/rates/sync', { headers: getAuthHeaders() }).then(function(res) { return res.json(); }).then(function(j) {
@@ -2615,6 +2692,133 @@
         modal.classList.add('hidden');
       }
     }
+    window._tasks = window._tasks || [];
+    try { var stored = localStorage.getItem('vault_tasks'); if (stored) window._tasks = JSON.parse(stored); } catch (e) {}
+    function getTasks() { return Array.isArray(window._tasks) ? window._tasks : []; }
+    function saveTasks() { try { localStorage.setItem('vault_tasks', JSON.stringify(window._tasks)); } catch (e) {} updateTasksCount(); }
+    function addVoucherTask(type, reminderDate, amount, memo) {
+      window._tasks = getTasks();
+      window._tasks.push({ id: 't' + Date.now(), type: type, reminderDate: reminderDate, amount: amount, memo: (memo || '').slice(0, 200), done: false });
+      saveTasks();
+    }
+    function markTaskDone(index) {
+      window._tasks = getTasks();
+      if (window._tasks[index]) { window._tasks[index].done = true; saveTasks(); }
+      openTasksRemindersModal();
+    }
+    function updateTasksCount() {
+      var today = new Date().toISOString().slice(0, 10);
+      var due = getTasks().filter(function(t) { return !t.done && t.reminderDate && t.reminderDate <= today; });
+      var el = document.getElementById('ud-tasks-count');
+      if (el) el.textContent = due.length;
+    }
+    function openTasksRemindersModal() {
+      var modal = document.getElementById('tasks-reminders-modal');
+      var listEl = document.getElementById('tasks-reminders-list');
+      var emptyEl = document.getElementById('tasks-reminders-empty');
+      if (!modal) return;
+      var today = new Date().toISOString().slice(0, 10);
+      var due = getTasks().filter(function(t) { return !t.done && t.reminderDate && t.reminderDate <= today; });
+      if (listEl) {
+        if (due.length === 0) { listEl.innerHTML = ''; if (emptyEl) { emptyEl.classList.remove('hidden'); emptyEl.textContent = 'لا توجد تنبيهات حالياً.'; } }
+        else {
+          if (emptyEl) emptyEl.classList.add('hidden');
+          listEl.innerHTML = due.map(function(t, i) {
+            var idx = getTasks().findIndex(function(x) { return x.id === t.id; });
+            var label = (t.type === 'voucher-receipt' ? 'سند قبض' : 'سند دفع') + ' · ' + (t.amount || 0) + ' ل.س · ' + (t.memo || '').slice(0, 40);
+            return '<li class="flex justify-between items-center gap-2 py-2 px-3 rounded-lg bg-white/5 border border-white/10"><span class="truncate">' + (label.replace(/</g, '&lt;')) + '</span><button type="button" onclick="markTaskDone(' + idx + ')" class="tap-haptic px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm shrink-0">تم التواصل</button></li>';
+          }).join('');
+        }
+      }
+      modal.classList.remove('hidden');
+    }
+    function toggleMizanQuery() {
+      var panel = document.getElementById('mizan-query-panel');
+      var btn = document.getElementById('mizan-query-toggle');
+      if (panel && panel.classList.contains('hidden')) {
+        panel.classList.remove('hidden');
+        if (btn) btn.classList.add('hidden');
+        var msg = document.getElementById('mizan-query-messages');
+        if (msg && !msg.textContent.trim()) appendMizanMessage('bot', 'اسأل عن مبيعات اليوم، مبيعات الشهر، رصيد الصندوق، أو الديون.');
+      } else {
+        if (panel) panel.classList.add('hidden');
+        if (btn) btn.classList.remove('hidden');
+      }
+    }
+    function appendMizanMessage(role, text) {
+      var el = document.getElementById('mizan-query-messages');
+      if (!el) return;
+      var div = document.createElement('div');
+      div.className = role === 'user' ? 'text-left text-slate-200' : 'text-right text-emerald-300/90';
+      div.textContent = text;
+      el.appendChild(div);
+      el.scrollTop = el.scrollHeight;
+    }
+    function sendMizanQuery() {
+      var input = document.getElementById('mizan-query-input');
+      var q = (input && input.value) ? input.value.trim() : '';
+      if (!q) return;
+      if (input) input.value = '';
+      appendMizanMessage('user', q);
+      runMizanQuery(q).then(function(ans) { appendMizanMessage('bot', ans); }).catch(function() { appendMizanMessage('bot', 'لم أتمكن من جلب البيانات. تحقق من الاتصال وحاول مرة أخرى.'); });
+    }
+    function runMizanQuery(text) {
+      var t = (text || '').toLowerCase();
+      var today = new Date().toISOString().slice(0, 10);
+      var firstDay = today.slice(0, 7) + '-01';
+      return Promise.all([
+        fetch(API + '/sales/invoices?fromDate=' + firstDay + '&toDate=' + today, { headers: getAuthHeaders() }).then(function(r) { return r.json(); }).catch(function() { return { data: [] }; }),
+        fetch(API + '/dashboard/summary', { headers: getAuthHeaders() }).then(function(r) { return r.json(); }).catch(function() { return { data: null }; })
+      ]).then(function(results) {
+        var invoices = (results[0].data || []).filter(function(inv) { var d = (inv.date || '').slice(0, 10); return t.indexOf('اليوم') >= 0 ? d === today : (t.indexOf('الشهر') >= 0 || t.indexOf('شهر') >= 0) ? d >= firstDay && d <= today : true; });
+        if (t.indexOf('اليوم') >= 0) invoices = invoices.filter(function(inv) { return (inv.date || '').slice(0, 10) === today; });
+        if (t.indexOf('الشهر') >= 0 || t.indexOf('شهر') >= 0) invoices = invoices.filter(function(inv) { var d = (inv.date || '').slice(0, 10); return d >= firstDay && d <= today; });
+        var totalSales = invoices.reduce(function(s, inv) { return s + (Number(inv.totalRevenue) || 0); }, 0);
+        var d = results[1].data;
+        var cash = (d && d.cash && (d.cash.syp != null || typeof d.cash === 'number')) ? (d.cash.syp != null ? d.cash.syp : d.cash) : null;
+        var rec = (d && d.receivables != null) ? Number(d.receivables) : null;
+        var pay = (d && d.payables != null) ? Number(d.payables) : null;
+        if (t.indexOf('مبيعات') >= 0 && (t.indexOf('اليوم') >= 0 || t.indexOf('الشهر') >= 0 || t.indexOf('شهر') >= 0)) return 'مبيعات ' + (t.indexOf('اليوم') >= 0 ? 'اليوم' : 'الشهر') + ': ' + totalSales.toLocaleString('ar-SY') + ' ل.س (' + invoices.length + ' فاتورة).';
+        if (t.indexOf('رصيد') >= 0 && cash != null) return 'رصيد الصندوق: ' + Number(cash).toLocaleString('ar-SY') + ' ل.س';
+        if ((t.indexOf('ديون') >= 0 || t.indexOf('مدين') >= 0) && (rec != null || pay != null)) return 'مدينون: ' + (rec != null ? Number(rec).toLocaleString('ar-SY') : '—') + ' ل.س · مدينون لنا: ' + (pay != null ? Number(pay).toLocaleString('ar-SY') : '—') + ' ل.س';
+        if (t.indexOf('مبيعات') >= 0) return 'مبيعات (الشهر): ' + totalSales.toLocaleString('ar-SY') + ' ل.س (' + invoices.length + ' فاتورة).';
+        if (t.indexOf('رصيد') >= 0) return cash != null ? 'رصيد الصندوق: ' + Number(cash).toLocaleString('ar-SY') + ' ل.س' : 'جرّب: مبيعات اليوم، رصيد، ديون.';
+        return 'جرّب: «مبيعات اليوم»، «مبيعات الشهر»، «رصيد»، «ديون».';
+      });
+    }
+    function shareInvoicePdfWhatsApp() {
+      var wrap = document.getElementById('print-preview-content');
+      if (!wrap || !wrap.innerHTML) { showToast('تنبيه', 'اعرض معاينة الفاتورة أولاً', 'warning'); return; }
+      if (typeof html2canvas === 'undefined') { showToast('تنبيه', 'مكتبة html2canvas غير محمّلة', 'warning'); return; }
+      html2canvas(wrap, { scale: 2, useCORS: true, logging: false }).then(function(canvas) {
+        var JsPDF = window.jspdf && window.jspdf.jsPDF ? window.jspdf.jsPDF : (window.jspdf || null);
+        if (!JsPDF) { showToast('تنبيه', 'مكتبة jsPDF غير محمّلة', 'warning'); return; }
+        var pdf = new JsPDF('p', 'mm', 'a4');
+        var w = pdf.internal.pageSize.getWidth();
+        var h = (canvas.height * w) / canvas.width;
+        pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, w, h);
+        var blob = pdf.output('blob');
+        var file = new File([blob], 'invoice.pdf', { type: 'application/pdf' });
+        if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+          navigator.share({ title: 'فاتورة', files: [file] }).then(function() { showToast('تم', 'تم مشاركة الفاتورة', 'success'); closePrintPreview(); }).catch(function(err) { if (err.name !== 'AbortError') showToast('تنبيه', 'شارك الملف يدوياً من جهازك', 'warning'); });
+        } else {
+          var url = URL.createObjectURL(blob);
+          var a = document.createElement('a'); a.href = url; a.download = 'invoice.pdf'; a.click();
+          URL.revokeObjectURL(url);
+          showToast('تم', 'تم تحميل الفاتورة. شاركها من جهازك عبر واتساب.', 'success');
+        }
+      }).catch(function(e) { showToast('خطأ', (e && e.message) || 'فشل إنشاء PDF', 'error'); });
+    }
+    function loadPricingInsight(productId, unitId) {
+      var el = document.getElementById('inv-pricing-insight');
+      if (!el) return;
+      el.textContent = '';
+      if (!productId) return;
+      var unit = unitId || 'piece';
+      var cost = typeof getCostForUnit === 'function' ? getCostForUnit(productId, unit) : 0;
+      var suggested = cost > 0 ? Math.round(cost * 1.2) : 0;
+      if (cost > 0 || suggested > 0) el.textContent = 'آخر تكلفة: ' + (cost > 0 ? cost.toLocaleString('ar-SY') : '—') + ' | سعر مقترح: ' + (suggested > 0 ? suggested.toLocaleString('ar-SY') : '—') + ' ل.س';
+    }
     async function openPendingInvoicesModal() {
       var modal = document.getElementById('pending-invoices-modal');
       var statusText = document.getElementById('pending-invoices-desc');
@@ -2666,6 +2870,21 @@
       forceCloseModal();
     }
     window.addEventListener('DOMContentLoaded', function() {
+      if (typeof renderNavigation === 'function') renderNavigation();
+      var visionInput = document.getElementById('vision-file');
+      if (visionInput) {
+        visionInput.addEventListener('change', function () {
+          var file = this.files && this.files[0];
+          if (file) {
+            if (typeof runOcrOnCapture === 'function') runOcrOnCapture(file);
+            this.value = '';
+          }
+        });
+      }
+      var mizanInput = document.getElementById('mizan-query-input');
+      if (mizanInput) mizanInput.addEventListener('keydown', function(e) { if (e.key === 'Enter') { e.preventDefault(); sendMizanQuery(); } });
+      if (typeof updateTasksCount === 'function') updateTasksCount();
+      window.addEventListener('vault-industry-changed', function() { if (typeof renderNavigation === 'function') renderNavigation(); });
       if (typeof setMobileNav === 'function') setMobileNav('dashboard');
       if (typeof loadUnifiedDashboard === 'function') loadUnifiedDashboard();
       if (typeof updateWhatsAppGlobalIndicator === 'function') {
@@ -3494,7 +3713,7 @@
     function renderVoucherReceipt(container) {
       fetchJson('/accounts').then(accR => {
         const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند قبض</h3><label for="v-r-cash" class="block text-slate-400 text-sm mb-1">صندوق (مدين)</label><select id="v-r-cash" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-r-credit" class="block text-slate-400 text-sm mb-1">الحساب الدائن</label><select id="v-r-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-r-amount" class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-r-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-r-memo" class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-r-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><div class="flex gap-2"><button type="button" onclick="submitVoucherReceipt()" class="flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button><button type="button" onclick="printVoucherReceipt()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2" title="طباعة"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg> طباعة</button></div></div>';
+        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند قبض</h3><label for="v-r-cash" class="block text-slate-400 text-sm mb-1">صندوق (مدين)</label><select id="v-r-cash" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-r-credit" class="block text-slate-400 text-sm mb-1">الحساب الدائن</label><select id="v-r-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-r-amount" class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-r-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-r-memo" class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-r-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-r-reminder" class="block text-slate-400 text-sm mb-1">تاريخ التذكير (اختياري)</label><input type="date" id="v-r-reminder" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><div class="flex gap-2"><button type="button" onclick="submitVoucherReceipt()" class="flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button><button type="button" onclick="printVoucherReceipt()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2" title="طباعة"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg> طباعة</button></div></div>';
       });
     }
     async function submitVoucherReceipt() {
@@ -3502,8 +3721,10 @@
       const creditId = document.getElementById('v-r-credit')?.value;
       const amount = Number(document.getElementById('v-r-amount')?.value);
       const memo = document.getElementById('v-r-memo')?.value || '';
+      const reminderDate = document.getElementById('v-r-reminder')?.value || '';
       if (!creditId || !amount || amount <= 0) { showToast('تنبيه', 'أدخل الحساب الدائن والمبلغ', 'warning'); return; }
       await postJson('/vouchers/receipt', { cashAccountId: cashId, creditAccountId: creditId, amountSYP: amount, memo });
+      if (reminderDate) { addVoucherTask('voucher-receipt', reminderDate, amount, memo); }
       showToast('تم', 'تم ترحيل سند القبض', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
@@ -3511,7 +3732,7 @@
     function renderVoucherPayment(container) {
       fetchJson('/accounts').then(accR => {
         const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند دفع</h3><label for="v-p-credit" class="block text-slate-400 text-sm mb-1">صندوق (دائن)</label><select id="v-p-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-p-debit" class="block text-slate-400 text-sm mb-1">الحساب المدين</label><select id="v-p-debit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-p-amount" class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-p-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-p-memo" class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-p-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><div class="flex gap-2"><button type="button" onclick="submitVoucherPayment()" class="flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button><button type="button" onclick="printVoucherPayment()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2" title="طباعة"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة</button></div></div>';
+        container.innerHTML = '<div class="card-standard max-w-md"><h3 class="page-title-h3 mb-4">سند دفع</h3><label for="v-p-credit" class="block text-slate-400 text-sm mb-1">صندوق (دائن)</label><select id="v-p-credit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-p-debit" class="block text-slate-400 text-sm mb-1">الحساب المدين</label><select id="v-p-debit" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3">' + opts + '</select><label for="v-p-amount" class="block text-slate-400 text-sm mb-1">المبلغ ل.س</label><input type="number" id="v-p-amount" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-p-memo" class="block text-slate-400 text-sm mb-1">البيان</label><input type="text" id="v-p-memo" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-3"/><label for="v-p-reminder" class="block text-slate-400 text-sm mb-1">تاريخ التذكير (اختياري)</label><input type="date" id="v-p-reminder" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white mb-4"/><div class="flex gap-2"><button type="button" onclick="submitVoucherPayment()" class="flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button><button type="button" onclick="printVoucherPayment()" class="tap-haptic px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium inline-flex items-center gap-2" title="طباعة"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة</button></div></div>';
       });
     }
     async function submitVoucherPayment() {
@@ -3519,8 +3740,10 @@
       const debitId = document.getElementById('v-p-debit')?.value;
       const amount = Number(document.getElementById('v-p-amount')?.value);
       const memo = document.getElementById('v-p-memo')?.value || '';
+      const reminderDate = document.getElementById('v-p-reminder')?.value || '';
       if (!debitId || !amount || amount <= 0) { showToast('تنبيه', 'أدخل الحساب المدين والمبلغ', 'warning'); return; }
       await postJson('/vouchers/payment', { creditAccountId: creditId, debitAccountId: debitId, amountSYP: amount, memo });
+      if (reminderDate) { addVoucherTask('voucher-payment', reminderDate, amount, memo); }
       showToast('تم', 'تم ترحيل سند الدفع', 'success');
       openModule('journal-entries', 'قيود اليومية');
     }
@@ -3881,7 +4104,7 @@
         '<div class="flex flex-wrap gap-2 mb-3"><select id="inv-product" class="vault-select erp-select min-w-[180px]">' + productOpts + '</select>' +
         '<select id="inv-unit" class="vault-select erp-select w-24">' + unitOpts + '</select>' +
         '<span id="inv-stock" class="self-center text-slate-500 text-xs px-2">متوفر: — · <span id="inv-warehouse" class="text-slate-500">المخزن الرئيسي</span></span>' +
-        '<input type="number" id="inv-price" placeholder="سعر الوحدة" min="0" step="0.01" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-28"/>' +
+        '<input type="number" id="inv-price" placeholder="سعر الوحدة" min="0" step="0.01" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-28"/><span id="inv-pricing-insight" class="text-slate-500 text-xs mr-2 self-center" aria-live="polite"></span>' +
         '<input type="number" id="inv-qty" placeholder="كمية" min="1" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-20"/>' +
         '<input type="number" id="inv-line-disc" placeholder="خصم سطر" min="0" value="0" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm w-20"/>' +
         '<button type="button" onclick="addInvoiceLine()" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm">+ سطر</button></div>' +
@@ -3896,11 +4119,13 @@
         '<p class="flex justify-between text-slate-300 text-sm mb-1"><span>خصم عام</span><input type="number" id="inv-global-disc" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
         '<p id="inv-tax-row" class="flex justify-between text-slate-300 text-sm mb-2"><span>الضريبة (اختياري)</span><input type="number" id="inv-tax" min="0" value="0" step="0.01" class="w-20 bg-white/5 border border-white/10 rounded px-2 py-1 text-right text-white text-sm"/></p>' +
         '<p class="flex justify-between items-center mt-3 pt-3 border-t border-white/10"><span class="text-white font-medium">الإجمالي</span><span id="inv-grand-total" class="text-2xl font-bold text-emerald-400">0</span> ل.س</p></div><div class="glass-card rounded-2xl p-4 mt-4 border border-white/10"><h3 class="text-sm font-medium text-slate-400 mb-2">آخر فواتير اليوم</h3><div id="inv-today-list" class="text-slate-300 text-sm space-y-1 max-h-40 overflow-auto"></div><p id="inv-today-empty" class="text-slate-500 text-xs py-2 hidden">لا فواتير لليوم.</p></div></div></div>' +
-        '<div id="print-preview-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePrintPreview()"><div class="glass-card rounded-2xl p-4 max-w-2xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()"><div id="print-preview-content" class="print-preview-paper a4 p-6 bg-white text-slate-800 rounded"></div><div class="flex flex-wrap gap-2 mt-4 items-center"><button type="button" onclick="doPrintInvoice(false)" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة A4</button><button type="button" onclick="doPrintInvoice(true)" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة 80mm</button><button type="button" onclick="closePrintPreview()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div></div>' +
+        '<div id="print-preview-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closePrintPreview()"><div class="glass-card rounded-2xl p-4 max-w-2xl w-full max-h-[90vh] overflow-auto" onclick="event.stopPropagation()"><div id="print-preview-content" class="print-preview-paper a4 p-6 bg-white text-slate-800 rounded"></div><div class="flex flex-wrap gap-2 mt-4 items-center"><button type="button" onclick="doPrintInvoice(false)" class="btn-3d px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة A4</button><button type="button" onclick="doPrintInvoice(true)" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300 inline-flex items-center gap-2"><svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة 80mm</button><button type="button" onclick="shareInvoicePdfWhatsApp()" class="btn-3d px-4 py-2 rounded-lg bg-[#25D366]/20 text-[#25D366] inline-flex items-center gap-2" title="مشاركة PDF واتساب"><svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-5.031-1.378"/></svg>مشاركة واتساب</button><button type="button" onclick="closePrintPreview()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إغلاق</button></div></div></div>' +
         '<div id="split-payment-modal" class="print-preview-modal hidden" aria-hidden="true" onclick="if(event.target===this) closeSplitPaymentModal()"><div class="glass-card rounded-2xl p-5 max-w-sm w-full" onclick="event.stopPropagation()"><h3 class="text-white font-medium mb-3">تقسيم الدفع</h3><p class="text-slate-500 text-sm mb-3">الإجمالي: <span id="split-grand-total">0</span> ل.س</p><div class="space-y-2 mb-4"><label for="split-cash" class="block text-slate-400 text-xs">نقداً</label><input type="number" id="split-cash" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label for="split-bank" class="block text-slate-400 text-xs">تحويل بنكي</label><input type="number" id="split-bank" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/><label for="split-debt" class="block text-slate-400 text-xs">متبقي على الذمة</label><input type="number" id="split-debt" min="0" value="0" step="0.01" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white text-sm"/></div><p id="split-sum-msg" class="text-slate-500 text-xs mb-3"></p><div class="flex gap-2"><button type="button" onclick="confirmSplitAndSubmit()" class="btn-3d flex-1 py-2 rounded-lg bg-emerald-500/20 text-emerald-400">تأكيد وحفظ</button><button type="button" onclick="closeSplitPaymentModal()" class="btn-3d px-4 py-2 rounded-lg bg-white/10 text-slate-300">إلغاء</button></div></div></div>';
       renderInvoiceLinesTable();
       updateSalesSummary();
       renderInvoiceStatusBadge();
+      var seed = window._industrySeedData;
+      if (seed && seed.defaultCustomerLabel) { var invCustomer = document.getElementById('inv-customer'); if (invCustomer) invCustomer.placeholder = seed.defaultCustomerLabel; }
       document.getElementById('inv-product').addEventListener('change', function() {
         var sel = document.getElementById('inv-product');
         var opt = sel && sel.options[sel.selectedIndex];
@@ -3921,6 +4146,7 @@
             priceInp.value = suggested;
           }
         }
+        if (typeof loadPricingInsight === 'function') loadPricingInsight(productId, (unitSel && unitSel.value) ? unitSel.value : 'piece');
       });
       document.getElementById('inv-unit').addEventListener('change', function() {
         var unitSel = document.getElementById('inv-unit');
@@ -3936,6 +4162,7 @@
         }
         unitSel.setAttribute('data-last-unit', newUnit);
         updateInvStock();
+        if (typeof loadPricingInsight === 'function') loadPricingInsight(productId, newUnit);
       });
       document.getElementById('inv-margin-toggle').addEventListener('change', renderInvoiceLinesTable);
       document.getElementById('inv-global-disc').addEventListener('input', updateSalesSummary);
@@ -5115,6 +5342,7 @@
         '<button type="button" onclick="setSystemSettingsTab(\'features\')" class="sys-tab btn-3d px-4 py-2 rounded-lg text-sm" data-tab="features">الميزات</button>' +
         '</div>' +
         '<div id="sys-tab-general" class="sys-tab-pane space-y-3">' +
+        (typeof IndustryManager !== 'undefined' ? ('<label for="sys-industry" class="text-slate-400 text-sm">نوع النشاط</label><select id="sys-industry" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white">' + (IndustryManager.getIndustryList().map(function(i) { return '<option value="' + i.id + '"' + (IndustryManager.getIndustry() === i.id ? ' selected' : '') + '>' + (i.label || i.id) + '</option>'; }).join('')) + '</select>') : '') +
         '<label for="sys-companyName" class="text-slate-400 text-sm">اسم الشركة</label><input type="text" id="sys-companyName" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyName) + '" placeholder="Vault AI"/>' +
         '<label for="sys-companyPhone" class="text-slate-400 text-sm">هاتف الشركة</label><input type="text" id="sys-companyPhone" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyPhone || '') + '" placeholder="+963..."/>' +
         '<label for="sys-companyAddress" class="text-slate-400 text-sm">عنوان الشركة</label><input type="text" id="sys-companyAddress" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white" value="' + escapeAttr(b.companyAddress || '') + '" placeholder="العنوان"/>' +
@@ -5140,6 +5368,14 @@
         '<button type="button" onclick="submitSystemSettings()" class="btn-3d mt-4 w-full py-3 rounded-xl bg-emerald-500/20 text-emerald-400 font-semibold">حفظ إعدادات النظام</button>' +
         '<p id="sys-settings-message" class="mt-2 text-sm hidden"></p></div></div>';
       setSystemSettingsTab(_systemSettingsTab);
+      var industrySel = document.getElementById('sys-industry');
+      if (industrySel && typeof IndustryManager !== 'undefined') {
+        industrySel.addEventListener('change', function() {
+          IndustryManager.initializeIndustry(this.value);
+          if (typeof renderNavigation === 'function') renderNavigation();
+          if (typeof showToast === 'function') showToast('تم', 'تم تطبيق نوع النشاط: ' + ((IndustryManager.INDUSTRIES[this.value] && IndustryManager.INDUSTRIES[this.value].label) || this.value), 'success');
+        });
+      }
     }
     function setSystemSettingsTab(tab) {
       _systemSettingsTab = tab;
@@ -6600,6 +6836,108 @@
       } catch (e) { showToast('خطأ', e.message, 'error'); }
     }
 
+    function showOcrLoader(status, progress, detail) {
+      var overlay = document.getElementById('ocr-loader-overlay');
+      var statusEl = document.getElementById('ocr-loader-status');
+      var barEl = document.getElementById('ocr-loader-bar');
+      var detailEl = document.getElementById('ocr-loader-detail');
+      if (overlay) overlay.classList.remove('hidden');
+      if (statusEl) statusEl.textContent = status || 'جاري قراءة بيانات الفاتورة ذكياً...';
+      if (barEl) barEl.style.width = (progress != null ? Math.round(progress * 100) : 0) + '%';
+      if (detailEl) detailEl.textContent = detail || '';
+    }
+    function hideOcrLoader() {
+      var overlay = document.getElementById('ocr-loader-overlay');
+      if (overlay) overlay.classList.add('hidden');
+    }
+    function levenshteinDistance(a, b) {
+      a = (a || '').trim();
+      b = (b || '').trim();
+      if (a.length === 0) return b.length;
+      if (b.length === 0) return a.length;
+      var prev = [];
+      var curr = [];
+      for (var j = 0; j <= b.length; j++) prev[j] = j;
+      for (var i = 1; i <= a.length; i++) {
+        curr[0] = i;
+        for (var k = 1; k <= b.length; k++) {
+          var cost = a[i - 1] === b[k - 1] ? 0 : 1;
+          curr[k] = Math.min(prev[k] + 1, curr[k - 1] + 1, prev[k - 1] + cost);
+        }
+        for (var t = 0; t <= b.length; t++) prev[t] = curr[t];
+      }
+      return curr[b.length];
+    }
+    function fuzzyMatchProduct(ocrName, products) {
+      if (!ocrName || !products || !products.length) return null;
+      var name = (ocrName || '').trim();
+      if (name.length === 0) return null;
+      var best = null;
+      var bestScore = 0.4;
+      for (var i = 0; i < products.length; i++) {
+        var p = products[i];
+        var pName = (p.name || '').trim();
+        if (pName.length === 0) continue;
+        var dist = levenshteinDistance(name, pName);
+        var maxLen = Math.max(name.length, pName.length, 1);
+        var score = 1 - dist / maxLen;
+        if (score > bestScore) { bestScore = score; best = p; }
+        if (pName.length <= name.length && name.indexOf(pName) === 0) {
+          var subScore = 0.5 + (pName.length / name.length) * 0.5;
+          if (subScore > bestScore) { bestScore = subScore; best = p; }
+        }
+      }
+      return best;
+    }
+    function applyOcrPrefillForVoucher() {
+      var data = window._lastOcrResult;
+      if (!data || data.total == null) return;
+      var amountEl = document.getElementById('v-p-amount');
+      var memoEl = document.getElementById('v-p-memo');
+      if (amountEl) amountEl.value = data.total;
+      if (memoEl) memoEl.value = 'مصاريف عامة - مستخرج من OCR';
+      window._lastOcrResult = null;
+    }
+    function applyOcrPrefill() {
+      var data = window._lastOcrResult;
+      if (!data) return;
+      var dateStr = data.date;
+      var total = data.total;
+      var memo = (data.text || '').slice(0, 300);
+      if (data.totalRaw) memo = (memo ? memo + '\n' : '') + 'الإجمالي (OCR): ' + (data.totalRaw || total);
+      var pinvDate = document.getElementById('pinv-date');
+      var pinvMemo = document.getElementById('pinv-memo');
+      if (pinvDate && dateStr) {
+        var d = dateStr.match(/(\d{1,4})[\/\-\.](\d{1,2})[\/\-\.](\d{1,4})/);
+        if (d) {
+          var y = d[3].length === 2 ? '20' + d[3] : d[3];
+          var m = d[2].length === 1 ? '0' + d[2] : d[2];
+          var day = d[1].length === 1 ? '0' + d[1] : d[1];
+          if (parseInt(d[1], 10) > 31) { day = (d[2].length === 1 ? '0' + d[2] : d[2]); m = (d[1].length === 1 ? '0' + d[1] : d[1]); }
+          pinvDate.value = y + '-' + m + '-' + day;
+        }
+      }
+      if (pinvMemo) pinvMemo.value = memo;
+      if ((data.items || []).length && window._purchaseLines && window._purchaseProducts) {
+        var products = window._purchaseProducts || [];
+        (data.items || []).slice(0, 20).forEach(function (it) {
+          var name = (it.name || '').trim();
+          var matched = (typeof fuzzyMatchProduct === 'function' ? fuzzyMatchProduct(name, products) : null) || products.find(function (p) { return (p.name || '').trim() === name || (p.id || '') === name; });
+          if (!matched && name && products.length) matched = products[0];
+          if (matched) {
+            window._purchaseLines.push({
+              productId: matched.id,
+              productName: matched.name || name,
+              unitId: 'piece',
+              quantity: it.qty || 1,
+              unitCostSYP: it.price || 0
+            });
+          }
+        });
+        if (typeof renderPurchaseLinesTable === 'function') renderPurchaseLinesTable();
+      }
+      window._lastOcrResult = null;
+    }
     function uploadVision() {
       const input = document.getElementById('vision-file');
       if (!input?.files?.length) { showToast('تنبيه', 'اختر صورة أولاً', 'warning'); return; }
@@ -6616,6 +6954,44 @@
         } catch (e) { showToast('خطأ', e.message, 'error'); }
       };
       reader.readAsDataURL(file);
+    }
+    function runOcrOnCapture(file) {
+      if (!file || !file.type || file.type.indexOf('image') !== 0) {
+        showToast('تنبيه', 'اختر صورة فاتورة', 'warning');
+        return;
+      }
+      if (typeof VisionEngine === 'undefined' || !VisionEngine.processInvoiceImage) {
+        uploadVision();
+        return;
+      }
+      showOcrLoader('جاري قراءة بيانات الفاتورة ذكياً...', 0, '');
+      VisionEngine.processInvoiceImage(file, function (status, progress) {
+        showOcrLoader(status || 'جاري المعالجة...', progress, progress != null ? Math.round((progress || 0) * 100) + '%' : '');
+      }).then(function (result) {
+        hideOcrLoader();
+        window._lastOcrResult = result;
+        var hasItems = result.items && result.items.length > 0;
+        var hasTotal = result.total != null;
+        if (hasItems) {
+          openModule('purchase-invoice', 'فاتورة مشتريات');
+          setTimeout(applyOcrPrefill, 700);
+          showToast('تم القراءة', 'تم استخراج البيانات. راجع الحقول واحفظ.', 'success');
+        } else if (hasTotal && !hasItems) {
+          openModule('voucher-payment', 'سند دفع');
+          setTimeout(applyOcrPrefillForVoucher, 700);
+          showToast('تم القراءة', 'تم استخراج المبلغ. راجع سند الدفع واحفظ.', 'success');
+        } else if (result.text && result.text.trim().length > 10) {
+          openModule('purchase-invoice', 'فاتورة مشتريات');
+          setTimeout(applyOcrPrefill, 700);
+          showToast('تم القراءة', 'تم استخراج النص. راجع الحقول واحفظ.', 'success');
+        } else {
+          showToast('تنبيه', 'لم يُستخرج نص كافٍ. جرّب صورة أوضح أو استخدم «رفع واستخراج».', 'warning');
+          uploadVision();
+        }
+      }).catch(function (err) {
+        hideOcrLoader();
+        showToast('خطأ OCR', (err && err.message) || 'فشلت قراءة الصورة', 'error');
+      });
     }
 
     var _importData = { rows: [], mapping: {}, totalRows: 0 };
@@ -6706,6 +7082,8 @@
       setTimeout(function() { applyBrandingToDOM(); }, 0);
     })();
   </script>
+  <script src="vision-engine.js"></script>
+  <script src="industry-manager.js"></script>
   <script src="/js/modules/accounting.js"></script>
 </body>
 </html>
