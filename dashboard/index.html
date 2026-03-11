@@ -1605,6 +1605,7 @@
         var cur = {};
         try { var raw = localStorage.getItem('vault_branding'); if (raw) cur = JSON.parse(raw); } catch (e4) {}
         try { localStorage.setItem('vault_branding', JSON.stringify({ companyName: name, logoBase64: b.logoBase64 || '', phone: cur.phone != null ? cur.phone : '', address: cur.address != null ? cur.address : '', invoiceNote: cur.invoiceNote != null ? cur.invoiceNote : '' })); } catch (e3) {}
+        if (typeof refreshAppLogo === 'function') refreshAppLogo();
       } catch (e) {}
     }
 
@@ -1623,8 +1624,21 @@
     }
 
     var DEFAULT_APP_LOGO_PATH = 'mizan-logo.jpg';
+    var MIZAN_LOGO_CSS_ID = 'mizan-logo-css-inject';
 
-    /** جلب الشعار من companyLogo وتطبيقه فوراً على كل لوغو في الهيدر/السايدبار. إذا كان التخزين فارغاً يعرض اللوجو الافتراضي mizan-logo.jpg. إصلاح الكاش: إضافة timestamp لرابط الصورة عند الحاجة. */
+    /** حقن CSS في head لتعيين صورة الخلفية لكل عناصر اللوغو (الحل الأضمن حتى لو تم مسح src). */
+    function injectLogoCSS(logoUrl) {
+      if (!logoUrl || !logoUrl.trim()) return;
+      var head = document.head || document.getElementsByTagName('head')[0];
+      if (!head) return;
+      var style = document.getElementById(MIZAN_LOGO_CSS_ID);
+      if (!style) { style = document.createElement('style'); style.id = MIZAN_LOGO_CSS_ID; head.appendChild(style); }
+      var escaped = (logoUrl + '').replace(/\\/g, '\\\\').replace(/"/g, '\\"');
+      var rule = '#global-brand-logo, img.app-logo, img[data-branding="logo"] { background-image: url("' + escaped + '"); background-size: contain; background-repeat: no-repeat; background-position: center; }';
+      style.textContent = '/* ميزان: شعار من localStorage */ ' + rule;
+    }
+
+    /** جلب الشعار من companyLogo وتطبيقه فوراً (src + حقن CSS). إذا كان التخزين فارغاً يعرض اللوجو الافتراضي mizan-logo.jpg. إجبار التحديث: storage event. */
     function refreshAppLogo() {
       var src = '';
       try { src = localStorage.getItem('companyLogo') || ''; } catch (e) {}
@@ -1641,6 +1655,7 @@
         sep = src.indexOf('?') >= 0 ? '&' : '?';
         src = src + sep + 't=' + Date.now();
       }
+      injectLogoCSS(src);
       var selector = 'img.app-logo, img[data-branding="logo"], #global-brand-logo, header img.app-logo, header img[data-branding="logo"]';
       document.querySelectorAll(selector).forEach(function(img) {
         try {
@@ -1664,6 +1679,7 @@
         if (fallback) fallback.classList.add('hidden');
       }
       if (fallback && !isDefaultPath) fallback.classList.add('hidden');
+      try { window.dispatchEvent(new Event('storage')); } catch (e3) {}
     }
 
     function getAuthHeaders() {
@@ -5425,7 +5441,9 @@
         root.style.setProperty('--fd-primary', primary);
         var logoEl = document.getElementById('fd-logo');
         if (logoEl) {
-          if (branding.logoBase64) { logoEl.innerHTML = '<img src="' + (branding.logoBase64 + '').replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain"/>'; logoEl.classList.remove('hidden'); }
+          var b = typeof getBranding === 'function' ? getBranding() : {};
+          var logoBase64 = (b.logoBase64 && (b.logoBase64 + '').trim()) || (branding.logoBase64 && (branding.logoBase64 + '').trim()) || '';
+          if (logoBase64) { logoEl.innerHTML = '<img src="' + (logoBase64 + '').replace(/"/g, '&quot;') + '" alt="" class="w-full h-full object-contain"/>'; logoEl.classList.remove('hidden'); }
           else { logoEl.innerHTML = ''; logoEl.classList.add('hidden'); }
         }
         var nameEl = document.getElementById('fd-company-name');

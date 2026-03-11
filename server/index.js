@@ -33,13 +33,21 @@ if (process.env.VERCEL) {
   });
 }
 
-// API — rate limit general API to mitigate abuse (100 req/15 min per IP)
+// API — rate limit general API (100 req/min per IP). تخطي localhost للتطوير.
 const apiLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 200,
+  windowMs: 1 * 60 * 1000,
+  max: 100,
   message: { success: false, error: 'عدد الطلبات كبير. انتظر قليلاً.', code: 'TOO_MANY_REQUESTS' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const ip = (req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+    if (ip === '127.0.0.1' || ip === '::1') return true;
+    const skipIps = (process.env.RATE_LIMIT_SKIP_IPS || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (skipIps.includes(ip)) return true;
+    if (process.env.NODE_ENV !== 'production') return true;
+    return false;
+  },
 });
 app.use('/api', apiLimiter);
 app.use('/api/auth', authRoutes);

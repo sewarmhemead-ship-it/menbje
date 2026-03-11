@@ -14,11 +14,19 @@ import { loginSchema, validateBody } from '../validation/schemas.js';
 const router = Router();
 
 const loginLimiter = rateLimit({
-  windowMs: 15 * 60 * 1000,
-  max: 10,
-  message: { success: false, error: 'محاولات دخول كثيرة من هذا العنوان. جرّب بعد 15 دقيقة.', code: 'TOO_MANY_REQUESTS' },
+  windowMs: 1 * 60 * 1000,
+  max: 100,
+  message: { success: false, error: 'محاولات دخول كثيرة من هذا العنوان. انتظر دقيقة.', code: 'TOO_MANY_REQUESTS' },
   standardHeaders: true,
   legacyHeaders: false,
+  skip: (req) => {
+    const ip = (req.ip || req.socket?.remoteAddress || '').replace(/^::ffff:/, '');
+    if (ip === '127.0.0.1' || ip === '::1') return true;
+    const skipIps = (process.env.RATE_LIMIT_SKIP_IPS || '').split(',').map(s => s.trim()).filter(Boolean);
+    if (skipIps.includes(ip)) return true;
+    if (process.env.NODE_ENV !== 'production') return true;
+    return false;
+  },
 });
 
 router.post('/login', loginLimiter, (req, res) => {
