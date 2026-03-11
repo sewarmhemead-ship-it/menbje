@@ -11,6 +11,7 @@ import fs from 'fs';
 import qrcode from 'qrcode';
 import * as debtLink from './modules/debtLink/index.js';
 import * as reports from './accounting/reports.js';
+import * as waStats from './modules/whatsapp/stats.js';
 import { getSettings } from './config/settings.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
@@ -104,8 +105,16 @@ export async function start() {
       }
       const settings = getSettings();
       const companyName = (settings.branding && settings.branding.companyName) || debt.companyName;
-      const reply = `رصيدك لدى ${companyName}: ${debt.balance.toLocaleString('ar-SY')} ل.س.\nلمتابعة التفاصيل وآخر الحركات: ${debt.link}\nشكراً لتعاملك معنا - نظام MIZAN`;
+      const balanceStr = debt.balance.toLocaleString('ar-SY');
+      const template = (settings.branding && settings.branding.whatsappAutoReplyTemplate) || '';
+      const reply = template.trim()
+        ? template
+            .replace(/\{\{companyName\}\}/g, companyName)
+            .replace(/\{\{balance\}\}/g, balanceStr)
+            .replace(/\{\{link\}\}/g, debt.link)
+        : `رصيدك لدى ${companyName}: ${balanceStr} ل.س.\nلمتابعة التفاصيل وآخر الحركات: ${debt.link}\nشكراً لتعاملك معنا - نظام MIZAN`;
       await sendMessage(from, reply);
+      waStats.incrementAutoReply();
     }
   });
 

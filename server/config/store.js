@@ -51,6 +51,9 @@ const suppliers = new Map();   // id -> { id, name, phone, address, tenantId, cr
 // Debt link (رابط دينك): token -> customerId for public balance view
 const debtLinkTokens = [];    // { token, customerId, tenantId, expiresAt, createdAt }
 
+// WhatsApp daily stats (ردود تلقائية اليوم، روابط دين أُرسلت)
+const whatsappDailyStats = { date: '', autoReplyCount: 0, debtLinkSentCount: 0 };
+
 export const store = {
   products,
   units,
@@ -82,6 +85,7 @@ export const store = {
   sessions,
   suppliers,
   debtLinkTokens,
+  whatsappDailyStats,
 };
 
 export function getNextId(collection) {

@@ -9,6 +9,7 @@ import { requireAuth } from '../../auth/middleware.js';
 import { handleIncomingMessage } from './handler.js';
 import * as draftOrders from './draftOrders.js';
 import * as debtLink from '../debtLink/index.js';
+import * as waStats from './stats.js';
 import { getSettings } from '../../config/settings.js';
 
 const router = Router();
@@ -71,7 +72,7 @@ async function sendWhatsAppMessage(to, text) {
     return { ok: false, error: 'WhatsApp غير مُعد (WHATSAPP_PHONE_ID أو WHATSAPP_TOKEN)' };
   }
   const url = `https://graph.facebook.com/v18.0/${phoneId}/messages`;
-  const toNum = String(to || '').replace(/\D/g, '');
+  const toNum = normalizePhoneForWhatsApp(to);
   if (!toNum || toNum.length < 10) return { ok: false, error: 'رقم هاتف غير صالح' };
   try {
     const res = await fetch(url, {
@@ -141,28 +142,45 @@ router.get('/qr', async (req, res) => {
 });
 
 /**
- * Status: whether real WhatsApp is configured (for dashboard).
+ * Status: Baileys or Meta. Dashboard shows green when either is connected.
  */
-router.get('/status', (req, res) => {
-  const phoneId = process.env.WHATSAPP_PHONE_ID;
-  const token = process.env.WHATSAPP_TOKEN;
-  const connected = !!(phoneId && token);
-  res.json({
-    success: true,
-    data: {
-      connected,
-      webhookPath: '/webhook/whatsapp',
-    },
-  });
+router.get('/status', async (req, res) => {
+  try {
+    const provider = (await import('../../whatsappProvider.js')).default;
+    const baileysConnected = provider.isConnected();
+    const phoneId = process.env.WHATSAPP_PHONE_ID;
+    const token = process.env.WHATSAPP_TOKEN;
+    const metaConfigured = !!(phoneId && token);
+    const connected = baileysConnected || metaConfigured;
+    res.json({
+      success: true,
+      data: {
+        connected,
+        useBaileys: baileysConnected,
+        webhookPath: '/webhook/whatsapp',
+      },
+    });
+  } catch (e) {
+    res.json({ success: true, data: { connected: false, useBaileys: false, webhookPath: '/webhook/whatsapp' } });
+  }
 });
 
 /**
- * Format phone to WhatsApp JID (international): digits only, default Syria +963 if 9 digits.
+ * Normalize phone for WhatsApp: digits only; if starts with 0 strip and if 9 digits prepend 963 (Syria).
+ * Returns clean digit string for Meta API or for building JID.
  */
-function toWhatsAppJid(phone) {
+function normalizePhoneForWhatsApp(phone) {
   let digits = (phone || '').replace(/\D/g, '');
   if (digits.startsWith('0')) digits = digits.slice(1);
   if (digits.length === 9 && !digits.startsWith('963')) digits = '963' + digits;
+  return digits || null;
+}
+
+/**
+ * Format phone to WhatsApp JID (international): uses normalizePhoneForWhatsApp then appends @s.whatsapp.net.
+ */
+function toWhatsAppJid(phone) {
+  const digits = normalizePhoneForWhatsApp(phone);
   return digits ? digits + '@s.whatsapp.net' : null;
 }
 
@@ -200,6 +218,7 @@ router.post('/send-debt-link', requireAuth, async (req, res) => {
       'عزيزي ' + customerName + '، يمكنك متابعة رصيدك وحركاتك المالية لدى ' + companyName + ' عبر الرابط التالي: ' + link + ' شكراً لتعاملك معنا - نظام MIZAN';
 
     await provider.sendMessage(jid, message);
+    waStats.incrementDebtLinkSent();
     res.json({ success: true, message: 'تم إرسال رابط الدين إلى واتساب العميل بنجاح.' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });
@@ -207,19 +226,37 @@ router.post('/send-debt-link', requireAuth, async (req, res) => {
 });
 
 /**
- * Send test message (ترحيب ميزان) to a phone number. Confirms WhatsApp setup.
- * Body: { phone: "+963..." }. Message: "تم ربط نظام ميزان بنجاح.. سوار أمان تجارتك مفعل الآن"
+ * Daily stats for dashboard: auto-replies today, debt links sent today.
+ */
+router.get('/stats', (req, res) => {
+  try {
+    res.json({ success: true, data: waStats.getStats() });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+/**
+ * Send test message (ترحيب ميزان) to a phone number.
+ * Uses Baileys if connected (so merchant sees no error after linking via QR); otherwise falls back to Meta API.
+ * Body: { phone: "+963..." or "0991234567" }. Normalizes 0 → 963 before send.
  */
 router.post('/send-test-message', async (req, res) => {
   try {
-    const phone = (req.body?.phone || req.body?.to || '').toString().trim();
-    if (!phone) {
-      return res.status(400).json({ success: false, error: 'رقم الهاتف مطلوب' });
+    const raw = (req.body?.phone || req.body?.to || '').toString().trim();
+    if (!raw) return res.status(400).json({ success: false, error: 'رقم الهاتف مطلوب' });
+    const phone = normalizePhoneForWhatsApp(raw);
+    if (!phone) return res.status(400).json({ success: false, error: 'رقم الهاتف غير صالح' });
+
+    const provider = (await import('../../whatsappProvider.js')).default;
+    if (provider.isConnected()) {
+      const jid = phone + '@s.whatsapp.net';
+      await provider.sendMessage(jid, WELCOME_TEXT);
+      return res.json({ success: true, message: 'تم إرسال الرسالة التجريبية. تحقق من واتساب على الرقم المُدخل.' });
     }
+
     const result = await sendWhatsAppMessage(phone, WELCOME_TEXT);
-    if (!result.ok) {
-      return res.status(400).json({ success: false, error: result.error || 'فشل الإرسال' });
-    }
+    if (!result.ok) return res.status(400).json({ success: false, error: result.error || 'فشل الإرسال' });
     res.json({ success: true, message: 'تم إرسال الرسالة التجريبية. تحقق من واتساب على الرقم المُدخل.' });
   } catch (e) {
     res.status(500).json({ success: false, error: e.message });

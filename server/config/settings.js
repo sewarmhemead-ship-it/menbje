@@ -15,6 +15,8 @@ const defaultSettings = {
     companyPhone: '',
     companyAddress: '',
     returnsPolicy: 'المرتجعات خلال 14 يوماً من تاريخ الشراء. يرجى إرجاع المنتج بحالته الأصلية.',
+    /** نص الرد التلقائي عند طلب "دين/حساب". Placeholders: {{companyName}} {{balance}} {{link}} */
+    whatsappAutoReplyTemplate: '',
   },
   localization: {
     currencySymbol: 'ل.س',

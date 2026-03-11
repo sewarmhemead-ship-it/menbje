@@ -576,6 +576,10 @@
           <h1 class="text-xl md:text-2xl lg:text-3xl font-semibold text-white tracking-tight md:hidden">Vault AI</h1>
           <p class="text-slate-500 text-xs md:text-sm mt-1 hidden sm:block">محاسبة ومؤسسات عالمية · قيد مزدوج · عملة شبحية · ربح القوة الشرائية</p>
         </div>
+        <div id="wa-global-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs" title="حالة واتساب">
+          <span id="wa-global-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
+          <span id="wa-global-text" class="text-slate-500">واتساب…</span>
+        </div>
         <div class="flex items-center gap-2">
           <button type="button" onclick="openNavDrawer()" class="tap-haptic md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30" title="القائمة" aria-label="فتح القائمة">
             <svg class="w-5 h-5 lucide-thin" fill="none" stroke="currentColor" viewBox="0 0 24 24" stroke-width="1"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6h16M4 12h16M4 18h16"/></svg>
@@ -871,12 +875,28 @@
       <!-- WhatsApp -->
       <section id="section-whatsapp" data-section data-feature="whatsapp">
         <h2 class="page-title-h2 mb-1">واتساب</h2>
-        <p class="page-desc mb-3">رسائل الزبائن: توفر، سعر، طلب → مسودة في نقطة البيع. اربط واتساب الحقيقي عبر Meta Business.</p>
+        <p class="page-desc mb-3">رسائل الزبائن: توفر، سعر، طلب → مسودة في نقطة البيع. اربط واتساب برقمك (QR) أو عبر Meta Business.</p>
         <div id="whatsapp-status-row" class="mb-4 p-3 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-300">جاري التحقق من الاتصال…</div>
+        <div id="whatsapp-stats-row" class="mb-4 grid grid-cols-2 gap-3">
+          <div class="p-3 rounded-xl bg-white/5 border border-white/10">
+            <p class="text-slate-500 text-xs">ردود تلقائية اليوم</p>
+            <p id="wa-stat-replies" class="text-lg font-semibold text-emerald-400">—</p>
+          </div>
+          <div class="p-3 rounded-xl bg-white/5 border border-white/10">
+            <p class="text-slate-500 text-xs">روابط دين أُرسلت اليوم</p>
+            <p id="wa-stat-debt-links" class="text-lg font-semibold text-blue-400">—</p>
+          </div>
+        </div>
         <div id="whatsapp-baileys-row" class="mb-4 p-4 rounded-xl bg-white/5 border border-white/10">
           <p class="text-amber-400/90 text-xs mb-3">يرجى عدم إرسال مئات الرسائل في دقيقة واحدة لتجنب حظر الرقم من قبل شركة واتساب. (نرد فقط على من يراسلنا، فنسبة الحظر شبه معدومة)</p>
           <p class="text-slate-400 text-sm mb-2">ربط واتساب برقمك (Baileys) — امسح الكود من تطبيق واتساب على جوالك:</p>
           <div id="whatsapp-qr-wrap" class="flex justify-center items-center min-h-[200px] bg-black/20 rounded-lg p-3">جاري جلب رمز QR…</div>
+        </div>
+        <div id="whatsapp-settings-row" class="mb-4 p-4 rounded-xl bg-white/5 border border-white/10">
+          <h3 class="text-sm font-medium text-slate-400 mb-2">نص الرد التلقائي (دين/حساب)</h3>
+          <p class="text-xs text-slate-500 mb-2">استخدم {{companyName}} و {{balance}} و {{link}} في النص. اتركه فارغاً لاستخدام النص الافتراضي.</p>
+          <textarea id="whatsapp-auto-reply-template" rows="3" class="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-sm text-white placeholder-slate-500 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="رصيدك لدى {{companyName}}: {{balance}} ل.س…"></textarea>
+          <button type="button" onclick="saveWhatsAppAutoReplyTemplate()" class="tap-haptic mt-2 px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium">حفظ</button>
         </div>
         <p class="hidden">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
         <div class="card-standard max-w-xl">
@@ -1611,6 +1631,8 @@
       if (id === 'whatsapp') {
         if (typeof refresh === 'function') refresh('drafts');
         if (typeof loadWhatsAppStatus === 'function') loadWhatsAppStatus();
+        if (typeof loadWhatsAppStats === 'function') loadWhatsAppStats();
+        if (typeof loadWhatsAppAutoReplyTemplate === 'function') loadWhatsAppAutoReplyTemplate();
         if (typeof startWhatsAppQRPoll === 'function') startWhatsAppQRPoll();
       } else {
         if (window._waQrInterval) { clearInterval(window._waQrInterval); window._waQrInterval = null; }
@@ -2325,6 +2347,10 @@
     window.addEventListener('DOMContentLoaded', function() {
       if (typeof setMobileNav === 'function') setMobileNav('dashboard');
       if (typeof loadUnifiedDashboard === 'function') loadUnifiedDashboard();
+      if (typeof updateWhatsAppGlobalIndicator === 'function') {
+        updateWhatsAppGlobalIndicator();
+        setInterval(updateWhatsAppGlobalIndicator, 30000);
+      }
       setTimeout(function() {
         var modal = document.getElementById('pending-invoices-modal');
         if (modal && !modal.classList.contains('hidden')) modal.classList.add('hidden');
@@ -6300,20 +6326,78 @@
         const j = await r.json();
         const d = j?.data || {};
         const connected = d.connected === true;
+        const useBaileys = d.useBaileys === true;
         const base = window.location.origin || '';
         const webhookUrl = base + (d.webhookPath || '/webhook/whatsapp');
         if (connected) {
-          el.innerHTML = '<span class="text-emerald-400 font-medium">متصل · واتساب حقيقي</span> — رسائل الزبائن تصل والرد يُرسل تلقائياً. <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم نسخ رابط الـ Webhook\', \'success\')" class="tap-haptic ml-2 text-xs text-slate-400 hover:text-emerald-400 underline">نسخ رابط Webhook</button>';
+          el.innerHTML = '<span class="text-emerald-400 font-medium">متصل</span> · ' + (useBaileys ? 'واتساب Baileys (رقمك مرتبط)' : 'واتساب Meta') + ' — رسائل الزبائن تصل والرد يُرسل تلقائياً. <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم نسخ رابط الـ Webhook\', \'success\')" class="tap-haptic ml-2 text-xs text-slate-400 hover:text-emerald-400 underline">نسخ Webhook</button>';
         } else {
-          el.innerHTML = '<span class="text-amber-400 font-medium">محاكاة فقط</span> — لإعداد واتساب الحقيقي: ضع <code class="bg-white/10 px-1 rounded">WHATSAPP_PHONE_ID</code> و <code class="bg-white/10 px-1 rounded">WHATSAPP_TOKEN</code> في ملف .env ثم أعد تشغيل السيرفر. رابط الـ Webhook (ضعه في Meta): <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم النسخ\', \'success\')" class="tap-haptic text-emerald-400 hover:underline">' + webhookUrl + '</button>';
+          el.innerHTML = '<span class="text-amber-400 font-medium">غير متصل</span> — امسح رمز QR في الأسفل لربط رقمك، أو ضع <code class="bg-white/10 px-1 rounded">WHATSAPP_PHONE_ID</code> و <code class="bg-white/10 px-1 rounded">WHATSAPP_TOKEN</code> في .env. رابط Webhook (Meta): <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم النسخ\', \'success\')" class="tap-haptic text-emerald-400 hover:underline">' + webhookUrl + '</button>';
         }
       } catch (e) {
         el.innerHTML = '<span class="text-slate-500">تعذر التحقق من الاتصال.</span>';
       }
     }
 
+    async function loadWhatsAppStats() {
+      const repliesEl = document.getElementById('wa-stat-replies');
+      const debtEl = document.getElementById('wa-stat-debt-links');
+      if (!repliesEl || !debtEl) return;
+      try {
+        const r = await fetch(API + '/whatsapp/stats', { headers: getAuthHeaders() });
+        const j = await r.json();
+        const d = j?.data || {};
+        repliesEl.textContent = (d.autoRepliesToday != null) ? d.autoRepliesToday : '—';
+        debtEl.textContent = (d.debtLinksSentToday != null) ? d.debtLinksSentToday : '—';
+      } catch (_) {
+        repliesEl.textContent = '—';
+        debtEl.textContent = '—';
+      }
+    }
+
+    async function loadWhatsAppAutoReplyTemplate() {
+      const ta = document.getElementById('whatsapp-auto-reply-template');
+      if (!ta) return;
+      try {
+        const r = await fetch(API + '/settings', { headers: getAuthHeaders() });
+        const j = await r.json();
+        const template = (j?.data?.branding?.whatsappAutoReplyTemplate) || '';
+        ta.value = template;
+      } catch (_) {}
+    }
+
+    async function saveWhatsAppAutoReplyTemplate() {
+      const ta = document.getElementById('whatsapp-auto-reply-template');
+      if (!ta) return;
+      try {
+        const j = await postJson('/settings', { branding: { whatsappAutoReplyTemplate: (ta.value || '').trim() } });
+        if (j?.success) showToast('تم', 'تم حفظ نص الرد التلقائي.', 'success');
+        else showToast('خطأ', j?.error || 'فشل الحفظ', 'error');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل الحفظ', 'error');
+      }
+    }
+
+    async function updateWhatsAppGlobalIndicator() {
+      const dot = document.getElementById('wa-global-dot');
+      const text = document.getElementById('wa-global-text');
+      if (!dot || !text) return;
+      try {
+        const r = await fetch(API + '/whatsapp/status', { headers: getAuthHeaders() });
+        const j = await r.json();
+        const connected = j?.data?.connected === true;
+        dot.className = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-400' : 'bg-red-400');
+        text.textContent = connected ? 'واتساب متصل' : 'واتساب غير متصل';
+        text.className = connected ? 'text-emerald-400' : 'text-red-400';
+      } catch (_) {
+        dot.className = 'w-2 h-2 rounded-full bg-slate-500';
+        text.textContent = 'واتساب…';
+        text.className = 'text-slate-500';
+      }
+    }
+
     async function sendWhatsAppTestMessage() {
-      const phone = window.prompt('أدخل رقم هاتفك مع مفتاح الدولة (مثال: 963991234567 أو +963991234567)');
+      const phone = window.prompt('أدخل رقم هاتفك (مثال: 0991234567 أو 963991234567). الرقم الذي يبدأ بـ 0 يُحوّل تلقائياً إلى 963.');
       if (phone == null || !phone.trim()) return;
       try {
         const j = await postJson('/whatsapp/send-test-message', { phone: phone.trim() });
