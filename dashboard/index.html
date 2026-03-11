@@ -38,6 +38,12 @@
       --space-3: 0.75rem;
       --space-4: 1rem;
       --space-6: 1.5rem;
+      /* MIZAN PRO THEME - 2026 */
+      --sidebar-width: 260px;
+      --pro-bg: #0f172a;
+      --pro-card: #1e293b;
+      --pro-accent: #10b981;
+      --pro-border: rgba(255, 255, 255, 0.05);
     }
     .page-title-h1 { font-size: var(--text-h1); font-weight: 700; color: #fff; }
     .page-title-h2 { font-size: var(--text-h2); font-weight: 600; color: #fff; }
@@ -345,7 +351,73 @@
       body * { visibility: hidden !important; }
       .print-area, .print-area *, .vault-print-only, .vault-print-only * { visibility: visible !important; }
       .print-area, .vault-print-only { position: absolute !important; left: 0; top: 0; width: 100%; max-width: 100%; background: #fff !important; color: #111 !important; }
-      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast, #toast-container, #nav-drawer-overlay, #nav-drawer { display: none !important; visibility: hidden !important; }
+      .sidebar, .nav, header, #module-content, .glass-card, button, .no-print, [data-section], .mesh-bg, #toast, #toast-container, #nav-drawer-overlay, #nav-drawer, .pro-sidebar, .pro-header { display: none !important; visibility: hidden !important; }
+    }
+
+    /* ========== MIZAN PRO THEME - Master CSS Pro (2026) ========== */
+    body { font-family: 'Tajawal', 'Cairo', sans-serif; }
+    .pro-sidebar { display: none; }
+    @media (min-width: 768px) {
+      body { background-color: var(--pro-bg) !important; display: flex; flex-direction: row-reverse; }
+      .pro-sidebar {
+        width: var(--sidebar-width);
+        min-width: var(--sidebar-width);
+        height: 100vh;
+        position: fixed;
+        right: 0;
+        top: 0;
+        background: var(--pro-card);
+        border-left: 1px solid var(--pro-border);
+        z-index: 50;
+        display: flex !important;
+        flex-direction: column;
+        padding: 1.5rem 1rem;
+        overflow-y: auto;
+      }
+      main {
+        margin-right: var(--sidebar-width);
+        width: calc(100% - var(--sidebar-width));
+        padding-top: 2rem !important;
+        flex: 1;
+      }
+      .top-nav { display: none !important; }
+    }
+    .table-glass {
+      background: var(--pro-card) !important;
+      border-collapse: separate;
+      border-spacing: 0;
+      border-radius: 8px;
+      overflow: hidden;
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
+    }
+    .table-glass thead th {
+      background: #0f172a !important;
+      color: #94a3b8 !important;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+      padding: 1rem !important;
+      border-bottom: 2px solid var(--pro-border);
+    }
+    .table-glass tbody td {
+      padding: 0.75rem 1rem !important;
+      border-bottom: 1px solid var(--pro-border);
+      font-variant-numeric: tabular-nums;
+    }
+    .card-standard {
+      background: var(--pro-card) !important;
+      border: 1px solid var(--pro-border) !important;
+      backdrop-filter: none !important;
+      border-radius: 12px !important;
+      box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    }
+    .pro-sidebar .pro-nav-group-title { font-size: 0.7rem; font-weight: 600; color: #64748b; text-transform: uppercase; letter-spacing: 0.05em; padding: 0.75rem 0.5rem 0.25rem; margin-top: 0.5rem; }
+    .pro-sidebar .pro-nav-link { display: flex; align-items: center; gap: 0.5rem; width: 100%; padding: 0.5rem 0.75rem; text-align: right; color: #cbd5e1; font-size: 0.875rem; border: none; background: transparent; cursor: pointer; border-radius: 0.5rem; transition: background 0.2s, color 0.2s; }
+    .pro-sidebar .pro-nav-link:hover { background: rgba(255,255,255,0.06); color: #f8fafc; }
+    .pro-sidebar .pro-nav-link .pro-icon { width: 1.25rem; height: 1.25rem; flex-shrink: 0; stroke-width: 1.5; }
+    .pro-header { display: none; border-bottom: 1px solid var(--pro-border); padding: 0.5rem 1rem; background: var(--pro-card); flex-shrink: 0; }
+    @media (min-width: 768px) {
+      .pro-header { display: flex !important; align-items: center; justify-content: space-between; gap: 1rem; }
     }
   </style>
 </head>
@@ -528,8 +600,71 @@
         <span class="wa-global-text text-slate-500">واتساب…</span>
       </button>
     </div>
-    <div id="tab-strip" class="flex items-center gap-1 px-2 py-1 bg-black/20 border-t border-white/5 overflow-x-auto min-h-[36px]"></div>
+    <!-- tab-strip نُقل إلى pro-header داخل main (ديسكتوب) -->
   </header>
+
+  <!-- Pro Sidebar (ديسكتوب فقط - يمين الشاشة) -->
+  <aside class="pro-sidebar" id="pro-sidebar" aria-label="القائمة الرئيسية">
+    <div class="flex items-center gap-2 pb-4 border-b border-white/10 mb-2">
+      <div class="w-9 h-9 rounded-lg bg-emerald-500/20 flex items-center justify-center shrink-0">
+        <svg class="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z"/></svg>
+      </div>
+      <span class="font-semibold text-white text-lg">Vault AI</span>
+    </div>
+    <nav class="flex-1 overflow-y-auto py-2">
+      <div class="pro-nav-group-title">ملف</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('dashboard','لوحة التحكم')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 6a2 2 0 012-2h2a2 2 0 012 2v2a2 2 0 01-2 2H6a2 2 0 01-2-2V6z"/></svg><span>لوحة التحكم</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('company-settings','إعدادات الشركة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>إعدادات الشركة</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('system-settings','إعدادات النظام')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>إعدادات النظام</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('user-management','إدارة المستخدمين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 4.354a4 4 0 110 5.292M15 21H3v-1a6 6 0 0112 0v1zm0 0h6v-1a6 6 0 00-9-5.197M13 7a4 4 0 11-8 0 4 4 0 018 0z"/></svg><span>إدارة المستخدمين</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full text-rose-400/90 hover:text-rose-400" onclick="logout()"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"/></svg><span>خروج</span></button>
+
+      <div class="pro-nav-group-title">المبيعات</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('sales-invoice','فاتورة بيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>فاتورة بيع</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('sales-return','مرتجع بيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع بيع</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('sales-reports','تقارير المبيعات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>تقارير المبيعات</span></button>
+
+      <div class="pro-nav-group-title">المشتريات</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('purchase-invoice','فاتورة مشتريات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>فاتورة مشتريات</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('purchase-return','مرتجع مشتريات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 10h10a8 8 0 018 8v2M3 10l6 6m-6-6l6-6"/></svg><span>مرتجع مشتريات</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="openModule('suppliers','الموردين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 21V5a2 2 0 00-2-2H7a2 2 0 00-2 2v16m14 0h2m-2 0h-5m-9 0H3m2 0h5M9 7h1m-1 4h1m4-4h1m-1 4h1m-5 10v-5a1 1 0 011-1h2a1 1 0 011 1v5m-4 0h4"/></svg><span>الموردين</span></button>
+
+      <div class="pro-nav-group-title">التصنيع</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('manufacturing-bom','وصفات BOM')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2"/></svg><span>وصفات BOM</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('manufacturing-build','أمر تصنيع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"/></svg><span>أمر تصنيع</span></button>
+
+      <div class="pro-nav-group-title">المستودع</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('item-card','بطاقة مادة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M7 7h.01M7 3h5c.512 0 1.024.195 1.414.586l7 7a2 2 0 010 2.828l-7 7a2 2 0 01-2.828 0l-7-7A1.994 1.994 0 013 12V7a4 4 0 014-4z"/></svg><span>بطاقة مادة</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('stock-movements','حركات مخزون')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>حركات مخزون</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('inventory')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/></svg><span>جرد وتقارير</span></button>
+
+      <div class="pro-nav-group-title">السندات</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-receipt','سند قبض')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>سند قبض</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-payment','سند دفع')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg><span>سند دفع</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-journal','سند قيد')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>سند قيد</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('voucher-transfer','سند تحويل عملات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>سند تحويل عملات</span></button>
+
+      <div class="pro-nav-group-title">المحاسبة</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('chart-of-accounts','شجرة الحسابات')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z"/></svg><span>شجرة الحسابات</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('journal-entries','قيود اليومية')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>قيود اليومية</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('trial-balance','ميزان المراجعة')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M3 6l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M9 7l3 1m0 0l-3 9a5.002 5.002 0 006.001 0M21 6l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0M15 7l-3 1m0 0l3 9a5.002 5.002 0 01-6.001 0"/></svg><span>ميزان المراجعة</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('contacts-directory','العملاء والموردين')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/></svg><span>العملاء والموردين</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('statement-of-account','كشف الحساب')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 17v-2m3 2v-4m3 4v-6m2 10H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg><span>كشف الحساب</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('expenses','المصاريف')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg><span>المصاريف</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('reports','مركز التقارير')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>مركز التقارير</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('financial-dashboard','لوحة التحكم المالية')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z"/></svg><span>لوحة التحكم المالية</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="showSection('accounting')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M9 7h6m0 10v-3m-3 3h.01M9 17h.01M9 14h.01M12 14h.01M15 11h.01M12 11h.01M9 11h.01M7 21h10a2 2 0 002-2V5a2 2 0 00-2-2H7a2 2 0 00-2 2v14a2 2 0 002 2z"/></svg><span>تقارير محاسبية</span></button>
+
+      <div class="pro-nav-group-title">ملحق</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="openModule('currency-manager','العملات والذهب')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6"/></svg><span>العملات والذهب</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" data-rbac="admin" onclick="showSection('barter')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 7h12m0 0l-4-4m4 4l-4 4m0 6H4m0 0l4 4m-4-4l4-4"/></svg><span>المقايضة</span></button>
+
+      <div class="pro-nav-group-title">واتساب</div>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('whatsapp')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"/></svg><span>صفحة واتساب</span></button>
+      <button type="button" class="pro-nav-link tap-haptic w-full" onclick="showSection('settings')"><svg class="pro-icon" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/><path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/></svg><span>الإعدادات</span></button>
+    </nav>
+  </aside>
+
   <!-- old nav removed - use menu bar above -->
   <header class="sr-only" aria-hidden="true" style="position:absolute;width:1px;height:1px;overflow:hidden">
     <div class="flex items-center justify-between w-full">
@@ -581,8 +716,20 @@
   </header>
 
   <div class="flex min-h-screen">
-    <!-- Main: padding-top for fixed navbar on desktop; bottom padding for mobile nav -->
-    <main class="flex-1 w-full pt-4 md:pt-24 transition-all duration-300 p-4 md:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden">
+    <!-- Main: مع Pro Theme يبتعد عن الـ Sidebar 260px على الديسكتوب -->
+    <main class="flex-1 w-full pt-4 md:pt-0 transition-all duration-300 p-4 md:p-6 lg:p-8 pb-24 md:pb-8 overflow-x-hidden flex flex-col">
+      <!-- Pro Header: شريط رفيع (ديسكتوب) — مسار تنقل + لمبة واتساب + تبويبات مفتوحة -->
+      <header id="pro-header" class="pro-header">
+        <nav id="pro-breadcrumb" class="text-sm text-slate-400 truncate" aria-label="مسار التنقل">لوحة التحكم</nav>
+        <div class="flex items-center gap-2 flex-shrink-0">
+          <div id="tab-strip" class="flex items-center gap-1 overflow-x-auto min-h-[32px] max-w-[50vw]"></div>
+          <button type="button" onclick="showSection('whatsapp')" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs hover:bg-white/10 tap-haptic" title="حالة واتساب">
+            <span class="wa-global-dot w-2 h-2 rounded-full bg-slate-500"></span>
+            <span class="wa-global-text text-slate-500">واتساب…</span>
+          </button>
+        </div>
+      </header>
+      <!-- هيدر الصفحة (عنوان + أزرار) — يظهر تحت الـ Pro Header -->
       <header class="mb-6 md:mb-8 pb-4 md:pb-6 border-b border-white/5 md:border-none flex flex-wrap items-center justify-between gap-3">
         <div>
           <h1 class="text-xl md:text-2xl lg:text-3xl font-semibold text-white tracking-tight md:hidden">Vault AI</h1>
@@ -1546,6 +1693,12 @@
     let openTabs = [];
     let activeTabId = null;
 
+    function updateProBreadcrumb(text) {
+      var el = document.getElementById('pro-breadcrumb');
+      if (el) el.textContent = text || 'لوحة التحكم';
+    }
+    var sectionLabels = { dashboard: 'لوحة التحكم', accounting: 'المحاسبة', barter: 'المقايضة', vision: 'الكاميرا', inventory: 'المخزون', currency: 'العملات', whatsapp: 'واتساب', settings: 'الإعدادات', import: 'استيراد البيانات' };
+
     function openModule(moduleId, title) {
       if (!moduleId || !title) return;
       let tab = openTabs.find(t => t.moduleId === moduleId);
@@ -1558,6 +1711,7 @@
       document.querySelectorAll('[data-section]').forEach(s => s.classList.remove('active'));
       const mc = document.getElementById('module-content');
       if (mc) { mc.classList.remove('hidden'); renderModulePanel(moduleId); }
+      updateProBreadcrumb(title);
     }
 
     function switchTab(tabId) {
@@ -1581,6 +1735,7 @@
       if (mc) mc.classList.add('hidden');
       const first = document.getElementById('section-dashboard');
       if (first) { first.classList.add('active'); }
+      updateProBreadcrumb('لوحة التحكم');
     }
 
     async function renderModulePanel(moduleId) {
@@ -1662,6 +1817,7 @@
       } else {
         if (window._waQrInterval) { clearInterval(window._waQrInterval); window._waQrInterval = null; }
       }
+      updateProBreadcrumb(sectionLabels[id] || id);
     }
 
     function setMobileNav(id) {
