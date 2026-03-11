@@ -1515,9 +1515,11 @@
           try {
             var parsed = JSON.parse(cached);
             if (parsed && typeof parsed === 'object') {
+              var storedLogo = null;
+              try { storedLogo = localStorage.getItem('companyLogo'); } catch (e5) {}
               b = {
                 companyName: b.companyName || parsed.companyName,
-                logoBase64: b.logoBase64 || parsed.logoBase64,
+                logoBase64: (storedLogo && storedLogo.trim()) || b.logoBase64 || parsed.logoBase64,
                 phone: parsed.phone != null ? parsed.phone : (b.companyPhone != null ? b.companyPhone : ''),
                 address: parsed.address != null ? parsed.address : (b.companyAddress != null ? b.companyAddress : ''),
                 invoiceNote: parsed.invoiceNote != null ? parsed.invoiceNote : (b.returnsPolicy != null ? b.returnsPolicy : '')
@@ -1598,17 +1600,26 @@
         var name = b.companyName || 'Mizan';
         document.title = (name && name.trim()) ? (name.trim() + ' | Mizan') : 'ميزان - نظام المحاسبة الذكي';
         document.querySelectorAll('.app-name-placeholder').forEach(function(el) { try { el.textContent = name; } catch (e2) {} });
-        var logoEl = document.getElementById('global-brand-logo');
-        var fallback = document.querySelector('.global-brand-fallback');
-        if (logoEl) {
-          var safeLogo = (b.logoBase64 && (b.logoBase64.indexOf('data:') === 0 || b.logoBase64.indexOf('http') === 0)) ? b.logoBase64 : '';
-          if (safeLogo) { logoEl.src = safeLogo; logoEl.classList.remove('hidden'); if (fallback) fallback.classList.add('hidden'); }
-          else { logoEl.removeAttribute('src'); logoEl.classList.add('hidden'); if (fallback) fallback.classList.remove('hidden'); }
-        }
+        var safeLogo = (b.logoBase64 && (b.logoBase64.indexOf('data:') === 0 || b.logoBase64.indexOf('http') === 0)) ? b.logoBase64 : '';
+        updateAllLogoImagesInPage(safeLogo);
         var cur = {};
         try { var raw = localStorage.getItem('vault_branding'); if (raw) cur = JSON.parse(raw); } catch (e4) {}
         try { localStorage.setItem('vault_branding', JSON.stringify({ companyName: name, logoBase64: b.logoBase64 || '', phone: cur.phone != null ? cur.phone : '', address: cur.address != null ? cur.address : '', invoiceNote: cur.invoiceNote != null ? cur.invoiceNote : '' })); } catch (e3) {}
       } catch (e) {}
+    }
+
+    /** تحديث خاصية src لكل عناصر الصور التي تعرض الشعار في الصفحة فوراً (Instant Preview). */
+    function updateAllLogoImagesInPage(logoDataUrl) {
+      var safeLogo = (logoDataUrl && (logoDataUrl.indexOf('data:') === 0 || logoDataUrl.indexOf('http') === 0)) ? logoDataUrl : '';
+      var logoEl = document.getElementById('global-brand-logo');
+      var fallback = document.querySelector('.global-brand-fallback');
+      if (logoEl) {
+        if (safeLogo) { logoEl.src = safeLogo; logoEl.classList.remove('hidden'); if (fallback) fallback.classList.add('hidden'); }
+        else { logoEl.removeAttribute('src'); logoEl.classList.add('hidden'); if (fallback) fallback.classList.remove('hidden'); }
+      }
+      document.querySelectorAll('img[data-branding="logo"]').forEach(function(img) {
+        try { if (safeLogo) { img.src = safeLogo; img.classList.remove('hidden'); } else { img.removeAttribute('src'); img.classList.add('hidden'); } } catch (e2) {}
+      });
     }
 
     function getAuthHeaders() {
@@ -5800,7 +5811,88 @@
         var t = localStorage.getItem('vault_autosave_time');
         autosaveEl.textContent = t ? t.slice(0, 19).replace('T', ' ') : '—';
       }
+      var logoFileInput = document.getElementById('br-logoFile');
+      if (logoFileInput) {
+        logoFileInput.addEventListener('change', function() { handleLogoUpload(this); });
+      }
     }
+
+    var LOGO_MAX_SIZE_BYTES = 500 * 1024;
+
+    /** رفع شعار من الجهاز: FileReader → base64، تخزين في companyLogo + vault_branding، معاينة فورية، وضغط إذا > 500KB. */
+    function handleLogoUpload(fileInput) {
+      var file = fileInput && fileInput.files && fileInput.files[0] ? fileInput.files[0] : null;
+      if (!file || !file.type || file.type.indexOf('image/') !== 0) return;
+      var sizeBytes = file.size;
+      var sizeKB = (sizeBytes / 1024).toFixed(2);
+      console.log('[ميزان] حجم صورة الشعار: ' + sizeKB + ' KB (' + sizeBytes + ' bytes)');
+      if (sizeBytes > LOGO_MAX_SIZE_BYTES) {
+        console.log('[ميزان] الصورة أكبر من 500KB، جاري الضغط...');
+      }
+      var reader = new FileReader();
+      reader.onerror = function() { console.warn('[ميزان] فشل قراءة ملف الشعار'); };
+      reader.onload = function() {
+        var dataUrl = reader.result || '';
+        if (!dataUrl || dataUrl.indexOf('data:') !== 0) return;
+        if (sizeBytes > LOGO_MAX_SIZE_BYTES) {
+          compressImageToDataUrl(dataUrl, function(compressedUrl) {
+            if (compressedUrl) storeLogoAndPreview(compressedUrl);
+            else storeLogoAndPreview(dataUrl);
+          });
+        } else {
+          storeLogoAndPreview(dataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function compressImageToDataUrl(dataUrl, callback) {
+      var img = new Image();
+      img.onerror = function() { callback(null); };
+      img.onload = function() {
+        var maxW = 800;
+        var w = img.naturalWidth || img.width;
+        var h = img.naturalHeight || img.height;
+        if (w <= maxW && h <= maxW) { callback(dataUrl); return; }
+        var scale = maxW / Math.max(w, h);
+        var cw = Math.round(w * scale);
+        var ch = Math.round(h * scale);
+        var canvas = document.createElement('canvas');
+        canvas.width = cw;
+        canvas.height = ch;
+        var ctx = canvas.getContext('2d');
+        if (!ctx) { callback(null); return; }
+        ctx.drawImage(img, 0, 0, cw, ch);
+        try {
+          var out = canvas.toDataURL('image/jpeg', 0.82);
+          console.log('[ميزان] بعد الضغط: ~' + (out.length / 1024).toFixed(0) + ' KB base64');
+          callback(out);
+        } catch (e) { callback(null); }
+      };
+      img.src = dataUrl;
+    }
+
+    function storeLogoAndPreview(base64) {
+      try {
+        localStorage.setItem('companyLogo', base64);
+        var cur = {};
+        try { var raw = localStorage.getItem('vault_branding'); if (raw) cur = JSON.parse(raw); } catch (e4) {}
+        cur.logoBase64 = base64;
+        localStorage.setItem('vault_branding', JSON.stringify({
+          companyName: cur.companyName != null ? cur.companyName : 'Mizan',
+          logoBase64: base64,
+          phone: cur.phone != null ? cur.phone : '',
+          address: cur.address != null ? cur.address : '',
+          invoiceNote: cur.invoiceNote != null ? cur.invoiceNote : ''
+        }));
+        updateAllLogoImagesInPage(base64);
+        showToast('الشعار', 'تم تحديث الشعار وعرضه فوراً', 'success');
+      } catch (e) {
+        console.warn('[ميزان] تخزين الشعار فشل (ربما حجم كبير جداً):', e && e.message);
+        showToast('تنبيه', e && e.message || 'فشل تخزين الشعار. جرّب صورة أصغر.', 'error');
+      }
+    }
+
     function restoreFromLocalAutosave() {
       var raw = localStorage.getItem('vault_autosave_backup');
       if (!raw) { showToast('تنبيه', 'لا يوجد نسخ تلقائي محلي', 'error'); return; }
@@ -5952,8 +6044,10 @@
       var logoFile = document.getElementById('br-logoFile');
       var branding = getBranding();
       var logoBase64 = branding.logoBase64 || '';
+      /** الأولوية: ملف مرفوع (Base64) ثم companyLogo ثم رابط URL. */
       function done() {
         try {
+          if (logoBase64) try { localStorage.setItem('companyLogo', logoBase64); } catch (e0) {}
           localStorage.setItem('vault_branding', JSON.stringify({ companyName: storeName, logoBase64: logoBase64, phone: phone, address: address, invoiceNote: invoiceNote }));
           if (msgEl) { msgEl.textContent = 'تم حفظ الهوية محلياً'; msgEl.className = 'mt-2 text-sm text-emerald-400'; msgEl.classList.remove('hidden'); }
           applyBrandingToDOM();
@@ -5962,12 +6056,22 @@
         }
       }
       if (logoFile && logoFile.files && logoFile.files[0]) {
+        var file = logoFile.files[0];
+        console.log('[ميزان] حفظ الهوية: حجم الشعار ' + (file.size / 1024).toFixed(2) + ' KB');
         var reader = new FileReader();
         reader.onload = function() { logoBase64 = reader.result || ''; done(); };
-        reader.readAsDataURL(logoFile.files[0]);
-      } else if (logoUrl && (logoUrl.indexOf('http') === 0 || logoUrl.indexOf('data:') === 0)) {
-        logoBase64 = logoUrl; done();
-      } else { done(); }
+        reader.readAsDataURL(file);
+      } else {
+        var fromStorage = null;
+        try { fromStorage = localStorage.getItem('companyLogo'); } catch (e1) {}
+        if (fromStorage && fromStorage.trim()) {
+          logoBase64 = fromStorage.trim();
+          done();
+        } else if (logoUrl && (logoUrl.indexOf('http') === 0 || logoUrl.indexOf('data:') === 0)) {
+          logoBase64 = logoUrl;
+          done();
+        } else { done(); }
+      }
     }
     async function submitCompanyProfile() {
       var logoUrl = document.getElementById('cp-logo')?.value?.trim() || null;
