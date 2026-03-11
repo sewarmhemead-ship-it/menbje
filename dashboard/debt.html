@@ -2,35 +2,101 @@
 <html lang="ar" dir="rtl">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <meta name="theme-color" content="#0b1220" />
-  <title>دينك · Vault AI</title>
-  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E" type="image/svg+xml" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="theme-color" content="#0a0e1a" />
+  <title>رصيدك · MIZAN</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2'%3E%3Cpath d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   <link href="/dist/tailwind.css" rel="stylesheet" />
   <style>
-    .glass { background: rgba(11, 18, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
-    body { min-height: 100vh; font-family: Cairo, sans-serif; }
+    :root {
+      --glow-blue: rgba(56, 189, 248, 0.25);
+      --glass-bg: rgba(15, 23, 42, 0.7);
+      --glass-border: rgba(148, 163, 184, 0.12);
+      --neon-text: #38bdf8;
+      --balance-color: #34d399;
+    }
+    * { box-sizing: border-box; }
+    body {
+      min-height: 100vh;
+      font-family: Cairo, sans-serif;
+      background: linear-gradient(160deg, #0a0e1a 0%, #0f172a 40%, #0c1222 100%);
+      color: #e2e8f0;
+      padding: 1rem;
+      position: relative;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: '';
+      position: fixed;
+      top: -50%;
+      left: -50%;
+      width: 200%;
+      height: 200%;
+      background: radial-gradient(ellipse at 20% 20%, var(--glow-blue) 0%, transparent 50%),
+                  radial-gradient(ellipse at 80% 80%, rgba(56, 189, 248, 0.08) 0%, transparent 45%);
+      pointer-events: none;
+      z-index: 0;
+    }
+    .debt-wrap { position: relative; z-index: 1; max-width: 420px; margin: 0 auto; min-height: 100vh; display: flex; flex-direction: column; justify-content: center; }
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      box-shadow: 0 0 0 1px rgba(255,255,255,0.03), 0 0 30px rgba(56, 189, 248, 0.06);
+      border-radius: 1.25rem;
+      padding: 1.5rem;
+    }
     .balance-num { font-variant-numeric: tabular-nums; }
+    .balance-display {
+      font-weight: 800;
+      color: #4ade80;
+      text-shadow: 0 0 20px rgba(74, 222, 128, 0.4), 0 0 40px rgba(74, 222, 128, 0.2);
+    }
+    .table-movements { width: 100%; font-size: 0.8125rem; border-collapse: collapse; }
+    .table-movements th { text-align: right; padding: 0.5rem 0.4rem; color: #94a3b8; font-weight: 600; border-bottom: 1px solid var(--glass-border); }
+    .table-movements td { padding: 0.5rem 0.4rem; border-bottom: 1px solid rgba(255,255,255,0.04); }
+    .table-movements tr:last-child td { border-bottom: none; }
+    .movement-type-sale { color: #fbbf24; }
+    .movement-type-receipt { color: #34d399; }
+    .movement-icon { font-size: 1rem; line-height: 1; margin-left: 0.25rem; }
+    .state-loading, .state-error { text-align: center; padding: 2rem; }
+    .state-error .err-msg { color: #f87171; font-weight: 500; }
+    .state-error .hint { color: #64748b; font-size: 0.8125rem; margin-top: 0.5rem; }
+    @media (max-width: 380px) { .glass-card { padding: 1rem; } }
   </style>
 </head>
-<body class="bg-[#0b1220] text-slate-200 min-h-screen flex items-center justify-center p-4">
-  <div class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl">
-    <div id="state-loading" class="text-center">
-      <p class="text-slate-500">جاري التحميل…</p>
+<body>
+  <div class="debt-wrap">
+    <div id="state-loading" class="glass-card state-loading">
+      <p class="text-slate-400">جاري التحميل…</p>
     </div>
-    <div id="state-error" class="text-center hidden">
-      <p class="text-rose-400 font-medium" id="error-text"></p>
-      <p class="text-slate-500 text-sm mt-2">الرابط غير صالح أو منتهي الصلاحية. تواصل مع المحل للحصول على رابط جديد.</p>
+    <div id="state-error" class="glass-card state-error hidden">
+      <p class="err-msg" id="error-text"></p>
+      <p class="hint">الرابط غير صالح أو منتهي الصلاحية. تواصل مع المحل للحصول على رابط جديد.</p>
     </div>
-    <div id="state-success" class="hidden text-center">
-      <h1 class="text-xl font-bold text-white" id="company-name"></h1>
-      <p class="text-slate-500 text-sm mt-1">رصيدك عندنا</p>
-      <div class="mt-6 py-4 px-6 rounded-xl bg-white/5 border border-white/10">
-        <p class="text-slate-400 text-sm">المبلغ المدين (ل.س)</p>
-        <p class="balance-num text-2xl font-bold text-emerald-400 mt-1" id="balance-syp"></p>
+    <div id="state-success" class="glass-card hidden">
+      <h1 class="text-lg font-bold text-white text-center" id="company-name"></h1>
+      <p class="text-slate-500 text-sm text-center mt-0.5">رصيدك لدى المحل</p>
+      <div class="mt-4 py-4 px-4 rounded-xl bg-white/5 border border-white/10">
+        <p class="text-slate-400 text-xs">المبلغ المدين (ل.س)</p>
+        <p class="balance-num balance-display text-3xl mt-1" id="balance-syp"></p>
       </div>
-      <p class="text-slate-500 text-xs mt-4" id="last-movement"></p>
+      <p class="text-slate-500 text-xs mt-2 text-center" id="last-movement"></p>
+      <h2 class="text-sm font-semibold text-slate-400 mt-5 mb-2">آخر 5 حركات</h2>
+      <div class="overflow-x-auto -mx-1">
+        <table class="table-movements" id="table-movements">
+          <thead>
+            <tr><th>النوع</th><th>التاريخ</th><th>المبلغ</th></tr>
+          </thead>
+          <tbody id="movements-body"></tbody>
+        </table>
+      </div>
+      <p id="no-movements" class="text-slate-500 text-sm text-center py-3 hidden">لا توجد حركات لعرضها.</p>
+      <div class="mt-4 flex justify-center print:hidden">
+        <button type="button" id="btn-pdf" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-300 text-sm font-medium transition">تحميل كـ PDF</button>
+      </div>
     </div>
   </div>
   <script>
@@ -45,6 +111,8 @@
       var companyName = document.getElementById('company-name');
       var balanceSyp = document.getElementById('balance-syp');
       var lastMovement = document.getElementById('last-movement');
+      var movementsBody = document.getElementById('movements-body');
+      var noMovements = document.getElementById('no-movements');
 
       function showLoading() {
         loading.classList.remove('hidden');
@@ -57,19 +125,39 @@
         errBlock.classList.remove('hidden');
         errText.textContent = msg || 'حدث خطأ';
       }
+      function formatNum(n) {
+        if (n == null || isNaN(n)) return '0';
+        return Number(n).toLocaleString('ar-SY', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+      }
       function showSuccess(data) {
         loading.classList.add('hidden');
         errBlock.classList.add('hidden');
         successBlock.classList.remove('hidden');
-        companyName.textContent = data.companyName || 'الشركة';
+        companyName.textContent = data.companyName || 'المحل';
         var bal = Number(data.balanceSYP);
-        balanceSyp.textContent = bal.toLocaleString('ar-SY') + ' ل.س';
+        balanceSyp.textContent = formatNum(bal) + ' ل.س';
         if (data.lastMovementDate) {
-          lastMovement.textContent = 'آخر حركة: ' + data.lastMovementDate;
+          lastMovement.textContent = 'تاريخ آخر تحديث: ' + data.lastMovementDate;
         } else {
           lastMovement.textContent = '';
         }
+        var list = data.lastMovements || [];
+        if (!list.length) {
+          movementsBody.innerHTML = '';
+          if (noMovements) noMovements.classList.remove('hidden');
+        } else {
+          if (noMovements) noMovements.classList.add('hidden');
+          movementsBody.innerHTML = list.map(function(m) {
+            var isReceipt = (m.type || '').indexOf('قبض') !== -1;
+            var typeClass = isReceipt ? 'movement-type-receipt' : 'movement-type-sale';
+            var icon = isReceipt ? '↓' : '↑';
+            return '<tr><td class="' + typeClass + '"><span class="movement-icon">' + icon + '</span>' + (m.type || '—') + '</td><td>' + (m.date || '—') + '</td><td class="balance-num">' + formatNum(m.amount) + ' ل.س</td></tr>';
+          }).join('');
+        }
       }
+
+      var btnPdf = document.getElementById('btn-pdf');
+      if (btnPdf) btnPdf.addEventListener('click', function() { window.print(); });
 
       if (!token) {
         showError('الرابط غير مكتمل. استخدم الرابط الذي أرسله لك المحل.');

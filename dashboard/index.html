@@ -870,11 +870,20 @@
 
       <!-- WhatsApp -->
       <section id="section-whatsapp" data-section data-feature="whatsapp">
-        <h2 class="page-title-h2 mb-1">واتساب · محاكاة محادثة</h2>
-        <p class="page-desc mb-6">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
+        <h2 class="page-title-h2 mb-1">واتساب</h2>
+        <p class="page-desc mb-3">رسائل الزبائن: توفر، سعر، طلب → مسودة في نقطة البيع. اربط واتساب الحقيقي عبر Meta Business.</p>
+        <div id="whatsapp-status-row" class="mb-4 p-3 rounded-xl bg-white/5 border border-white/10 text-sm text-slate-300">جاري التحقق من الاتصال…</div>
+        <div id="whatsapp-baileys-row" class="mb-4 p-4 rounded-xl bg-white/5 border border-white/10">
+          <p class="text-amber-400/90 text-xs mb-3">يرجى عدم إرسال مئات الرسائل في دقيقة واحدة لتجنب حظر الرقم من قبل شركة واتساب. (نرد فقط على من يراسلنا، فنسبة الحظر شبه معدومة)</p>
+          <p class="text-slate-400 text-sm mb-2">ربط واتساب برقمك (Baileys) — امسح الكود من تطبيق واتساب على جوالك:</p>
+          <div id="whatsapp-qr-wrap" class="flex justify-center items-center min-h-[200px] bg-black/20 rounded-lg p-3">جاري جلب رمز QR…</div>
+        </div>
+        <p class="hidden">محاكاة رسالة (مثلاً “«هل عندكم حليب؟»). إن وُجد في المخزون → يُنشأ طلب مسودة في نقطة البيع.</p>
         <div class="card-standard max-w-xl">
           <input type="text" id="whatsapp-message" value="هل عندكم حليب؟" class="w-full bg-white/5 border border-white/10 rounded-lg px-4 py-3 text-sm mb-3 focus:ring-1 focus:ring-emerald-500/50 outline-none" placeholder="الرسالة" />
           <button type="button" onclick="simulateWhatsApp()" class="w-full py-3 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium hover:bg-emerald-500/30 transition-colors">إرسال رسالة محاكاة</button>
+          <button type="button" onclick="sendWhatsAppTestMessage()" class="tap-haptic w-full mt-2 py-3 rounded-lg bg-blue-500/20 text-blue-300 text-sm font-medium hover:bg-blue-500/30 transition-colors">إرسال رسالة تجريبية (Test Message)</button>
+          <p class="text-xs text-slate-500 mt-1">يرسل رسالة ترحيب ميزان إلى رقمك للتأكد من أن الإعدادات صحيحة.</p>
           <h3 class="text-sm font-medium text-slate-400 mt-4 mb-2">طلبات مسودة</h3>
           <div id="drafts-content" class="text-slate-300 text-sm state-loading">جاري التحميل…</div>
           <button type="button" onclick="toggleDetail('wa-detail')" class="mt-2 text-xs text-emerald-400 hover:underline">عرض التفاصيل</button>
@@ -1599,6 +1608,13 @@
       else document.querySelectorAll('.mobile-nav-btn').forEach(n => { n.classList.remove('active'); });
       if (id === 'dashboard' && typeof refreshDashboardCharts === 'function') refreshDashboardCharts();
       if (id === 'barter' && typeof refresh === 'function') refresh('barter');
+      if (id === 'whatsapp') {
+        if (typeof refresh === 'function') refresh('drafts');
+        if (typeof loadWhatsAppStatus === 'function') loadWhatsAppStatus();
+        if (typeof startWhatsAppQRPoll === 'function') startWhatsAppQRPoll();
+      } else {
+        if (window._waQrInterval) { clearInterval(window._waQrInterval); window._waQrInterval = null; }
+      }
     }
 
     function setMobileNav(id) {
@@ -2911,7 +2927,7 @@
       const accounts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>').join('');
       container.innerHTML =
         '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">كشف الحساب (حسب الحساب)</h3><div class="flex flex-wrap gap-4 mb-4 items-center"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" id="stmt-export-pdf-btn" onclick="exportStatementPdf()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>تصدير PDF</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>' +
-        '<div class="card-standard" id="stmt-customer-card"><h3 class="page-title-h3 mb-4">كشف حساب عميل (مدينون)</h3><p class="page-desc mb-3">أدخل معرّف العميل (مثل معرف الحساب 1200 أو اسم العميل حسب النظام) ثم اختر الفترة.</p><div class="flex flex-wrap gap-4 mb-4 align-middle"><input type="text" id="stmt-customer-id" placeholder="معرّف العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[180px]"/><input type="date" id="stmt-cust-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-cust-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadCustomerStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" onclick="generateDebtLink()" class="tap-haptic px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 font-medium" title="إنشاء رابط يفتحه العميل لرؤية رصيده بدون تسجيل دخول">رابط دينك</button><button type="button" id="stmt-customer-print-btn" onclick="printCustomerStatement()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button></div><div id="stmt-customer-result" class="overflow-x-auto"></div></div>';
+        '<div class="card-standard" id="stmt-customer-card"><h3 class="page-title-h3 mb-4">كشف حساب عميل (مدينون)</h3><p class="page-desc mb-3">أدخل معرّف العميل (مثل معرف الحساب 1200 أو اسم العميل حسب النظام) ثم اختر الفترة.</p><div class="flex flex-wrap gap-4 mb-4 align-middle"><input type="text" id="stmt-customer-id" placeholder="معرّف العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[180px]"/><input type="date" id="stmt-cust-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-cust-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadCustomerStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" onclick="generateDebtLink()" class="tap-haptic px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 font-medium" title="إنشاء رابط يفتحه العميل لرؤية رصيده بدون تسجيل دخول">رابط دينك</button><input type="text" id="stmt-customer-phone" placeholder="رقم واتساب العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[140px]" /><button type="button" onclick="sendDebtLinkViaWhatsApp()" class="tap-haptic px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium" title="إرسال رابط الدين للعميل على واتساب">إرسال عبر واتساب</button><button type="button" id="stmt-customer-print-btn" onclick="printCustomerStatement()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button></div><div id="stmt-customer-result" class="overflow-x-auto"></div></div>';
       document.getElementById('stmt-result').innerHTML = '<p class="text-slate-500">اختر الحساب واضغط عرض.</p>';
       window._customerStatementData = null;
     }
@@ -3002,6 +3018,28 @@
         }
       } catch (e) {
         showToast('خطأ', e.message || 'فشل إنشاء الرابط', 'error');
+      }
+    }
+
+    async function sendDebtLinkViaWhatsApp() {
+      var customerId = (document.getElementById('stmt-customer-id')?.value || '').trim();
+      var phone = (document.getElementById('stmt-customer-phone')?.value || '').trim();
+      if (!customerId) { showToast('تنبيه', 'أدخل معرّف العميل أولاً', 'warning'); return; }
+      if (!phone) { showToast('تنبيه', 'أدخل رقم واتساب العميل', 'warning'); return; }
+      try {
+        var res = await fetch(API + '/whatsapp/send-debt-link', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ customerId: customerId, phone: phone, customerName: customerId })
+        });
+        var json = await res.json();
+        if (json.success) {
+          showToast('تم', json.message || 'تم إرسال رابط الدين إلى واتساب العميل بنجاح.', 'success');
+          return;
+        }
+        showToast('خطأ', json.error || 'فشل الإرسال', 'error');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل الإرسال', 'error');
       }
     }
 
@@ -6220,6 +6258,73 @@
         if (el && r?.data?.length) el.innerHTML = r.data.slice(0, 5).map(d => d.amountSYP + ' ل.س').join('<br>');
         else if (el) el.innerHTML = 'تم التسجيل.';
       } catch (e) { showToast('خطأ', e.message, 'error'); }
+    }
+
+    async function fetchWhatsAppQR() {
+      try {
+        var r = await fetch(API + '/whatsapp/qr', { headers: getAuthHeaders() });
+        var j = await r.json();
+        return j;
+      } catch (e) { return { success: false, connected: false, qr: null }; }
+    }
+    function startWhatsAppQRPoll() {
+      var wrap = document.getElementById('whatsapp-qr-wrap');
+      if (!wrap) return;
+      if (window._waQrInterval) return;
+      function update() {
+        fetchWhatsAppQR().then(function(j) {
+          if (!wrap) return;
+          if (j.connected) {
+            wrap.innerHTML = '<p class="text-emerald-400 font-medium">متصل · واتساب Baileys مفعّل</p>';
+            if (window._waQrInterval) { clearInterval(window._waQrInterval); window._waQrInterval = null; }
+            return;
+          }
+          if (j.qr) {
+            wrap.innerHTML = '<img src="' + j.qr.replace(/"/g, '&quot;') + '" alt="QR" class="max-w-[280px] h-auto rounded-lg"/>';
+          } else if (j.error) {
+            wrap.innerHTML = '<p class="text-slate-500 text-sm">' + (j.error || 'تعذر جلب الرمز') + '</p>';
+          } else {
+            wrap.innerHTML = '<p class="text-slate-500 text-sm">جاري جلب رمز QR…</p>';
+          }
+        });
+      }
+      update();
+      window._waQrInterval = setInterval(update, 3000);
+    }
+
+    async function loadWhatsAppStatus() {
+      const el = document.getElementById('whatsapp-status-row');
+      if (!el) return;
+      try {
+        const r = await fetch(API + '/whatsapp/status', { headers: getAuthHeaders() });
+        const j = await r.json();
+        const d = j?.data || {};
+        const connected = d.connected === true;
+        const base = window.location.origin || '';
+        const webhookUrl = base + (d.webhookPath || '/webhook/whatsapp');
+        if (connected) {
+          el.innerHTML = '<span class="text-emerald-400 font-medium">متصل · واتساب حقيقي</span> — رسائل الزبائن تصل والرد يُرسل تلقائياً. <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم نسخ رابط الـ Webhook\', \'success\')" class="tap-haptic ml-2 text-xs text-slate-400 hover:text-emerald-400 underline">نسخ رابط Webhook</button>';
+        } else {
+          el.innerHTML = '<span class="text-amber-400 font-medium">محاكاة فقط</span> — لإعداد واتساب الحقيقي: ضع <code class="bg-white/10 px-1 rounded">WHATSAPP_PHONE_ID</code> و <code class="bg-white/10 px-1 rounded">WHATSAPP_TOKEN</code> في ملف .env ثم أعد تشغيل السيرفر. رابط الـ Webhook (ضعه في Meta): <button type="button" onclick="navigator.clipboard && navigator.clipboard.writeText(\'' + webhookUrl.replace(/'/g, "\\'") + '\'); showToast(\'تم\', \'تم النسخ\', \'success\')" class="tap-haptic text-emerald-400 hover:underline">' + webhookUrl + '</button>';
+        }
+      } catch (e) {
+        el.innerHTML = '<span class="text-slate-500">تعذر التحقق من الاتصال.</span>';
+      }
+    }
+
+    async function sendWhatsAppTestMessage() {
+      const phone = window.prompt('أدخل رقم هاتفك مع مفتاح الدولة (مثال: 963991234567 أو +963991234567)');
+      if (phone == null || !phone.trim()) return;
+      try {
+        const j = await postJson('/whatsapp/send-test-message', { phone: phone.trim() });
+        if (j?.success) {
+          showToast('تم', j.message || 'تم إرسال الرسالة التجريبية. تحقق من واتساب.', 'success');
+          return;
+        }
+        showToast('خطأ', j?.error || 'فشل الإرسال', 'error');
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل الإرسال', 'error');
+      }
     }
 
     async function simulateWhatsApp() {

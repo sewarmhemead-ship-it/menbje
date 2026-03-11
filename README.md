@@ -34,11 +34,17 @@ npm start
 ### 5. Vision
 - Stub: recognition cache for barcode/OCR. **API:** `GET /api/vision/cache`.
 
-## WhatsApp setup
+## WhatsApp setup (واتساب حقيقي)
 
-1. Create a WhatsApp Business API app (Meta Developer Console).
-2. Set webhook URL to `https://your-domain.com/webhook/whatsapp`.
-3. Set `WHATSAPP_VERIFY_TOKEN`, `WHATSAPP_PHONE_ID`, and `WHATSAPP_TOKEN` in `.env` (see `.env.example`).
+لربط واتساب الحقيقي (استقبال رسائل الزبائن وإرسال الردود):
+
+1. أنشئ تطبيقاً في [Meta for Developers](https://developers.facebook.com) وأضف منتج **WhatsApp**.
+2. من لوحة WhatsApp خذ **Phone number ID** و **Access token** وضعهما في `.env` كـ `WHATSAPP_PHONE_ID` و `WHATSAPP_TOKEN`.
+3. اختر **Verify token** (سلسلة سرية) وضعه في `.env` كـ `WHATSAPP_VERIFY_TOKEN`.
+4. في إعدادات Webhook في Meta ضع الرابط: `https://<نطاقك>/webhook/whatsapp` ونفس الـ Verify token.
+5. اشترك في حقل **messages**.
+
+**دليل مفصل بالعربية:** [`docs/WHATSAPP_SETUP.md`](docs/WHATSAPP_SETUP.md).
 
 ## Dashboard
 

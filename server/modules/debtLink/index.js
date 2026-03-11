@@ -30,6 +30,7 @@ export function generateToken(customerId, tenantId = 'default', expiresInHours =
     tenantId: tenantId || 'default',
     expiresAt,
     createdAt: new Date().toISOString(),
+    clickCount: 0,
   });
 
   return {
@@ -40,17 +41,31 @@ export function generateToken(customerId, tenantId = 'default', expiresInHours =
   };
 }
 
+const EXPIRED_MESSAGE = 'هذا الرابط انتهت صلاحيته لدواعي الأمان، يرجى طلب رابط جديد من المحل';
+
 /**
  * Resolve token to customerId and tenantId if valid and not expired.
+ * Increments clickCount when token is used.
  * @param {string} token
  * @returns {{ customerId: string, tenantId: string } | null}
  */
 export function getByToken(token) {
   if (!token || typeof token !== 'string') return null;
-  const t = debtLinkTokens.find(
-    (e) => e.token === token && new Date(e.expiresAt) > new Date()
-  );
-  return t ? { customerId: t.customerId, tenantId: t.tenantId } : null;
+  const t = debtLinkTokens.find((e) => e.token === token);
+  if (!t) return null;
+  if (new Date(t.expiresAt) <= new Date()) return null;
+  if (typeof t.clickCount === 'number') t.clickCount += 1;
+  else t.clickCount = 1;
+  return { customerId: t.customerId, tenantId: t.tenantId };
+}
+
+/**
+ * Check if token exists but is expired (for custom expiry message).
+ */
+function isExpiredToken(token) {
+  if (!token || typeof token !== 'string') return false;
+  const t = debtLinkTokens.find((e) => e.token === token);
+  return t && new Date(t.expiresAt) <= new Date();
 }
 
 /**
@@ -63,7 +78,8 @@ export function getByToken(token) {
 export function getPublicDebt(token) {
   const resolved = getByToken(token);
   if (!resolved) {
-    return { success: false, error: 'الرابط غير صالح أو منتهي الصلاحية' };
+    const error = isExpiredToken(token) ? EXPIRED_MESSAGE : 'الرابط غير صالح أو منتهي الصلاحية';
+    return { success: false, error };
   }
 
   // generateAccountStatement(customerId, fromDate, toDate, tenantId) — we need to add tenantId to reports
@@ -78,12 +94,27 @@ export function getPublicDebt(token) {
   const movements = data.movements || [];
   const lastMovement = movements.length ? movements[movements.length - 1] : null;
 
+  // آخر 5 حركات للعرض في صفحة الدين (نوع: بيع/قبض، التاريخ، المبلغ)
+  const last5 = movements.slice(-5).reverse().map((m) => {
+    const debit = Number(m.debit) || 0;
+    const credit = Number(m.credit) || 0;
+    const type = debit > 0 ? 'بيع/فاتورة' : 'قبض';
+    const amount = debit > 0 ? debit : credit;
+    return {
+      date: (m.date || '').slice(0, 10),
+      type,
+      amount: Math.round(amount * 100) / 100,
+      memo: (m.memo || '').slice(0, 60),
+    };
+  });
+
   return {
     success: true,
     companyName: header.companyName || 'الشركة',
     customerId: data.customerId,
     balanceSYP: data.closingBalance != null ? Number(data.closingBalance) : 0,
     lastMovementDate: lastMovement ? (lastMovement.date || '').slice(0, 10) : null,
+    lastMovements: last5,
     message: data.message || null,
   };
 }

@@ -55,9 +55,15 @@ function requireAdmin(req, res, next) {
 const requireNoCashier = [requireAuth, authorize('ADMIN', 'SUPER_ADMIN')];
 
 // —— رابط دينك (Public debt link: customer sees balance without login) ——
+// Token must be 48 hex chars (24 bytes) to avoid abuse / DoS from malformed input
+const DEBT_TOKEN_REGEX = /^[a-f0-9]{48}$/i;
 router.get('/public/debt/:token', (req, res) => {
   try {
-    const data = debtLink.getPublicDebt(req.params.token);
+    const token = (req.params.token || '').trim();
+    if (!token || !DEBT_TOKEN_REGEX.test(token)) {
+      return res.status(400).json({ success: false, error: 'الرابط غير صالح أو منتهي الصلاحية' });
+    }
+    const data = debtLink.getPublicDebt(token);
     if (!data.success) return res.status(400).json(data);
     res.json(data);
   } catch (e) {

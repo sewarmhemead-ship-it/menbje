@@ -78,6 +78,8 @@ if (!process.env.VERCEL) {
     console.log(`Dashboard: http://localhost:${PORT}/dashboard/`);
     console.log(`API: http://localhost:${PORT}/api/`);
     console.log(`WhatsApp webhook: http://localhost:${PORT}/webhook/whatsapp`);
+    // Start Baileys (WhatsApp Web) in background; session saved in data/wa-session
+    import('./whatsappProvider.js').then((m) => m.start().catch((e) => console.error('[Baileys]', e.message)));
   });
 }
 
