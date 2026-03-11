@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b1220" />
+  <title>دينك · Vault AI</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'%3E%3Cpath d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E" type="image/svg+xml" />
+  <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
+  <link href="/dist/tailwind.css" rel="stylesheet" />
+  <style>
+    .glass { background: rgba(11, 18, 32, 0.95); backdrop-filter: blur(20px); border: 1px solid rgba(255,255,255,0.08); }
+    body { min-height: 100vh; font-family: Cairo, sans-serif; }
+    .balance-num { font-variant-numeric: tabular-nums; }
+  </style>
+</head>
+<body class="bg-[#0b1220] text-slate-200 min-h-screen flex items-center justify-center p-4">
+  <div class="glass rounded-2xl p-8 w-full max-w-md shadow-2xl">
+    <div id="state-loading" class="text-center">
+      <p class="text-slate-500">جاري التحميل…</p>
+    </div>
+    <div id="state-error" class="text-center hidden">
+      <p class="text-rose-400 font-medium" id="error-text"></p>
+      <p class="text-slate-500 text-sm mt-2">الرابط غير صالح أو منتهي الصلاحية. تواصل مع المحل للحصول على رابط جديد.</p>
+    </div>
+    <div id="state-success" class="hidden text-center">
+      <h1 class="text-xl font-bold text-white" id="company-name"></h1>
+      <p class="text-slate-500 text-sm mt-1">رصيدك عندنا</p>
+      <div class="mt-6 py-4 px-6 rounded-xl bg-white/5 border border-white/10">
+        <p class="text-slate-400 text-sm">المبلغ المدين (ل.س)</p>
+        <p class="balance-num text-2xl font-bold text-emerald-400 mt-1" id="balance-syp"></p>
+      </div>
+      <p class="text-slate-500 text-xs mt-4" id="last-movement"></p>
+    </div>
+  </div>
+  <script>
+    (function() {
+      var params = new URLSearchParams(window.location.search);
+      var token = params.get('t') || params.get('token') || '';
+      var apiBase = window.location.origin + '/api';
+      var loading = document.getElementById('state-loading');
+      var errBlock = document.getElementById('state-error');
+      var errText = document.getElementById('error-text');
+      var successBlock = document.getElementById('state-success');
+      var companyName = document.getElementById('company-name');
+      var balanceSyp = document.getElementById('balance-syp');
+      var lastMovement = document.getElementById('last-movement');
+
+      function showLoading() {
+        loading.classList.remove('hidden');
+        errBlock.classList.add('hidden');
+        successBlock.classList.add('hidden');
+      }
+      function showError(msg) {
+        loading.classList.add('hidden');
+        successBlock.classList.add('hidden');
+        errBlock.classList.remove('hidden');
+        errText.textContent = msg || 'حدث خطأ';
+      }
+      function showSuccess(data) {
+        loading.classList.add('hidden');
+        errBlock.classList.add('hidden');
+        successBlock.classList.remove('hidden');
+        companyName.textContent = data.companyName || 'الشركة';
+        var bal = Number(data.balanceSYP);
+        balanceSyp.textContent = bal.toLocaleString('ar-SY') + ' ل.س';
+        if (data.lastMovementDate) {
+          lastMovement.textContent = 'آخر حركة: ' + data.lastMovementDate;
+        } else {
+          lastMovement.textContent = '';
+        }
+      }
+
+      if (!token) {
+        showError('الرابط غير مكتمل. استخدم الرابط الذي أرسله لك المحل.');
+        return;
+      }
+
+      fetch(apiBase + '/public/debt/' + encodeURIComponent(token))
+        .then(function(r) { return r.json(); })
+        .then(function(json) {
+          if (json.success) {
+            showSuccess(json);
+          } else {
+            showError(json.error || 'الرابط غير صالح أو منتهي الصلاحية');
+          }
+        })
+        .catch(function() {
+          showError('تعذر الاتصال. جرّب لاحقاً.');
+        });
+    })();
+  </script>
+</body>
+</html>

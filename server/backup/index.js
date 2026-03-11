@@ -13,7 +13,7 @@ const MAP_KEYS = [
 const ARRAY_KEYS = [
   'inventoryLots', 'barterLedger', 'barterSurplus', 'barterNeeds', 'barterMatchAlerts',
   'journalEntriesList', 'vouchers', 'stockMovements', 'debtLedger', 'actionLog', 'visionCache',
-  'purchaseInvoices', 'purchaseReturns', 'boms', 'expenseRecords',
+  'purchaseInvoices', 'purchaseReturns', 'boms', 'expenseRecords', 'debtLinkTokens',
 ];
 const OBJECT_KEYS = ['companyProfile'];
 

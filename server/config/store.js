@@ -48,6 +48,9 @@ const sessions = new Map();    // token -> { userId, createdAt }
 // Suppliers (الموردين): for procurement and purchase returns
 const suppliers = new Map();   // id -> { id, name, phone, address, tenantId, createdAt }
 
+// Debt link (رابط دينك): token -> customerId for public balance view
+const debtLinkTokens = [];    // { token, customerId, tenantId, expiresAt, createdAt }
+
 export const store = {
   products,
   units,
@@ -78,6 +81,7 @@ export const store = {
   users,
   sessions,
   suppliers,
+  debtLinkTokens,
 };
 
 export function getNextId(collection) {

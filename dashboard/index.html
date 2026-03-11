@@ -2911,7 +2911,7 @@
       const accounts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' - ' + (a.name || '') + '</option>').join('');
       container.innerHTML =
         '<div class="card-standard mb-6"><h3 class="page-title-h3 mb-4">كشف الحساب (حسب الحساب)</h3><div class="flex flex-wrap gap-4 mb-4 items-center"><select id="stmt-account" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[200px]">' + accounts + '</select><input type="date" id="stmt-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" id="stmt-export-pdf-btn" onclick="exportStatementPdf()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/></svg>تصدير PDF</button></div><div id="stmt-result" class="overflow-x-auto"></div></div>' +
-        '<div class="card-standard" id="stmt-customer-card"><h3 class="page-title-h3 mb-4">كشف حساب عميل (مدينون)</h3><p class="page-desc mb-3">أدخل معرّف العميل (مثل معرف الحساب 1200 أو اسم العميل حسب النظام) ثم اختر الفترة.</p><div class="flex flex-wrap gap-4 mb-4 align-middle"><input type="text" id="stmt-customer-id" placeholder="معرّف العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[180px]"/><input type="date" id="stmt-cust-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-cust-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadCustomerStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" id="stmt-customer-print-btn" onclick="printCustomerStatement()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button></div><div id="stmt-customer-result" class="overflow-x-auto"></div></div>';
+        '<div class="card-standard" id="stmt-customer-card"><h3 class="page-title-h3 mb-4">كشف حساب عميل (مدينون)</h3><p class="page-desc mb-3">أدخل معرّف العميل (مثل معرف الحساب 1200 أو اسم العميل حسب النظام) ثم اختر الفترة.</p><div class="flex flex-wrap gap-4 mb-4 align-middle"><input type="text" id="stmt-customer-id" placeholder="معرّف العميل" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white min-w-[180px]"/><input type="date" id="stmt-cust-from" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><input type="date" id="stmt-cust-to" class="bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-white"/><button type="button" onclick="loadCustomerStatement()" class="px-4 py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">عرض</button><button type="button" onclick="generateDebtLink()" class="tap-haptic px-4 py-2 rounded-lg bg-blue-500/20 text-blue-300 font-medium" title="إنشاء رابط يفتحه العميل لرؤية رصيده بدون تسجيل دخول">رابط دينك</button><button type="button" id="stmt-customer-print-btn" onclick="printCustomerStatement()" class="px-4 py-2 rounded-lg bg-white/10 text-slate-300 font-medium hidden"><svg class="w-5 h-5 inline-block ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة كشف الحساب</button></div><div id="stmt-customer-result" class="overflow-x-auto"></div></div>';
       document.getElementById('stmt-result').innerHTML = '<p class="text-slate-500">اختر الحساب واضغط عرض.</p>';
       window._customerStatementData = null;
     }
@@ -2977,6 +2977,31 @@
         }
       } catch (e) {
         el.innerHTML = '<p class="text-rose-400">' + (e.message || 'فشل التحميل') + '</p>';
+      }
+    }
+
+    async function generateDebtLink() {
+      var customerId = (document.getElementById('stmt-customer-id')?.value || '').trim();
+      if (!customerId) { showToast('تنبيه', 'أدخل معرّف العميل أولاً', 'warning'); return; }
+      try {
+        var res = await fetch(API + '/debt-link/generate', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', ...getAuthHeaders() },
+          body: JSON.stringify({ customerId: customerId, expiresInHours: 168 })
+        });
+        var json = await res.json();
+        if (!json.success || !json.link) {
+          showToast('خطأ', json.error || 'فشل إنشاء الرابط', 'error');
+          return;
+        }
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+          await navigator.clipboard.writeText(json.link);
+          showToast('تم', 'تم نسخ رابط دينك. أرسله للعميل ليشوف رصيده بدون تسجيل دخول.', 'success');
+        } else {
+          showToast('تم', 'الرابط جاهز. انسخه من هنا: ' + json.link, 'success');
+        }
+      } catch (e) {
+        showToast('خطأ', e.message || 'فشل إنشاء الرابط', 'error');
       }
     }
 

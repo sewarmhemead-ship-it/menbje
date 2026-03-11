@@ -28,6 +28,7 @@ import * as manufacturing from '../modules/manufacturing/index.js';
 import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
 import * as settings from '../config/settings.js';
+import * as debtLink from '../modules/debtLink/index.js';
 import { optionalAuth, requireAuth, requireSuperAdmin, authorize } from '../auth/middleware.js';
 import { voucherReceiptSchema, voucherPaymentSchema, voucherJournalSchema, expenseSchema, validateBody } from '../validation/schemas.js';
 
@@ -52,6 +53,32 @@ function requireAdmin(req, res, next) {
 
 /** تقارير وأداء حساسة: لا يصل لها الكاشير (ADMIN و SUPER_ADMIN فقط). */
 const requireNoCashier = [requireAuth, authorize('ADMIN', 'SUPER_ADMIN')];
+
+// —— رابط دينك (Public debt link: customer sees balance without login) ——
+router.get('/public/debt/:token', (req, res) => {
+  try {
+    const data = debtLink.getPublicDebt(req.params.token);
+    if (!data.success) return res.status(400).json(data);
+    res.json(data);
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
+router.post('/debt-link/generate', requireAuth, (req, res) => {
+  try {
+    const tenantId = getTenantId(req);
+    const { customerId, expiresInHours } = req.body;
+    const hours = expiresInHours != null ? Math.min(720, Math.max(1, Number(expiresInHours))) : 168;
+    const result = debtLink.generateToken(customerId, tenantId, hours);
+    if (!result.success) return res.status(400).json(result);
+    const baseUrl = (req.protocol || 'http') + '://' + (req.get('host') || 'localhost:3000');
+    result.link = baseUrl + '/dashboard/debt.html?t=' + result.token;
+    res.json(result);
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
 
 // —— Global Search (البحث الموحد): أصناف، فواتير، عملاء ——
 router.get('/search', (req, res) => {

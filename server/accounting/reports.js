@@ -140,8 +140,12 @@ export function getAccountStatement(accountId, fromDate = null, toDate = null) {
 /**
  * كشف حساب للعميل (customerId): حركات مدينون المرتبطة بفواتيره، مع ترويسة هوية الشركة من الإعدادات.
  * الخرج: header (اسم الشركة، اللوغو، العنوان، الهاتف) و data (الحركات المنسقة، رصيد افتتاحي/ختامي).
+ * @param {string} customerId
+ * @param {string|null} fromDate
+ * @param {string|null} toDate
+ * @param {string|null} tenantId - optional: filter invoices by tenant (رابط دينك)
  */
-export function generateAccountStatement(customerId, fromDate = null, toDate = null) {
+export function generateAccountStatement(customerId, fromDate = null, toDate = null, tenantId = null) {
   const settings = getSettings();
   const branding = settings.branding || {};
   const header = {
@@ -152,9 +156,11 @@ export function generateAccountStatement(customerId, fromDate = null, toDate = n
     primaryColor: branding.primaryColor || '#10b981',
   };
 
-  const invoiceIds = (salesInvoices || [])
-    .filter((inv) => String(inv.customerId || '') === String(customerId))
-    .map((inv) => inv.id);
+  let invList = (salesInvoices || []).filter((inv) => String(inv.customerId || '') === String(customerId));
+  if (tenantId != null && tenantId !== '') {
+    invList = invList.filter((inv) => (inv.tenantId || 'default') === tenantId);
+  }
+  const invoiceIds = invList.map((inv) => inv.id);
   if (invoiceIds.length === 0) {
     return {
       header,
