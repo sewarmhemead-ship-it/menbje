@@ -509,12 +509,24 @@
           </div>
         </div>
         <div class="menu-item-wrap relative group">
+          <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">واتساب</button>
+          <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[180px] glass rounded-lg shadow-xl py-1 border border-white/10">
+            <button type="button" onclick="showSection('whatsapp')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">صفحة واتساب والـ QR</button>
+            <button type="button" onclick="showSection('settings')" class="w-full text-right px-4 py-2 text-sm text-slate-300 hover:bg-white/5 hover:text-white">الإعدادات (كارت واتساب)</button>
+          </div>
+        </div>
+        <div class="menu-item-wrap relative group">
           <button type="button" class="menu-btn tap-haptic px-3 py-2 text-sm text-slate-300 hover:text-white hover:bg-white/5 rounded">التعليمات</button>
           <div class="menu-dropdown hidden group-hover:block absolute top-full right-0 mt-0 min-w-[160px] glass rounded-lg shadow-xl py-1 border border-white/10">
             <button type="button" class="w-full text-right px-4 py-2 text-sm text-slate-500 cursor-not-allowed">عن البرنامج</button>
           </div>
         </div>
       </nav>
+      <!-- لمبة حالة واتساب في الديسكتوب (مرئية دائماً في الشريط العلوي، النقر يفتح صفحة واتساب) -->
+      <button type="button" id="wa-global-indicator-desktop" onclick="showSection('whatsapp')" class="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs shrink-0 ml-2 hover:bg-white/10 transition-colors cursor-pointer tap-haptic" title="حالة واتساب — انقر لفتح صفحة واتساب">
+        <span class="wa-global-dot w-2 h-2 rounded-full bg-slate-500"></span>
+        <span class="wa-global-text text-slate-500">واتساب…</span>
+      </button>
     </div>
     <div id="tab-strip" class="flex items-center gap-1 px-2 py-1 bg-black/20 border-t border-white/5 overflow-x-auto min-h-[36px]"></div>
   </header>
@@ -576,9 +588,10 @@
           <h1 class="text-xl md:text-2xl lg:text-3xl font-semibold text-white tracking-tight md:hidden">Vault AI</h1>
           <p class="text-slate-500 text-xs md:text-sm mt-1 hidden sm:block">محاسبة ومؤسسات عالمية · قيد مزدوج · عملة شبحية · ربح القوة الشرائية</p>
         </div>
-        <div id="wa-global-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs" title="حالة واتساب">
-          <span id="wa-global-dot" class="w-2 h-2 rounded-full bg-slate-500"></span>
-          <span id="wa-global-text" class="text-slate-500">واتساب…</span>
+        <!-- لمبة واتساب: ظاهرة في الموبايل فقط (في الديسكتوب تظهر في الشريط العلوي) -->
+        <div id="wa-global-indicator" class="flex md:hidden items-center gap-2 px-3 py-1.5 rounded-lg bg-white/5 border border-white/10 text-xs" title="حالة واتساب">
+          <span class="wa-global-dot w-2 h-2 rounded-full bg-slate-500"></span>
+          <span class="wa-global-text text-slate-500">واتساب…</span>
         </div>
         <div class="flex items-center gap-2">
           <button type="button" onclick="openNavDrawer()" class="tap-haptic md:hidden flex items-center justify-center w-10 h-10 rounded-xl bg-white/5 border border-white/10 text-slate-400 hover:text-blue-400 hover:border-blue-500/30" title="القائمة" aria-label="فتح القائمة">
@@ -918,8 +931,8 @@
       <section id="section-settings" data-section>
         <h2 class="page-title-h2 mb-1">الإعدادات</h2>
         <p class="page-desc mb-6">المخزون، واتساب، التدقيق. عمل دون اتصال أولاً.</p>
-        <div class="flex flex-col gap-4">
-          <div id="settings-wa-card" class="card-standard text-right flex flex-col gap-2">
+        <div class="flex flex-col gap-4 w-full max-w-full">
+          <div id="settings-wa-card" class="card-standard text-right flex flex-col gap-2 w-full max-w-full">
             <h3 class="text-sm font-medium text-slate-400">اتصال واتساب - Baileys</h3>
             <div class="flex items-center gap-2">
               <span class="text-2xl">💬</span>
@@ -6240,24 +6253,25 @@
     }
 
     async function updateWhatsAppGlobalIndicator() {
-      const dot = document.getElementById('wa-global-dot');
-      const text = document.getElementById('wa-global-text');
+      const dots = document.querySelectorAll('.wa-global-dot');
+      const texts = document.querySelectorAll('.wa-global-text');
       const settingsStatus = document.getElementById('settings-wa-status-text');
       try {
         const r = await fetch(API + '/whatsapp/status', { headers: getAuthHeaders() });
         const j = await r.json();
         const connected = j?.data?.connected === true;
-        dot.className = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-400' : 'bg-red-400');
-        text.textContent = connected ? 'واتساب متصل' : 'واتساب غير متصل';
-        text.className = connected ? 'text-emerald-400' : 'text-red-400';
+        const dotClass = 'w-2 h-2 rounded-full ' + (connected ? 'bg-emerald-400' : 'bg-red-400');
+        const textContent = connected ? 'واتساب متصل' : 'واتساب غير متصل';
+        const textClass = connected ? 'text-emerald-400' : 'text-red-400';
+        dots.forEach(function (el) { el.className = dotClass; });
+        texts.forEach(function (el) { el.textContent = textContent; el.className = textClass; });
         if (settingsStatus) {
           settingsStatus.textContent = connected ? '(متصل)' : '(غير مرتبط)';
           settingsStatus.className = connected ? 'text-emerald-400 font-medium' : 'text-red-400 font-medium';
         }
       } catch (_) {
-        dot.className = 'w-2 h-2 rounded-full bg-slate-500';
-        text.textContent = 'واتساب…';
-        text.className = 'text-slate-500';
+        dots.forEach(function (el) { el.className = 'w-2 h-2 rounded-full bg-slate-500'; });
+        texts.forEach(function (el) { el.textContent = 'واتساب…'; el.className = 'text-slate-500'; });
         if (settingsStatus) {
           settingsStatus.textContent = 'جاري التحقق...';
           settingsStatus.className = 'text-slate-500';
