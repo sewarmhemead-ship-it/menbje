@@ -2789,145 +2789,6 @@
       }
     }
 
-    async function renderChartOfAccounts(container) {
-      const r = await fetchJson('/accounts');
-      const accounts = r.data || [];
-      const byId = {};
-      accounts.forEach(a => { byId[a.id] = a; });
-      function buildTree(typeFilter) {
-        const list = accounts.filter(a => a.type === typeFilter);
-        const roots = list.filter(a => !a.parentId || !byId[a.parentId]);
-        const childrenOf = {};
-        list.forEach(a => {
-          const pid = a.parentId && byId[a.parentId] ? a.parentId : null;
-          if (!childrenOf[pid]) childrenOf[pid] = [];
-          childrenOf[pid].push(a);
-        });
-        function sortByCode(arr) { return arr.slice().sort((x, y) => (x.code || '').localeCompare(y.code || '')); }
-        function renderNode(acc, depth) {
-          const id = 'coa-' + (acc.id || '').replace(/\s/g, '_');
-          const kids = sortByCode(childrenOf[acc.id] || []);
-          const hasChildren = kids.length > 0;
-          const isOpen = window._coaOpen && window._coaOpen[id] !== false;
-          var html = '<div class="coa-node" data-id="' + id + '">';
-          html += '<div class="flex items-center gap-2 py-1.5 px-3 rounded bg-white/5 hover:bg-white/10 cursor-pointer" style="padding-right: ' + (12 + depth * 16) + 'px" onclick="toggleCoaNode(\'' + id + '\')">';
-          if (hasChildren) html += '<span class="coa-toggle text-slate-400 w-5">' + (isOpen ? '▼' : '▶') + '</span>';
-          else html += '<span class="w-5 inline-block"></span>';
-          html += '<span class="text-slate-300">' + (acc.code || '') + ' · ' + (acc.name || '') + '</span></div>';
-          if (hasChildren && isOpen) {
-            html += '<div class="coa-children ml-2 border-r border-white/10">';
-            kids.forEach(child => { html += renderNode(child, depth + 1); });
-            html += '</div>';
-          }
-          html += '</div>';
-          return html;
-        }
-        return roots.map(acc => renderNode(acc, 0)).join('');
-      }
-      window._coaOpen = window._coaOpen || {};
-      const types = ['asset','liability','equity','revenue','expense'];
-      const typeNames = { asset: 'أصول', liability: 'خصوم', equity: 'حقوق ملكية', revenue: 'إيرادات', expense: 'مصروفات' };
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">شجرة الحسابات</h3><p class="page-desc mb-3">انقر على الحساب الرئيسي للطي/الفرد.</p><div class="space-y-4">' +
-        types.map(t => '<div><h4 class="text-sm font-medium text-emerald-400 mb-2">' + (typeNames[t] || t) + '</h4><div class="coa-tree">' + buildTree(t) + '</div></div>').join('') +
-        '</div></div>';
-    }
-    function toggleCoaNode(id) {
-      if (!window._coaOpen) window._coaOpen = {};
-      window._coaOpen[id] = !window._coaOpen[id];
-      var mc = document.getElementById('module-content');
-      if (mc) renderChartOfAccounts(mc);
-    }
-
-    async function openAuditEntryModal(entryId) {
-      if (!entryId) return;
-      var modal = document.getElementById('audit-entry-modal');
-      var body = document.getElementById('audit-entry-modal-body');
-      if (!modal || !body) return;
-      body.textContent = 'جاري التحميل…';
-      modal.classList.remove('hidden');
-      try {
-        var res = await fetch(API + '/journal/' + encodeURIComponent(entryId), { headers: getAuthHeaders() });
-        var json = await res.json();
-        if (!json.success || !json.data) { body.innerHTML = '<p class="text-rose-400">' + (json.error || 'قيد غير موجود') + '</p>'; return; }
-        var e = json.data;
-        var html = '<p><span class="text-slate-500">التاريخ:</span> ' + (e.date || '').slice(0, 19) + '</p>';
-        html += '<p><span class="text-slate-500">البيان:</span> ' + (e.memo || '—').replace(/</g, '&lt;') + '</p>';
-        if (e.deleted) html += '<p class="text-rose-400 font-medium">هذا القيد معطّل (محذوف)</p>';
-        if (e.compoundLines && e.compoundLines.length) {
-          html += '<table class="table-glass w-full text-right mt-3"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الحساب</th><th class="p-2">مدين</th><th class="p-2">دائن</th></tr></thead><tbody>';
-          e.compoundLines.forEach(function(l) {
-            html += '<tr class="border-b border-white/5"><td class="p-2">' + (l.accountId || '—') + '</td><td class="p-2 text-emerald-400">' + formatNum(l.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(l.credit || 0) + '</td></tr>';
-          });
-          html += '</tbody></table>';
-        } else {
-          html += '<p><span class="text-slate-500">مدين:</span> ' + (e.debitAccountId || '—') + ' · <span class="text-slate-500">دائن:</span> ' + (e.creditAccountId || '—') + '</p>';
-          html += '<p><span class="text-slate-500">المبلغ ل.س:</span> ' + formatNum(e.amountSYP || 0) + '</p>';
-          if (e.amountUSDAtTx != null) html += '<p><span class="text-slate-500">USD وقت القيد:</span> ' + Number(e.amountUSDAtTx).toFixed(4) + '</p>';
-        }
-        if (e.refType || e.refId) html += '<p class="text-slate-500 text-xs mt-2">المرجع: ' + (e.refType || '') + ' — ' + (e.refId || '') + '</p>';
-        body.innerHTML = html;
-      } catch (err) {
-        body.innerHTML = '<p class="text-rose-400">' + (err.message || 'فشل تحميل التفاصيل') + '</p>';
-      }
-    }
-
-    async function renderJournalGrid(container) {
-      const r = await fetchJson('/journal?limit=100');
-      const list = r.data || [];
-      const accR = await fetchJson('/accounts');
-      const accMap = {};
-      (accR.data || []).forEach(a => { accMap[a.id] = a.name || a.code; });
-      const rows = list.map(e => ({
-        date: e.date ? e.date.slice(0,10) : '',
-        debit: accMap[e.debitAccountId] || e.debitAccountId,
-        credit: accMap[e.creditAccountId] || e.creditAccountId,
-        amount: e.amountSYP,
-        memo: e.memo || ''
-      }));
-      var tableBody = rows.length ? rows.map(function(r) { var memo = (r.memo || '').toString().replace(/</g, '&lt;'); return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + r.date + '</td><td class="p-2 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + (r.debit || '') + '</td><td class="p-2 table-cell-ellipsis">' + (r.credit || '') + '</td><td class="p-2 text-emerald-400">' + formatNum(r.amount || 0) + '</td><td class="p-2 text-slate-400 table-cell-ellipsis" title="' + memo.replace(/"/g, '&quot;') + '">' + memo + '</td></tr>'; }).join('') : '';
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">قيود اليومية</h3>' + (rows.length ? '<div class="detail-table-wrap overflow-x-auto"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">التاريخ</th><th class="p-2">مدين</th><th class="p-2">دائن</th><th class="p-2">المبلغ ل.س</th><th class="p-2">البيان</th></tr></thead><tbody>' + tableBody + '</tbody></table></div>' : emptyStateHTML('لا توجد قيود لعرضها حالياً')) + '</div>';
-    }
-
-    async function renderTrialBalanceGrid(container) {
-      const asOf = document.getElementById('tb-filter-date')?.value || new Date().toISOString().slice(0,10);
-      const r = await fetchJson('/statements/trial-balance?asOfDate=' + asOf);
-      const d = r.data;
-      if (!d || !d.rows || d.rows.length === 0) {
-        container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d && d.asOfDate ? (d.asOfDate + '').slice(0,10) : new Date().toISOString().slice(0,10)) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="state-empty-box mt-4"><span class="state-empty-icon" aria-hidden="true">📋</span><p>لا توجد بيانات لهذا الحساب حالياً</p></div></div>';
-        return;
-      }
-      var bodyRows = d.rows.map(function(r) {
-        var name = (r.name || '').toString().replace(/</g, '&lt;');
-        var code = (r.code || '').toString();
-        return '<tr class="border-b border-white/5 hover:bg-white/5"><td class="p-2">' + code + '</td><td class="p-2 table-cell-ellipsis" title="' + name.replace(/"/g, '&quot;') + '">' + name + '</td><td class="p-2 text-emerald-400">' + formatNum(r.debit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(r.credit || 0) + '</td></tr>';
-      }).join('');
-      window._lastTrialBalanceData = d;
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">ميزان المراجعة</h3><label class="text-slate-400 text-sm">حتى تاريخ: <input type="date" id="tb-filter-date" value="' + (d.asOfDate || '').slice(0,10) + '" onchange="refreshActiveModule()" class="bg-white/5 border border-white/10 rounded px-2 py-1 text-white"/></label><div class="flex flex-wrap gap-2 mt-2 mb-2"><button type="button" onclick="printTrialBalance()" class="tap-haptic px-3 py-1.5 rounded-lg bg-emerald-500/20 text-emerald-400 text-sm font-medium inline-flex items-center gap-1"><svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 17h2a2 2 0 002-2v-4a2 2 0 00-2-2H5a2 2 0 00-2 2v4a2 2 0 002 2h2m2 4h6a2 2 0 002-2v-4a2 2 0 00-2-2H9a2 2 0 00-2 2v4a2 2 0 002 2zm8-12V5a2 2 0 00-2-2H9a2 2 0 00-2 2v4h10z"/></svg>طباعة / تصدير PDF</button></div><div class="detail-table-wrap mt-4"><table class="table-glass w-full text-sm text-right"><thead><tr class="text-slate-400 border-b border-white/10"><th class="p-2">الكود / Code</th><th class="p-2">اسم الحساب / Account</th><th class="p-2">مدين / Debit</th><th class="p-2">دائن / Credit</th></tr></thead><tbody>' + bodyRows + '</tbody><tfoot><tr class="font-medium text-white border-t border-white/10"><td class="p-2" colspan="2">الإجمالي</td><td class="p-2 text-emerald-400">' + formatNum(d.totalDebit || 0) + '</td><td class="p-2 text-amber-400">' + formatNum(d.totalCredit || 0) + '</td></tr></tfoot></table></div><p class="text-slate-500 text-sm mt-2">متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p></div>';
-    }
-
-    async function printTrialBalance() {
-      var asOf = document.getElementById('tb-filter-date')?.value || new Date().toISOString().slice(0, 10);
-      var d = window._lastTrialBalanceData;
-      if (!d || (d.asOfDate || '').slice(0, 10) !== asOf) {
-        try { d = (await fetchJson('/statements/trial-balance?asOfDate=' + asOf)).data; } catch (e) { showToast('خطأ', e.message || 'فشل تحميل البيانات', 'error'); return; }
-      }
-      if (!d || !d.rows || !d.rows.length) { showToast('تنبيه', 'لا توجد بيانات للطباعة', 'error'); return; }
-      var printRows = d.rows.map(function(r) {
-        return '<tr class="print-td-row"><td class="print-td">' + (r.code || '') + '</td><td class="print-td">' + (r.name || '').replace(/</g, '&lt;') + '</td><td class="print-td">' + formatNum(r.debit || 0) + '</td><td class="print-td">' + formatNum(r.credit || 0) + '</td></tr>';
-      }).join('');
-      var printDate = new Date().toLocaleDateString('ar-SY') + ' ' + new Date().toLocaleTimeString('ar-SY', { hour: '2-digit', minute: '2-digit' });
-      var t = getPrintHeaderTemplate('ميزان المراجعة — حتى ' + (d.asOfDate || asOf).slice(0, 10), printDate, { showPageNumber: true });
-      var tableHtml = '<table class="print-table"><thead><tr class="print-th"><th class="print-th">الكود</th><th class="print-th">اسم الحساب</th><th class="print-th">مدين</th><th class="print-th">دائن</th></tr></thead><tbody>' + printRows + '</tbody><tfoot><tr class="print-th"><td class="print-td" colspan="2">الإجمالي</td><td class="print-td">' + formatNum(d.totalDebit || 0) + '</td><td class="print-td">' + formatNum(d.totalCredit || 0) + '</td></tr></tfoot></table>';
-      var bodyHtml = '<div class="print-body" dir="rtl" style="font-family:Cairo,Tajawal,sans-serif">' + '<h2 style="font-size:1.125rem;font-weight:700;margin-bottom:12px;">ميزان المراجعة</h2>' + '<p class="print-period">حتى تاريخ: ' + (d.asOfDate || asOf).slice(0, 10) + ' · متوازن: ' + (d.balanced ? 'نعم' : 'لا') + '</p>' + tableHtml + '</div>';
-      var win = window.open('', '_blank');
-      win.document.write('<html dir="rtl"><head><title>ميزان المراجعة</title><link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet"/>' + t.css + '</head><body style="background:#fff;color:#111">' + t.headerHTML + bodyHtml + '</body></html>');
-      win.document.close();
-      win.focus();
-      win.onafterprint = function() { try { win.close(); } catch (e) {} };
-      win.print();
-      setTimeout(function() { try { if (win && !win.closed) win.close(); } catch (e) {} }, 10000);
-    }
-
     async function printPlReport() {
       var d = window._lastPlData;
       if (!d) {
@@ -3404,38 +3265,6 @@
       win.onafterprint = function() { try { win.close(); } catch (e) {} };
       win.print();
       setTimeout(function() { try { if (win && !win.closed) win.close(); } catch (e) {} }, 10000);
-    }
-
-    function renderVoucherJournal(container) {
-      container.innerHTML = '<div class="card-standard"><h3 class="page-title-h3 mb-4">سند قيد (مدين/دائن متوازن)</h3><p class="page-desc mb-4">أضف أسطراً: حساب، إما مدين أو دائن. الإجمالي مدين = الإجمالي دائن.</p><div id="v-j-lines"></div><button type="button" onclick="addVoucherJournalLine()" class="py-2 px-3 rounded-lg bg-white/10 text-slate-300 text-sm mb-4">+ سطر</button><button type="button" onclick="submitVoucherJournal()" class="block w-full py-2 rounded-lg bg-emerald-500/20 text-emerald-400 font-medium">ترحيل</button></div>';
-      window._vjLines = [];
-      addVoucherJournalLine();
-      addVoucherJournalLine();
-    }
-    async function addVoucherJournalLine() {
-      const accR = await fetchJson('/accounts');
-      const opts = (accR.data || []).map(a => '<option value="' + a.id + '">' + (a.code || '') + ' ' + (a.name || '') + '</option>').join('');
-      const id = 'vj-' + Date.now();
-      window._vjLines.push({ id, accountId: '', debit: 0, credit: 0, memo: '' });
-      const div = document.getElementById('v-j-lines');
-      if (!div) return;
-      const lineEl = document.createElement('div');
-      lineEl.className = 'flex flex-wrap gap-2 items-center mb-2';
-      lineEl.innerHTML = '<select class="vj-account bg-white/5 border border-white/10 rounded px-2 py-1 text-white min-w-[180px]" data-id="' + id + '">' + opts + '</select><input type="number" placeholder="مدين" class="vj-debit bg-white/5 border border-white/10 rounded px-2 py-1 text-white w-24" data-id="' + id + '"/><input type="number" placeholder="دائن" class="vj-credit bg-white/5 border border-white/10 rounded px-2 py-1 text-white w-24" data-id="' + id + '"/><input type="text" placeholder="بيان" class="vj-memo bg-white/5 border border-white/10 rounded px-2 py-1 text-white flex-1" data-id="' + id + '"/>';
-      div.appendChild(lineEl);
-    }
-    async function submitVoucherJournal() {
-      const lines = [];
-      document.querySelectorAll('.vj-account').forEach((sel, i) => {
-        const id = sel.getAttribute('data-id');
-        const debit = Number(document.querySelector('.vj-debit[data-id="' + id + '"]')?.value) || 0;
-        const credit = Number(document.querySelector('.vj-credit[data-id="' + id + '"]')?.value) || 0;
-        if (sel.value && (debit > 0 || credit > 0)) lines.push({ accountId: sel.value, debit, credit, memo: document.querySelector('.vj-memo[data-id="' + id + '"]')?.value || '' });
-      });
-      if (lines.length < 2) { showToast('تنبيه', 'أضف سطرين على الأقل (مدين ودائن)', 'warning'); return; }
-      await postJson('/vouchers/journal', { lines });
-      showToast('تم', 'تم ترحيل سند القيد', 'success');
-      openModule('journal-entries', 'قيود اليومية');
     }
 
     function renderVoucherTransfer(container) {
@@ -6566,5 +6395,6 @@
       setTimeout(function() { applyBrandingToDOM(); }, 0);
     })();
   </script>
+  <script src="/js/modules/accounting.js"></script>
 </body>
 </html>

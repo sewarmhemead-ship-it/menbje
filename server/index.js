@@ -52,6 +52,7 @@ app.use('/api/whatsapp', whatsappRoutes);
 // Dashboard (static) — enabled when not on Vercel (Render / local)
 if (!process.env.VERCEL) {
   app.use('/dashboard', express.static(dashboardPath));
+  app.use('/js', express.static(path.join(__dirname, '../public/js')));
   // خدمة ملف CSS المبني من أي صفحة (/login أو /dashboard) لتجنب 404 على Render
   app.use('/dist', express.static(path.join(__dirname, '../dashboard/dist')));
 }
