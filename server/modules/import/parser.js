@@ -1,5 +1,5 @@
 /**
- * Zero-config parser: CSV/text and fuzzy column mapping for Vault AI.
+ * Zero-config parser: CSV/text and fuzzy column mapping for Mizan.
  * Maps columns like اسم المادة, Qty, Product Name -> productId/name, quantity, etc.
  */
 

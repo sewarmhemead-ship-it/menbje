@@ -68,25 +68,30 @@ function isExpiredToken(token) {
   return t && new Date(t.expiresAt) <= new Date();
 }
 
+const MAX_MOVEMENTS_PUBLIC = 500;
+
 /**
- * Get public debt info for a valid token: company name, balance (SYP), last movement date.
- * Uses generateAccountStatement with optional tenantId filter.
+ * Get public debt info for a valid token: company name, balance (SYP), full statement (movements) with optional date range.
+ * Uses generateAccountStatement with optional tenantId and fromDate/toDate.
  * @param {string} token
- * @param {string} baseUrl - Base URL for link (e.g. origin from request)
- * @returns {{ success: boolean, companyName?: string, customerId?: string, balanceSYP?: number, lastMovementDate?: string, message?: string, error?: string }}
+ * @param {string|null} fromDate - optional YYYY-MM-DD
+ * @param {string|null} toDate - optional YYYY-MM-DD
+ * @returns {{ success: boolean, companyName?: string, customerId?: string, balanceSYP?: number, openingBalance?: number, movements?: array, fromDate?: string, toDate?: string, lastMovementDate?: string, lastMovements?: array, message?: string, error?: string }}
  */
-export function getPublicDebt(token) {
+export function getPublicDebt(token, fromDate = null, toDate = null) {
   const resolved = getByToken(token);
   if (!resolved) {
     const error = isExpiredToken(token) ? EXPIRED_MESSAGE : 'الرابط غير صالح أو منتهي الصلاحية';
     return { success: false, error };
   }
 
-  // generateAccountStatement(customerId, fromDate, toDate, tenantId) — we need to add tenantId to reports
+  const from = fromDate && /^\d{4}-\d{2}-\d{2}$/.test(fromDate) ? fromDate : null;
+  const to = toDate && /^\d{4}-\d{2}-\d{2}$/.test(toDate) ? toDate : null;
+
   const result = reports.generateAccountStatement(
     resolved.customerId,
-    null,
-    null,
+    from || null,
+    to || null,
     resolved.tenantId
   );
   const header = result.header || {};
@@ -94,7 +99,17 @@ export function getPublicDebt(token) {
   const movements = data.movements || [];
   const lastMovement = movements.length ? movements[movements.length - 1] : null;
 
-  // آخر 5 حركات للعرض في صفحة الدين (نوع: بيع/قبض، التاريخ، المبلغ)
+  // كشف كامل للعرض (تاريخ، بيان، مدين، دائن، رصيد) — نحدّ بعدد معقول
+  const capped = movements.slice(-MAX_MOVEMENTS_PUBLIC);
+  const statementRows = capped.map((m) => ({
+    date: (m.date || '').slice(0, 10),
+    memo: (m.memo || '').slice(0, 120),
+    debit: m.debit != null ? Number(m.debit) : 0,
+    credit: m.credit != null ? Number(m.credit) : 0,
+    balance: m.balance != null ? Number(m.balance) : 0,
+  }));
+
+  // آخر 5 حركات (ملخص سريع) للتوافق مع الواجهة القديمة
   const last5 = movements.slice(-5).reverse().map((m) => {
     const debit = Number(m.debit) || 0;
     const credit = Number(m.credit) || 0;
@@ -113,6 +128,10 @@ export function getPublicDebt(token) {
     companyName: header.companyName || 'الشركة',
     customerId: data.customerId,
     balanceSYP: data.closingBalance != null ? Number(data.closingBalance) : 0,
+    openingBalance: data.openingBalance != null ? Number(data.openingBalance) : 0,
+    movements: statementRows,
+    fromDate: from || null,
+    toDate: to || null,
     lastMovementDate: lastMovement ? (lastMovement.date || '').slice(0, 10) : null,
     lastMovements: last5,
     message: data.message || null,

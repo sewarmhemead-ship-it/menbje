@@ -8,12 +8,12 @@ import { store } from '../config/store.js';
 const BACKUP_VERSION = 1;
 const MAP_KEYS = [
   'products', 'units', 'fractioningRules', 'inventoryByProduct', 'orders', 'draftOrders',
-  'accounts', 'exchangeRates', 'users', 'sessions',
+  'accounts', 'exchangeRates', 'users', 'sessions', 'suppliers',
 ];
 const ARRAY_KEYS = [
   'inventoryLots', 'barterLedger', 'barterSurplus', 'barterNeeds', 'barterMatchAlerts',
   'journalEntriesList', 'vouchers', 'stockMovements', 'debtLedger', 'actionLog', 'visionCache',
-  'purchaseInvoices', 'purchaseReturns', 'boms', 'expenseRecords', 'debtLinkTokens',
+  'purchaseInvoices', 'purchaseReturns', 'salesInvoices', 'salesReturns', 'boms', 'expenseRecords', 'debtLinkTokens',
 ];
 const OBJECT_KEYS = ['companyProfile'];
 
@@ -50,7 +50,7 @@ function validateBackup(data) {
     if (!Array.isArray(data[key])) return { valid: false, error: 'Invalid backup: missing or invalid ' + key };
   }
   for (const key of ARRAY_KEYS) {
-    if (!Array.isArray(data[key])) return { valid: false, error: 'Invalid backup: missing or invalid ' + key };
+    if (data[key] !== undefined && !Array.isArray(data[key])) return { valid: false, error: 'Invalid backup: invalid ' + key };
   }
   for (const key of OBJECT_KEYS) {
     if (!data[key] || typeof data[key] !== 'object' || Array.isArray(data[key]))

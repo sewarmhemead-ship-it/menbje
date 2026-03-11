@@ -1,0 +1,6 @@
+{
+  "appId": "com.vauitai.mizan",
+  "appName": "Mizan",
+  "webDir": "dashboard",
+  "bundledWebRuntime": false
+}

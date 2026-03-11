@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <meta name="theme-color" content="#0a0e1a" />
-  <title>رصيدك · MIZAN</title>
+  <title>ميزان - نظام المحاسبة الذكي</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%2338bdf8' stroke-width='2'%3E%3Cpath d='M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M21 12a9 9 0 11-18 0 9 9 0 0118 0z'/%3E%3C/svg%3E" type="image/svg+xml" />
   <link href="https://fonts.googleapis.com/css2?family=Cairo:wght@400;600;700&display=swap" rel="stylesheet" />
   <link href="/dist/tailwind.css" rel="stylesheet" />
@@ -79,21 +79,36 @@
     <div id="state-success" class="glass-card hidden">
       <h1 class="text-lg font-bold text-white text-center" id="company-name"></h1>
       <p class="text-slate-500 text-sm text-center mt-0.5">رصيدك لدى المحل</p>
-      <div class="mt-4 py-4 px-4 rounded-xl bg-white/5 border border-white/10">
-        <p class="text-slate-400 text-xs">المبلغ المدين (ل.س)</p>
-        <p class="balance-num balance-display text-3xl mt-1" id="balance-syp"></p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+        <div class="py-3 px-4 rounded-xl bg-white/5 border border-white/10">
+          <p class="text-slate-400 text-xs">رصيد الافتتاح (ل.س)</p>
+          <p class="balance-num text-xl mt-1 text-slate-300" id="opening-balance">—</p>
+        </div>
+        <div class="py-4 px-4 rounded-xl bg-white/5 border border-white/10">
+          <p class="text-slate-400 text-xs">الرصيد الحالي (ل.س)</p>
+          <p class="balance-num balance-display text-2xl sm:text-3xl mt-1" id="balance-syp"></p>
+        </div>
       </div>
       <p class="text-slate-500 text-xs mt-2 text-center" id="last-movement"></p>
-      <h2 class="text-sm font-semibold text-slate-400 mt-5 mb-2">آخر 5 حركات</h2>
+      <div class="mt-4 p-3 rounded-xl bg-white/5 border border-white/10 print:hidden" id="filter-box">
+        <p class="text-slate-400 text-xs mb-2">الفترة (اختياري)</p>
+        <div class="flex flex-wrap gap-2 items-center">
+          <input type="date" id="from-date" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-slate-200" />
+          <span class="text-slate-500 text-sm">إلى</span>
+          <input type="date" id="to-date" class="bg-white/5 border border-white/10 rounded-lg px-2 py-1.5 text-sm text-slate-200" />
+          <button type="button" id="btn-filter" class="px-3 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 border border-white/10 text-slate-300 text-sm font-medium">عرض</button>
+        </div>
+      </div>
+      <h2 class="text-sm font-semibold text-slate-400 mt-5 mb-2">كشف الحساب</h2>
       <div class="overflow-x-auto -mx-1">
         <table class="table-movements" id="table-movements">
           <thead>
-            <tr><th>النوع</th><th>التاريخ</th><th>المبلغ</th></tr>
+            <tr><th>التاريخ</th><th>البيان</th><th>مدين</th><th>دائن</th><th>الرصيد</th></tr>
           </thead>
           <tbody id="movements-body"></tbody>
         </table>
       </div>
-      <p id="no-movements" class="text-slate-500 text-sm text-center py-3 hidden">لا توجد حركات لعرضها.</p>
+      <p id="no-movements" class="text-slate-500 text-sm text-center py-3 hidden">لا توجد حركات في الفترة المحددة.</p>
       <div class="mt-4 flex justify-center print:hidden">
         <button type="button" id="btn-pdf" class="px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 border border-white/10 text-slate-300 text-sm font-medium transition">تحميل كـ PDF</button>
       </div>
@@ -103,6 +118,8 @@
     (function() {
       var params = new URLSearchParams(window.location.search);
       var token = params.get('t') || params.get('token') || '';
+      var fromQuery = params.get('fromDate') || params.get('from') || '';
+      var toQuery = params.get('toDate') || params.get('to') || '';
       var apiBase = window.location.origin + '/api';
       var loading = document.getElementById('state-loading');
       var errBlock = document.getElementById('state-error');
@@ -110,9 +127,13 @@
       var successBlock = document.getElementById('state-success');
       var companyName = document.getElementById('company-name');
       var balanceSyp = document.getElementById('balance-syp');
+      var openingBalanceEl = document.getElementById('opening-balance');
       var lastMovement = document.getElementById('last-movement');
       var movementsBody = document.getElementById('movements-body');
       var noMovements = document.getElementById('no-movements');
+      var fromDateInput = document.getElementById('from-date');
+      var toDateInput = document.getElementById('to-date');
+      var btnFilter = document.getElementById('btn-filter');
 
       function showLoading() {
         loading.classList.remove('hidden');
@@ -136,46 +157,84 @@
         companyName.textContent = data.companyName || 'المحل';
         var bal = Number(data.balanceSYP);
         balanceSyp.textContent = formatNum(bal) + ' ل.س';
+        var open = data.openingBalance;
+        if (openingBalanceEl) {
+          openingBalanceEl.textContent = open != null ? formatNum(open) + ' ل.س' : '—';
+        }
         if (data.lastMovementDate) {
           lastMovement.textContent = 'تاريخ آخر تحديث: ' + data.lastMovementDate;
         } else {
           lastMovement.textContent = '';
         }
-        var list = data.lastMovements || [];
+        var list = data.movements || [];
         if (!list.length) {
           movementsBody.innerHTML = '';
           if (noMovements) noMovements.classList.remove('hidden');
         } else {
           if (noMovements) noMovements.classList.add('hidden');
           movementsBody.innerHTML = list.map(function(m) {
-            var isReceipt = (m.type || '').indexOf('قبض') !== -1;
-            var typeClass = isReceipt ? 'movement-type-receipt' : 'movement-type-sale';
-            var icon = isReceipt ? '↓' : '↑';
-            return '<tr><td class="' + typeClass + '"><span class="movement-icon">' + icon + '</span>' + (m.type || '—') + '</td><td>' + (m.date || '—') + '</td><td class="balance-num">' + formatNum(m.amount) + ' ل.س</td></tr>';
+            var debit = Number(m.debit) || 0;
+            var credit = Number(m.credit) || 0;
+            var debitStr = debit ? formatNum(debit) + ' ل.س' : '—';
+            var creditStr = credit ? formatNum(credit) + ' ل.س' : '—';
+            return '<tr><td>' + (m.date || '—') + '</td><td class="max-w-[120px] truncate" title="' + (m.memo || '').replace(/"/g, '&quot;') + '">' + (m.memo || '—') + '</td><td class="balance-num text-amber-400/90">' + debitStr + '</td><td class="balance-num text-emerald-400/90">' + creditStr + '</td><td class="balance-num text-slate-300">' + formatNum(m.balance) + ' ل.س</td></tr>';
           }).join('');
         }
+        if (fromDateInput && data.fromDate) fromDateInput.value = data.fromDate;
+        if (toDateInput && data.toDate) toDateInput.value = data.toDate;
+      }
+
+      function buildUrl() {
+        var url = apiBase + '/public/debt/' + encodeURIComponent(token);
+        var from = (fromDateInput && fromDateInput.value) ? fromDateInput.value.trim() : fromQuery;
+        var to = (toDateInput && toDateInput.value) ? toDateInput.value.trim() : toQuery;
+        var parts = [];
+        if (from) parts.push('fromDate=' + encodeURIComponent(from));
+        if (to) parts.push('toDate=' + encodeURIComponent(to));
+        if (parts.length) url += '?' + parts.join('&');
+        return url;
+      }
+
+      function load() {
+        showLoading();
+        fetch(buildUrl())
+          .then(function(r) { return r.json(); })
+          .then(function(json) {
+            if (json.success) {
+              showSuccess(json);
+            } else {
+              showError(json.error || 'الرابط غير صالح أو منتهي الصلاحية');
+            }
+          })
+          .catch(function() {
+            showError('تعذر الاتصال. جرّب لاحقاً.');
+          });
       }
 
       var btnPdf = document.getElementById('btn-pdf');
       if (btnPdf) btnPdf.addEventListener('click', function() { window.print(); });
+      if (btnFilter) {
+        btnFilter.addEventListener('click', function() {
+          var from = fromDateInput && fromDateInput.value ? fromDateInput.value.trim() : '';
+          var to = toDateInput && toDateInput.value ? toDateInput.value.trim() : '';
+          var q = new URLSearchParams(window.location.search);
+          if (from) q.set('fromDate', from); else { q.delete('fromDate'); q.delete('from'); }
+          if (to) q.set('toDate', to); else { q.delete('toDate'); q.delete('to'); }
+          var newUrl = window.location.pathname + (q.toString() ? '?' + q.toString() : '');
+          window.history.replaceState({}, '', newUrl);
+          fromQuery = from;
+          toQuery = to;
+          load();
+        });
+      }
 
       if (!token) {
         showError('الرابط غير مكتمل. استخدم الرابط الذي أرسله لك المحل.');
         return;
       }
-
-      fetch(apiBase + '/public/debt/' + encodeURIComponent(token))
-        .then(function(r) { return r.json(); })
-        .then(function(json) {
-          if (json.success) {
-            showSuccess(json);
-          } else {
-            showError(json.error || 'الرابط غير صالح أو منتهي الصلاحية');
-          }
-        })
-        .catch(function() {
-          showError('تعذر الاتصال. جرّب لاحقاً.');
-        });
+      if (fromQuery && fromDateInput) fromDateInput.value = fromQuery;
+      if (toQuery && toDateInput) toDateInput.value = toQuery;
+      load();
     })();
   </script>
 </body>

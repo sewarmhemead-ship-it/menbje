@@ -1,5 +1,5 @@
 /**
- * Industry Manager — تهيئة نظام Vault AI لأنشطة تجارية مختلفة
+ * Industry Manager — تهيئة نظام ميزان لأنشطة تجارية مختلفة
  * (مخبز، مطعم، محل موبايلات) دون تداخل الكود.
  */
 (function (global) {
@@ -60,7 +60,7 @@
    */
   function getVisibleMenu(menu) {
     var industry = getIndustry();
-    if (!Array.isArray(menu)) return menu;
+    if (!Array.isArray(menu)) return [];
     return menu.map(function (group) {
       var items = (group.items || []).filter(function (item) {
         var hiddenIf = item.hiddenIf;

@@ -8,7 +8,7 @@ import { logEntityEdit } from '../audit/actionLog.js';
 
 const defaultSettings = {
   branding: {
-    companyName: 'Vault AI',
+    companyName: 'Mizan',
     logoBase64: null,
     primaryColor: '#10b981',
     secondaryColor: '#34d399',

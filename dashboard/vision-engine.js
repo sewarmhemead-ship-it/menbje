@@ -175,6 +175,11 @@
           items: extracted.items,
           raw: extracted
         };
+      })
+      .finally(function () {
+        try {
+          if (typeof Tesseract.terminate === 'function') Tesseract.terminate();
+        } catch (e) {}
       });
   }
 

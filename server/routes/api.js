@@ -29,6 +29,7 @@ import * as expenses from '../modules/expenses/index.js';
 import * as backup from '../backup/index.js';
 import * as settings from '../config/settings.js';
 import * as debtLink from '../modules/debtLink/index.js';
+import { sendEmail } from '../mailer.js';
 import { optionalAuth, requireAuth, requireSuperAdmin, authorize } from '../auth/middleware.js';
 import { voucherReceiptSchema, voucherPaymentSchema, voucherJournalSchema, expenseSchema, validateBody } from '../validation/schemas.js';
 
@@ -63,7 +64,9 @@ router.get('/public/debt/:token', (req, res) => {
     if (!token || !DEBT_TOKEN_REGEX.test(token)) {
       return res.status(400).json({ success: false, error: 'الرابط غير صالح أو منتهي الصلاحية' });
     }
-    const data = debtLink.getPublicDebt(token);
+    const fromDate = (req.query.fromDate || req.query.from || '').trim() || null;
+    const toDate = (req.query.toDate || req.query.to || '').trim() || null;
+    const data = debtLink.getPublicDebt(token, fromDate, toDate);
     if (!data.success) return res.status(400).json(data);
     res.json(data);
   } catch (e) {
@@ -917,7 +920,7 @@ router.get('/reports/dashboard-summary', requireNoCashier, (req, res) => {
       branding: {
         primaryColor: branding.primaryColor || '#10b981',
         logoBase64: branding.logoBase64 || null,
-        companyName: branding.companyName || 'Vault AI',
+        companyName: branding.companyName || 'Mizan',
       },
     });
   } catch (e) {
@@ -1610,7 +1613,7 @@ router.put('/settings/company-profile', (req, res) => {
 });
 
 // —— Backup / Restore (النسخ الاحتياطي واستعادة البيانات) ——
-router.get('/backup/export', (req, res) => {
+router.get('/backup/export', requireAuth, (req, res) => {
   try {
     const data = backup.exportBackup();
     res.setHeader('Content-Type', 'application/json');
@@ -1620,6 +1623,32 @@ router.get('/backup/export', (req, res) => {
     res.status(500).json({ success: false, error: e.message });
   }
 });
+
+/** إرسال نسخة احتياطية إلى بريد المستخدم (يتطلب إعداد SMTP في الخادم) */
+router.post('/backup/send-email', requireAuth, async (req, res) => {
+  try {
+    const email = (req.user && (req.user.email || req.user.username)) || '';
+    const to = (typeof email === 'string' && email.includes('@')) ? email.trim() : null;
+    if (!to) {
+      return res.status(400).json({ success: false, error: 'لا يوجد بريد إلكتروني مرتبط بحسابك. أضف البريد في الملف الشخصي أو اتصل بالإدارة.' });
+    }
+    const data = backup.exportBackup();
+    const filename = 'VaultAI_Backup_' + new Date().toISOString().slice(0, 10) + '_' + Date.now() + '.json';
+    const result = await sendEmail({
+      to,
+      subject: 'نسخة احتياطية - نظام ميزان — ' + new Date().toLocaleDateString('ar-SY'),
+      text: 'مرفق نسخة احتياطية من بيانات النظام. احفظ الملف في مكان آمن. يمكنك استعادتها من إعدادات النظام → استيراد.',
+      attachments: [{ filename, content: JSON.stringify(data, null, 2), contentType: 'application/json' }],
+    });
+    if (!result.ok) {
+      return res.status(503).json({ success: false, error: result.error });
+    }
+    res.json({ success: true, message: 'تم إرسال النسخة الاحتياطية إلى ' + to });
+  } catch (e) {
+    res.status(500).json({ success: false, error: e.message });
+  }
+});
+
 router.post('/backup/restore', (req, res) => {
   try {
     const data = req.body;

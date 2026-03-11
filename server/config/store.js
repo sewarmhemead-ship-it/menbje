@@ -39,7 +39,7 @@ const boms = [];                   // { id, finishedProductId, finishedUnitId, c
 const expenseRecords = [];
 
 // Company profile (global settings)
-const companyProfile = { logoUrl: null, taxId: null, defaultCurrency: 'SYP', name: 'Vault AI' };
+const companyProfile = { logoUrl: null, taxId: null, defaultCurrency: 'SYP', name: 'Mizan' };
 
 // Auth: users and sessions (in-memory)
 const users = new Map();       // id -> { id, username, email, password, fullName, role, tier, status, tenantId, expiresAt, createdAt }
